@@ -2,675 +2,394 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Le Docteur des animaux</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      background: linear-gradient(180deg, #e3f6f5 0 68%, #bae8e8 68%);
-      display: grid;
-      grid-template-areas: "top" "info" "room" "tray";
-      grid-template-rows: auto auto minmax(0, 1fr) auto;
-      justify-items: center;
-      align-items: center;
-    }
-    #top { grid-area: top; display: flex; align-items: center; gap: 10px; margin-top: max(16px, env(safe-area-inset-top)); }
-    #top h1 { margin: 0; font-size: clamp(20px, 4.8vw, 36px); }
-    .pill { background: #fff; border-radius: 999px; padding: 4px 16px; font-size: clamp(18px, 4vw, 28px); box-shadow: var(--shadow); }
+    /* ---------- Disposition : patient au centre, trousse en bas (ou à droite en paysage) ---------- */
+    .room { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: var(--s-2); }
+    @media (orientation: landscape) { .room { flex-direction: row; justify-content: center; gap: var(--s-4); } }
+    /* la zone du patient prend toute la place restante (sinon sa taille se calcule sur son contenu) */
+    .care { flex: 1; min-height: 0; min-width: 0; align-self: stretch; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .kitbag { align-self: center; }
 
-    /* fiche du patient : ce qu'il a + étapes */
-    #info {
-      grid-area: info;
-      background: #fff; border-radius: 22px; box-shadow: var(--shadow);
-      padding: 8px 14px; margin: 6px 10px;
-      display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px;
-      max-width: min(94vw, 560px);
-      cursor: pointer;
-    }
-    #problem { font-size: clamp(36px, 8vmin, 64px); line-height: 1; }
-    #help { border: 0; border-radius: 50%; background: #ffd166; width: 52px; height: 52px; font-size: 28px; box-shadow: var(--shadow); touch-action: manipulation; }
-    #steps { display: flex; gap: 6px; }
-    .step {
-      width: clamp(38px, 8vmin, 52px); height: clamp(38px, 8vmin, 52px);
-      border-radius: 50%; background: #f1f3f5; display: grid; place-items: center;
-      font-size: clamp(20px, 4.6vmin, 30px); position: relative; border: 3px solid transparent;
-    }
-    .step.now { border-color: #4cc9f0; animation: pulse 1s infinite; }
-    .step.done { background: #d8f3dc; }
-    .step.done::after { content: "✓"; position: absolute; right: -4px; bottom: -6px; font-size: 18px; color: #2d6a4f; font-weight: bold; }
-    @keyframes pulse { 50% { transform: scale(1.08); } }
+    /* bulle : ce qu'a l'animal + les étapes du soin (en images) */
+    .bubble { display: flex; align-items: center; gap: var(--s-2); background: var(--c-paper); border-radius: var(--r-pill); padding: 6px 10px; box-shadow: var(--sh-1); margin-bottom: var(--s-1); cursor: pointer; }
+    .bubble .sick-icon { font-size: 30px; }
+    .step { width: 46px; height: 46px; border-radius: 50%; background: #f1f3f5; display: grid; place-items: center; font-size: 24px; position: relative; transition: all var(--t-med) var(--ease-bounce); }
+    .step.now { background: #e7f5ff; box-shadow: 0 0 0 3px #4dabf7; transform: scale(1.12); }
+    .step.done { background: var(--c-success-soft); }
+    .step.done::after { content: "✓"; position: absolute; right: -4px; bottom: -6px; font-size: 18px; font-weight: bold; color: var(--c-success); }
 
-    /* la salle d'examen */
-    #room { grid-area: room; width: 100%; height: 100%; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
-    #bed {
-      flex: none; margin-top: calc(var(--P) * -0.1);
-      width: calc(var(--P) * 1.15); height: calc(var(--P) * 0.12);
-      background: #fff; border-radius: 16px; box-shadow: 0 8px 0 #90a4ae;
-    }
-    #patient {
-      position: relative; width: var(--P); height: var(--P);
-      touch-action: none; z-index: 2; flex: none;
-    }
-    #patient.drop-ready { filter: drop-shadow(0 0 16px #4cc9f0); }
-    #patient.arrive { animation: arrive 0.8s ease-out; }
-    @keyframes arrive { from { transform: translateX(-80vw); } }
-    #patient.happy { animation: jump 0.5s ease-in-out 3; }
+    /* le patient */
+    .patient-wrap { position: relative; display: flex; flex-direction: column; align-items: center; }
+    .patient { position: relative; width: var(--P); height: var(--P); touch-action: none; z-index: 2; }
+    .patient.arrive { animation: arrive 0.7s var(--ease-out); }
+    @keyframes arrive { from { transform: translateX(-70vw) rotate(-10deg); } }
+    .patient.sick { animation: shiver 2.4s ease-in-out infinite; }
+    @keyframes shiver { 0%, 100% { rotate: 0deg; } 25% { rotate: -1.5deg; } 75% { rotate: 1.5deg; } }
+    .patient.happy { animation: jump 0.5s ease-in-out 3; }
     @keyframes jump { 50% { transform: translateY(-14%); } }
-    #patient.sick { animation: shiver 2.5s ease-in-out infinite; }
-    @keyframes shiver { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-1.5deg); } 75% { transform: rotate(1.5deg); } }
+    .bed { width: calc(var(--P) * 1.2); height: calc(var(--P) * 0.11); margin-top: calc(var(--P) * -0.09); background: #fff; border-radius: 18px; box-shadow: 0 8px 0 #a5d8ff; }
     .part { position: absolute; transform: translate(-50%, -50%); }
     .body { border-radius: 48% 48% 42% 42%; box-shadow: inset -10px -12px 0 rgba(0,0,0,0.1); }
     .limb { border-radius: 50%; box-shadow: inset -5px -6px 0 rgba(0,0,0,0.12); }
     .belly { border-radius: 50%; background: rgba(255,255,255,0.35); }
     .head { font-size: calc(var(--P) * 0.42); line-height: 1; z-index: 3; }
     .fx { position: absolute; transform: translate(-50%, -50%); pointer-events: none; z-index: 5; }
+    .mood { position: absolute; right: -4%; top: -2%; font-size: calc(var(--P) * 0.15); z-index: 7; animation: k-in var(--t-slow) var(--ease-bounce); }
     .fever { border-radius: 50%; background: radial-gradient(circle, rgba(255, 60, 60, 0.45), transparent 70%); z-index: 4; }
-    .scratch { z-index: 5; }
     .scratch i { position: absolute; left: 0; width: 100%; height: 18%; border-radius: 4px; background: #d00000; transform: rotate(-25deg); }
-    .mud { border-radius: 46% 54% 40% 60%; background: #7f5539; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.15); z-index: 6; transition: opacity 0.2s; }
-    .thorn { width: 0; height: 0; border-left: calc(var(--P) * 0.018) solid transparent; border-right: calc(var(--P) * 0.018) solid transparent; border-bottom: calc(var(--P) * 0.07) solid #6b3e1e; z-index: 6; transition: opacity 0.2s; }
-    .bones { font-size: calc(var(--P) * 0.14); z-index: 6; transition: opacity 0.2s; filter: drop-shadow(0 0 6px #4cc9f0); }
-    .cast { border-radius: 40%; background: repeating-linear-gradient(-30deg, #fff 0 8px, #e9ecef 8px 12px); z-index: 6; animation: bounce-in 0.3s; }
+    .mud { border-radius: 46% 54% 40% 60%; background: #7f5539; z-index: 6; transition: opacity 0.2s; }
+    .thorn { width: 0; height: 0; border-left: calc(var(--P) * 0.02) solid transparent; border-right: calc(var(--P) * 0.02) solid transparent; border-bottom: calc(var(--P) * 0.075) solid #6b3e1e; z-index: 8; transition: opacity 0.2s; }
     .tear { font-size: calc(var(--P) * 0.06); animation: tear 1.4s ease-in infinite; z-index: 6; }
     @keyframes tear { from { opacity: 1; transform: translate(-50%, -50%); } to { opacity: 0; transform: translate(-50%, 250%); } }
-    #mood { position: absolute; right: -6%; top: 0; font-size: calc(var(--P) * 0.14); z-index: 7; animation: bounce-in 0.4s; }
-    .target {
-      border-radius: 50%; border: 4px dashed #4cc9f0; z-index: 8;
-      animation: spin 4s linear infinite;
-      background: conic-gradient(rgba(76, 201, 240, 0.35) var(--pct, 0%), transparent 0);
-    }
+    .cast { border-radius: 40%; background: repeating-linear-gradient(-30deg, #fff 0 8px, #e9ecef 8px 12px); z-index: 6; animation: k-in 0.3s var(--ease-bounce); }
+    .applied { font-size: calc(var(--P) * 0.13); z-index: 7; animation: k-in var(--t-slow) var(--ease-bounce); }
+    .temp { position: absolute; top: -6%; left: 50%; transform: translateX(-50%); background: #fff; border-radius: 14px; padding: 2px 12px; font-size: calc(var(--P) * 0.08); font-weight: bold; box-shadow: var(--sh-1); z-index: 9; }
+    /* la cible : où soigner (se remplit quand on frotte) */
+    .target { border-radius: 50%; border: 4px dashed #4dabf7; z-index: 8; animation: spin 5s linear infinite; background: conic-gradient(rgba(77, 171, 247, 0.4) var(--pct, 0%), transparent 0); }
+    .target.hot { border-color: var(--c-success); border-style: solid; }
     @keyframes spin { to { rotate: 360deg; } }
-    #cursor { position: fixed; z-index: 60; font-size: 54px; pointer-events: none; transform: translate(-50%, -85%); display: none; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.2)); }
-    .puff { position: fixed; pointer-events: none; z-index: 59; font-size: 26px; animation: puff 0.8s ease-out forwards; }
-    @keyframes puff { to { transform: translate(var(--dx), -40px) scale(1.6); opacity: 0; } }
-    #temp {
-      position: absolute; top: -4%; left: 50%; transform: translateX(-50%);
-      background: #fff; border-radius: 14px; padding: 4px 12px; font-size: calc(var(--P) * 0.08); font-weight: bold;
-      box-shadow: var(--shadow); z-index: 9; display: none;
-    }
 
-    /* la trousse d'outils */
-    #tray {
-      grid-area: tray;
-      display: flex; flex-wrap: wrap; justify-content: center; gap: 7px;
-      padding: 8px 10px max(12px, env(safe-area-inset-bottom));
-      max-width: 760px;
+    /* la trousse */
+    .kitbag {
+      flex: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+      background: rgba(255,255,255,0.7); border-radius: var(--r-lg); padding: 10px; box-shadow: var(--sh-1);
+      max-width: min(96vw, 720px); margin-bottom: 4px;
     }
+    @media (orientation: landscape) { .kitbag { max-width: 270px; } }
     .tool {
-      width: clamp(70px, 14vmin, 96px); height: clamp(70px, 14vmin, 96px);
-      border-radius: 18px; background: #fff; box-shadow: 0 5px 0 rgba(0,0,0,0.15);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      font-size: clamp(36px, 8vmin, 54px); line-height: 1.05; transition: transform 0.1s; touch-action: none;
+      width: clamp(64px, 13vmin, 84px); height: clamp(64px, 13vmin, 84px); border-radius: 50%;
+      background: var(--c-paper); box-shadow: var(--sh-2); font-size: clamp(32px, 7vmin, 44px);
+      display: grid; place-items: center; touch-action: none; cursor: grab;
+      transition: transform var(--t-fast) var(--ease-out), opacity var(--t-fast);
     }
-    .tool small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    .tool.active { background: #ffd166; transform: translateY(-4px) scale(1.06); }
-    .tool.hint { animation: hint 0.6s ease-in-out infinite alternate; }
-    @keyframes hint { to { transform: translateY(-6px); box-shadow: 0 0 0 4px #4cc9f0, 0 5px 0 rgba(0,0,0,0.15); } }
-    .tool-drag { position: fixed; z-index: 100; pointer-events: none; transform: translate(-50%, -50%) scale(1.12); font-size: 58px; filter: drop-shadow(0 6px 7px #0005); }
-
-    /* téléphone debout : place pour le bouton son en haut à droite */
-    @media (max-width: 600px) {
-      #top { margin-top: max(26px, env(safe-area-inset-top)); }
-      #info { margin-top: 18px; }
-    }
-    @media (orientation: landscape) {
-      body {
-        grid-template-areas: "top top" "info info" "room tray";
-        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
-        grid-template-rows: auto auto minmax(0, 1fr);
-      }
-      #tray { align-self: center; }
-    }
-    @media (orientation: landscape) and (max-height: 500px) {
-      #top h1 { display: none; }
-      .tool { width: 46px; height: 46px; font-size: 24px; border-radius: 12px; }
-      .tool small { display: none; }
-    }
+    .tool.lifted { opacity: 0.3; transform: scale(0.9); }
+    .tool.glow { animation: glow 1.1s ease-in-out infinite; }
+    @keyframes glow { 50% { transform: translateY(-6px) scale(1.06); box-shadow: 0 0 0 6px #ffd43b, var(--sh-2); } }
+    .ghost { position: fixed; z-index: 900; font-size: 64px; pointer-events: none; transform: translate(-50%, -60%) scale(1.1); filter: drop-shadow(0 10px 8px rgba(0,0,0,0.25)); }
+    .ghost.back { transition: left 0.3s var(--ease-out), top 0.3s var(--ease-out), opacity 0.3s; opacity: 0.2; }
+    .puff { position: fixed; pointer-events: none; z-index: 950; font-size: 28px; animation: puff 0.8s ease-out forwards; }
+    @keyframes puff { to { transform: translate(var(--dx), -46px) scale(1.6); opacity: 0; } }
   </style>
 </head>
 <body>
-  <div id="top"><h1 id="docTitle">🩺 Docteur</h1><div class="pill" id="healed">❤️ 0</div></div>
-  <div id="info" title="Écouter"><span id="problem" aria-hidden="true"></span><div id="steps"></div><button id="help" type="button" aria-label="Répéter l'aide">🔊</button></div>
-  <div id="room"><div id="patient"></div><div id="bed"></div></div>
-  <div id="tray"></div>
-  <div id="cursor"></div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, confetti, pick, shuffle, NAME } = Jeux;
+    const D = DocteurLogic;
+    let session = null, ctx = null;
 
-    // ---------- Les outils ----------
-    const TOOLS = {
-      desinfectant: ["🧴", "désinfectant"],
-      pansement: ["🩹", "pansement"],
-      thermometre: ["🌡️", "thermomètre"],
-      sirop: ["🥄", "sirop"],
-      glace: ["🧊", "glace"],
-      loupe: ["🔍", "loupe"],
-      pince: ["🥢", "pince"],
-      stethoscope: ["🩺", "stéthoscope"],
-      eponge: ["🧽", "éponge"],
-      radio: ["📷", "radio"],
-      platre: ["🧻", "plâtre"],
-      seringue: ["💉", "seringue"],
-      croquettes: ["🦴", "croquettes"],
-    };
+    // ======================================================================
+    // Construction de la scène pour un patient
+    // ======================================================================
+    function buildRoom(round, patient, tray) {
+      const [head, body, limbs] = patient.animal;
+      const ailment = D.AILMENTS[patient.ailment];
+      ctx = { round, patient, tray, step: 0, progress: 0, placed: 0, busy: false, sick: {}, toolEls: {} };
 
-    // ---------- Le corps (positions en % de la boîte du patient) ----------
-    const Z = {
-      front: [50, 15, 11], bouche: [50, 36, 9], joue: [63, 28, 8],
-      ventre: [50, 66, 15], patte: [22, 60, 9], jambe: [63, 88, 10],
-    };
+      const room = el("div", "room");
+      const care = el("div", "care");
+      const bubble = el("button", "bubble");
+      bubble.setAttribute("aria-label", "Réécouter");
+      bubble.onclick = () => round.say(currentStep() ? currentStep().say : ailment.intro);
+      care.appendChild(bubble);
+      const wrap = el("div", "patient-wrap");
+      const p = el("div", "patient arrive sick");
+      wrap.append(p, el("div", "bed"));
+      care.appendChild(wrap);
+      const bag = el("div", "kitbag");
+      room.append(care, bag);
+      round.stage.appendChild(room);
+      ctx.bubble = bubble; ctx.patientEl = p;
 
-    // ---------- Les maladies ----------
-    // type : rub = frotter sur la zone, tap = toucher n fois, pull = tirer
-    const AILMENTS = {
-      bobo: {
-        intro: "Je suis tombé ! J'ai un gros bobo sur la joue !",
-        label: "Un bobo sur la joue",
-        steps: [
-          { tool: "desinfectant", zone: "joue", type: "rub", amount: 2.5, say: "D'abord on nettoie le bobo avec le désinfectant. Frotte doucement !" },
-          { tool: "pansement", zone: "joue", type: "tap", count: 1, say: "Maintenant, un joli pansement !" },
-        ],
-      },
-      fievre: {
-        intro: "J'ai chaud, j'ai froid... je ne me sens pas bien !",
-        label: "Il est malade",
-        steps: [
-          { tool: "thermometre", zone: "bouche", type: "tap", count: 1, say: "On prend la température. Mets le thermomètre dans la bouche !" },
-          { tool: "sirop", zone: "bouche", type: "tap", count: 3, say: "Il a de la fièvre ! Donne-lui trois cuillères de sirop." },
-          { tool: "glace", zone: "front", type: "tap", count: 1, say: "Et une poche de glace sur le front pour le rafraîchir !" },
-        ],
-      },
-      epine: {
-        intro: "Aïe aïe aïe ! J'ai marché sur quelque chose qui pique !",
-        label: "Ça pique à la patte",
-        steps: [
-          { tool: "loupe", zone: "patte", type: "rub", amount: 2, say: "Cherche avec la loupe sur sa patte !" },
-          { tool: "pince", zone: "patte", type: "pull", say: "Une épine ! Enlève-la avec la pince : touche l'épine et tire !" },
-          { tool: "pansement", zone: "patte", type: "tap", count: 1, say: "Bravo ! Un petit pansement pour finir." },
-        ],
-      },
-      ventre: {
-        intro: "Oh là là, j'ai mal au ventre ! J'ai mangé trop de bonbons !",
-        label: "Mal au ventre",
-        steps: [
-          { tool: "stethoscope", zone: "ventre", type: "rub", amount: 3, say: "Écoute son ventre avec le stéthoscope !" },
-          { tool: "sirop", zone: "bouche", type: "tap", count: 2, say: "Ça gargouille ! Donne-lui deux cuillères de sirop." },
-        ],
-      },
-      boue: {
-        intro: "J'ai sauté dans les flaques de boue ! Je suis tout sale !",
-        label: "Tout plein de boue",
-        steps: [{ tool: "eponge", zone: "mud", type: "mud", say: "Frotte toutes les taches de boue avec l'éponge !" }],
-      },
-      jambe: {
-        intro: "Je suis tombé de vélo ! J'ai très mal à la jambe !",
-        label: "Mal à la jambe",
-        steps: [
-          { tool: "radio", zone: "jambe", type: "rub", amount: 2.5, say: "On fait une radio pour voir les os ! Passe l'appareil sur sa jambe." },
-          { tool: "platre", zone: "jambe", type: "tap", count: 3, say: "L'os est cassé ! Il faut un plâtre. Touche trois fois sa jambe !" },
-        ],
-      },
-      faim: {
-        intro: "Mon ventre gargouille ! J'ai très faim !",
-        label: "Il a faim",
-        steps: [{ tool: "croquettes", zone: "bouche", type: "tap", count: 3, say: "Glisse les croquettes jusqu'à sa bouche. Trois petites bouchées !" }],
-      },
-      piqure: {
-        intro: "Aïe ! Une abeille m'a piqué la patte !",
-        label: "Une piqûre à la patte",
-        steps: [{ tool: "seringue", zone: "patte", type: "tap", count: 1, say: "Glisse la seringue sur sa patte pour l'aider." }],
-      },
-    };
+      // taille du patient selon la place disponible
+      const fit = () => {
+        const r = care.getBoundingClientRect();
+        const P = Math.max(150, Math.min(r.width * 0.78, (r.height - 70) * 0.9, 420));
+        round.stage.style.setProperty("--P", P + "px");
+      };
+      fit();
+      new ResizeObserver(fit).observe(care);
 
-    const ANIMALS = [
-      ["🐶", "#c68b59", "#a0693f", "le chien"], ["🐱", "#f4a259", "#d9822b", "le chat"], ["🐰", "#e9ecef", "#ced4da", "le lapin"],
-      ["🐻", "#8d5524", "#6f4518", "l'ours"], ["🐼", "#f8f9fa", "#222", "le panda"], ["🐸", "#80c45a", "#5a9e3a", "la grenouille"],
-      ["🐷", "#ffb3c6", "#ff8fab", "le cochon"], ["🦊", "#f77f00", "#d45d00", "le renard"], ["🐯", "#f9a03f", "#e07b00", "le tigre"],
-      ["🐨", "#adb5bd", "#868e96", "le koala"], ["🦁", "#f6bd60", "#d9a441", "le lion"], ["🐵", "#a0693f", "#7f5539", "le singe"],
-    ];
+      // le corps de l'animal
+      part(p, "limb", 37, 88, 18, 14, limbs); part(p, "limb", 63, 88, 18, 14, limbs);
+      part(p, "limb", 22, 60, 16, 16, limbs); part(p, "limb", 78, 60, 16, 16, limbs);
+      part(p, "body", 50, 66, 50, 44, body); part(p, "belly", 50, 70, 30, 26);
+      part(p, "head", 50, 27).textContent = head;
+      const mood = el("div", "mood"); mood.textContent = patient.ailment === "fievre" ? "🤒" : "😢"; p.appendChild(mood);
+      ctx.mood = mood;
+      showSickness(p, patient.ailment);
 
-    // ---------- État ----------
-    let healed = parseInt(localStorage.getItem("jeux.patients") || "0", 10);
-    let patient, ailment, stepIndex, tool = null, busy = false, progress = 0, taps = 0;
-    let lastAilment = null;
-    const patientEl = document.getElementById("patient");
-    const tray = document.getElementById("tray");
-    const cursor = document.getElementById("cursor");
+      // la trousse
+      tray.forEach((t) => {
+        const b = el("button", "tool");
+        b.textContent = D.TOOLS[t].e;
+        b.dataset.tool = t;
+        b.setAttribute("aria-label", D.TOOLS[t].name);
+        b.addEventListener("pointerdown", (e) => startDrag(e, b, t));
+        bag.appendChild(b);
+        ctx.toolEls[t] = b;
+      });
 
-    function resize() {
-      const r = document.getElementById("room").getBoundingClientRect();
-      const P = Math.max(150, Math.min(r.width * 0.75, r.height * 0.84, 440));
-      document.documentElement.style.setProperty("--P", P + "px");
+      round.setHintTarget(() => ctx.toolEls[currentStep() && currentStep().tool]);
+      renderStep();
+      // l'animal se présente, puis on dit quoi faire
+      setTimeout(() => p.classList.remove("arrive"), 800);
+      setTimeout(() => round.say(`${ailment.intro} ${patient.steps[0].say}`), round.index === 0 ? 3200 : 500);
     }
-    new ResizeObserver(resize).observe(document.getElementById("room"));
 
-    // ---------- Construire le patient ----------
-    function part(cls, x, y, w, h, extra = {}) {
-      const d = document.createElement("div");
-      d.className = "part " + cls;
+    const el = (tag, cls) => { const e = document.createElement(tag); e.className = cls; return e; };
+    function part(p, cls, x, y, w, h, bg) {
+      const d = el("div", "part " + cls);
       d.style.left = x + "%"; d.style.top = y + "%";
       if (w) d.style.width = w + "%";
       if (h) d.style.height = h + "%";
-      Object.assign(d.style, extra);
-      patientEl.appendChild(d);
+      if (bg) d.style.background = bg;
+      p.appendChild(d);
       return d;
     }
-    function fx(cls, x, y, w, h) {
-      const d = part(cls, x, y, w, h);
-      d.classList.add("fx");
-      return d;
+    const fx = (p, cls, x, y, w, h) => { const d = part(p, "fx " + cls, x, y, w, h); return d; };
+
+    function showSickness(p, id) {
+      const s = ctx.sick;
+      s.tears = [fx(p, "tear", 38, 34), fx(p, "tear", 62, 34)];
+      s.tears.forEach((t, i) => { t.textContent = "💧"; t.style.animationDelay = i * 0.7 + "s"; });
+      const Z = D.ZONES;
+      if (id === "bobo") { s.scratch = fx(p, "scratch", Z.joue[0], Z.joue[1], 11, 7); s.scratch.innerHTML = "<i style='top:10%'></i><i style='top:45%'></i><i style='top:80%'></i>"; }
+      if (id === "fievre") s.fever = fx(p, "fever", 50, 27, 48, 48);
+      if (id === "epine") { s.thorn = fx(p, "thorn", Z.patte[0], Z.patte[1]); s.thorn.style.opacity = 0.1; }
+      if (id === "ventre") { s.swirl = fx(p, "", 50, 68); s.swirl.textContent = "🌀"; s.swirl.style.fontSize = "calc(var(--P) * 0.09)"; s.swirl.style.opacity = 0.6; }
+      if (id === "boue") s.mud = [[40, 62, 14, 10], [60, 74, 12, 9], [44, 20, 10, 8], [76, 58, 9, 9], [36, 88, 10, 7]].map(([x, y, w, h]) => { const m = fx(p, "mud", x, y, w, h); m.dataset.left = 1; return m; });
+      if (id === "jambe") { s.bones = fx(p, "", Z.jambe[0], Z.jambe[1]); s.bones.textContent = "🦴"; s.bones.style.fontSize = "calc(var(--P) * 0.14)"; s.bones.style.opacity = 0; s.bolt = fx(p, "", Z.jambe[0] + 10, Z.jambe[1] - 8); s.bolt.textContent = "⚡"; s.bolt.style.fontSize = "calc(var(--P) * 0.07)"; }
     }
 
-    function buildPatient() {
-      patientEl.innerHTML = "";
-      const [head, body, limbs] = patient;
-      // jambes, bras, corps, ventre, tête
-      part("limb", 37, 88, 18, 14, { background: limbs });
-      part("limb", 63, 88, 18, 14, { background: limbs });
-      part("limb", 22, 60, 16, 16, { background: limbs });
-      part("limb", 78, 60, 16, 16, { background: limbs });
-      part("body", 50, 66, 50, 44, { background: body });
-      part("belly", 50, 70, 30, 26);
-      part("head", 50, 27, null, null).textContent = head;
-      const mood = document.createElement("div");
-      mood.id = "mood";
-      patientEl.appendChild(mood);
-      const temp = document.createElement("div");
-      temp.id = "temp";
-      patientEl.appendChild(temp);
-    }
-    function setMood(e) {
-      const m = document.getElementById("mood");
-      m.textContent = e;
-      m.style.animation = "none"; void m.offsetWidth; m.style.animation = "";
-    }
+    const currentStep = () => ctx.patient.steps[ctx.step];
 
-    // décor de la maladie
-    let sick = {};
-    function showSickness() {
-      sick = {};
-      const tears = [fx("tear", 38, 34), fx("tear", 62, 34)];
-      tears[0].textContent = tears[1].textContent = "💧";
-      tears[1].style.animationDelay = "0.7s";
-      sick.tears = tears;
-      const id = ailment.id;
-      if (id === "bobo") {
-        const s = fx("scratch", Z.joue[0], Z.joue[1], 11, 7);
-        s.innerHTML = "<i style='top:10%'></i><i style='top:45%'></i><i style='top:80%'></i>";
-        sick.scratch = s;
-      } else if (id === "fievre") {
-        sick.fever = fx("fever", 50, 27, 48, 48);
-      } else if (id === "epine") {
-        sick.thorn = fx("thorn", Z.patte[0], Z.patte[1]);
-        sick.thorn.style.opacity = 0.08;
-      } else if (id === "ventre") {
-        sick.swirl = fx("", 50, 68);
-        sick.swirl.textContent = "🌀";
-        sick.swirl.style.fontSize = "calc(var(--P) * 0.09)";
-        sick.swirl.style.opacity = 0.6;
-      } else if (id === "boue") {
-        sick.mud = [[40, 62, 14, 10], [60, 74, 12, 9], [44, 20, 10, 8], [76, 58, 9, 9], [36, 88, 10, 7]].map(([x, y, w, h]) => {
-          const m = fx("mud", x, y, w, h);
-          m.dataset.left = 1;
-          return m;
-        });
-      } else if (id === "jambe") {
-        sick.bones = fx("bones", Z.jambe[0], Z.jambe[1]);
-        sick.bones.textContent = "🦴";
-        sick.bones.style.opacity = 0;
-        sick.bolt = fx("", Z.jambe[0] + 10, Z.jambe[1] - 8);
-        sick.bolt.textContent = "⚡";
-        sick.bolt.style.fontSize = "calc(var(--P) * 0.07)";
+    // bulle (étapes en images), cible sur le corps, outil qui brille en Facile
+    function renderStep() {
+      const ailment = D.AILMENTS[ctx.patient.ailment];
+      ctx.bubble.innerHTML = `<span class="sick-icon">${ailment.icon}</span>` + ctx.patient.steps.map((s, i) => `<span class="step ${i < ctx.step ? "done" : i === ctx.step ? "now" : ""}">${D.TOOLS[s.tool].e}</span>`).join("");
+      if (ctx.target) ctx.target.remove();
+      ctx.target = null;
+      Object.values(ctx.toolEls).forEach((b) => b.classList.remove("glow"));
+      const s = currentStep();
+      if (!s) return;
+      if (s.zone !== "mud") {
+        const [x, y, r] = D.ZONES[s.zone];
+        ctx.target = fx(ctx.patientEl, "target", x, y, r * 2.3, r * 2.3);
       }
+      if (ctx.round.cfg.glow && ctx.toolEls[s.tool]) ctx.toolEls[s.tool].classList.add("glow");
     }
 
-    // ---------- Fiche + étapes ----------
-    function renderInfo() {
-      document.getElementById("problem").textContent = patient[0];
-      document.getElementById("info").setAttribute("aria-label", `${patient[3]} : ${ailment.label}. Appuie sur le haut-parleur pour écouter.`);
-      document.getElementById("steps").innerHTML = ailment.steps
-        .map((s, i) => `<div class="step ${i < stepIndex ? "done" : i === stepIndex ? "now" : ""}">${TOOLS[s.tool][0]}</div>`)
-        .join("");
+    // ======================================================================
+    // Glisser-déposer des outils
+    // ======================================================================
+    let drag = null;
+    function startDrag(e, btn, tool) {
+      if (ctx.busy || drag) return;
+      e.preventDefault();
+      try { btn.setPointerCapture(e.pointerId); } catch (err) {}
+      const g = el("div", "ghost");
+      g.textContent = D.TOOLS[tool].e;
+      document.body.appendChild(g);
+      // on retient l'étape au moment où l'outil est pris : si l'étape se termine pendant
+      // le geste (on a fini de frotter), lâcher l'outil ne doit pas compter comme une erreur
+      drag = { btn, tool, ghost: g, last: null, grabbed: false, pid: e.pointerId, stepAtStart: ctx.step, patientAtStart: ctx.patient };
+      btn.classList.add("lifted");
+      Jeux.sounds.click();
+      moveGhost(e);
+      btn.addEventListener("pointermove", onMove);
+      btn.addEventListener("pointerup", onUp);
+      btn.addEventListener("pointercancel", onUp);
     }
-    document.getElementById("info").addEventListener("click", () => {
-      const s = ailment.steps[stepIndex];
-      say(s ? s.say : ailment.intro);
-    });
-    document.getElementById("help").addEventListener("click", (e) => {
-      e.stopPropagation();
-      const s = ailment.steps[stepIndex];
-      say(s ? s.say : ailment.intro);
-      if (s) tray.querySelector(`[data-tool="${s.tool}"]`)?.classList.add("hint");
-    });
-
-    let targetEl = null, hintTimer = null;
-    function showTarget() {
-      if (targetEl) targetEl.remove();
-      targetEl = null;
-      const s = ailment.steps[stepIndex];
-      if (!s || s.zone === "mud") return;
-      const [x, y, r] = Z[s.zone];
-      targetEl = fx("target", x, y, r * 2.2, r * 2.2);
-    }
-    function scheduleHint() {
-      clearTimeout(hintTimer);
-      tray.querySelectorAll(".tool").forEach((t) => t.classList.remove("hint"));
-      hintTimer = setTimeout(() => {
-        const s = ailment.steps[stepIndex];
-        if (!s || tool === s.tool) return;
-        tray.querySelector(`[data-tool="${s.tool}"]`)?.classList.add("hint");
-      }, 7000);
-    }
-
-    // ---------- Trousse ----------
-    function buildTray() {
-      tray.innerHTML = "";
-      for (const [id, [e, label]] of Object.entries(TOOLS)) {
-        const b = document.createElement("button");
-        b.className = "tool";
-        b.dataset.tool = id;
-        b.innerHTML = `${e}<small>${label}</small>`;
-        b.setAttribute("aria-label", label);
-        b.title = label;
-        b.onclick = () => {
-          if (busy) return;
-          tool = id;
-          tray.querySelectorAll(".tool").forEach((t) => t.classList.remove("active", "hint"));
-          b.classList.add("active");
-          sounds.click();
-          say(label);
-          scheduleHint();
-        };
-        b.addEventListener("pointerdown", (e) => {
-          if (busy || e.button > 0) return;
-          draggingTool = { id, pointerId: e.pointerId };
-          dragEl = document.createElement("div");
-          dragEl.className = "tool-drag";
-          dragEl.textContent = e.currentTarget.firstChild.textContent;
-          document.body.appendChild(dragEl);
-          moveToolDrag(e);
-          e.preventDefault();
-        });
-        tray.appendChild(b);
-      }
-    }
-
-    let draggingTool = null, dragEl = null;
-    function moveToolDrag(e) {
-      if (!draggingTool || e.pointerId !== draggingTool.pointerId) return;
-      dragEl.style.left = e.clientX + "px";
-      dragEl.style.top = e.clientY + "px";
-      const r = patientEl.getBoundingClientRect();
-      patientEl.classList.toggle("drop-ready", e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
-    }
-    document.addEventListener("pointermove", moveToolDrag);
-    document.addEventListener("pointerup", (e) => {
-      if (!draggingTool || e.pointerId !== draggingTool.pointerId) return;
-      const id = draggingTool.id;
-      draggingTool = null;
-      dragEl?.remove(); dragEl = null;
-      patientEl.classList.remove("drop-ready");
-      const r = patientEl.getBoundingClientRect();
-      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
-      tool = id;
-      tray.querySelectorAll(".tool").forEach((t) => t.classList.remove("active", "hint"));
-      tray.querySelector(`[data-tool="${id}"]`)?.classList.add("active");
-      sounds.click();
-      const s = ailment.steps[stepIndex];
-      const pos = rel(e);
-      if (s && s.tool === id && s.type === "tap" && inZone(pos, Z[s.zone], 1.3)) doTap(s, e);
-      else if (s && s.tool !== id) tickle();
-      else if (s) say(s.say);
-      scheduleHint();
-    });
-
-    // ---------- Gestes sur le patient ----------
+    function moveGhost(e) { drag.ghost.style.left = e.clientX + "px"; drag.ghost.style.top = e.clientY + "px"; }
+    // position du doigt dans le patient, en %
     function rel(e) {
-      const r = patientEl.getBoundingClientRect();
+      const r = ctx.patientEl.getBoundingClientRect();
       return [((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100];
     }
-    const inZone = ([x, y], zone, extra = 1) => Math.hypot(x - zone[0], y - zone[1]) < zone[2] * 1.5 * extra;
+    const onPatient = (pt) => pt[0] > -5 && pt[0] < 105 && pt[1] > -5 && pt[1] < 105;
 
-    let down = false, last = null, pullStart = null, lastFx = 0, lastBeat = 0, lastTickle = 0;
-    patientEl.addEventListener("pointerdown", (e) => {
-      if (busy) return;
-      try { patientEl.setPointerCapture(e.pointerId); } catch (err) {}
-      down = true;
-      last = rel(e);
-      moveCursor(e);
-      const s = ailment.steps[stepIndex];
-      if (!tool) { tickle("Choisis un outil dans ta trousse !"); return; }
-      if (!s) return;
-      if (tool !== s.tool) { tickle(); return; }
-      if (s.type === "tap" && inZone(last, Z[s.zone], 1.3)) doTap(s, e);
-      if (s.type === "pull" && inZone(last, Z[s.zone], 1.3)) pullStart = last;
-    });
-    patientEl.addEventListener("pointermove", (e) => {
-      if (tool) moveCursor(e);
-      if (!down || busy) return;
-      const p = rel(e);
-      const s = ailment.steps[stepIndex];
-      const dist = Math.hypot(p[0] - last[0], p[1] - last[1]);
-      last = p;
-      if (!s || tool !== s.tool) return;
-      if (s.type === "rub" && inZone(p, Z[s.zone])) doRub(s, dist, e);
-      if (s.type === "mud") rubMud(p, dist, e);
-      if (s.type === "pull" && pullStart) {
-        const d = Math.hypot(p[0] - pullStart[0], p[1] - pullStart[1]);
-        sick.thorn.style.left = Z.patte[0] + (p[0] - pullStart[0]) * 0.6 + "%";
-        sick.thorn.style.top = Z.patte[1] + (p[1] - pullStart[1]) * 0.6 + "%";
-        if (d > 22) {
-          pullStart = null;
-          sick.thorn.remove();
-          sounds.slide(300, 900, 0.12, 0.3);
-          say("Pop ! L'épine est partie !");
-          nextStep();
+    let lastFx = 0, lastBeat = 0;
+    function onMove(e) {
+      if (!drag) return;
+      moveGhost(e);
+      const s = currentStep();
+      const pt = rel(e);
+      const dist = drag.last ? Math.hypot(pt[0] - drag.last[0], pt[1] - drag.last[1]) : 0;
+      drag.last = pt;
+      if (!s || !D.isRightTool(s, drag.tool) || ctx.busy) return;
+      const now = performance.now();
+      if (s.type === "rub" && D.inZone(pt, s.zone)) {
+        ctx.progress += dist / 100;
+        ctx.target && ctx.target.classList.add("hot");
+        setPct(ctx.progress / s.amount);
+        rubEffect(drag.tool, e, now);
+        if (ctx.progress >= s.amount) stepDone(rubMessage(drag.tool));
+      } else if (s.type === "rub" && ctx.target) ctx.target.classList.remove("hot");
+      if (s.type === "mud") {
+        for (const m of ctx.sick.mud) {
+          if (m.dataset.left <= 0) continue;
+          if (Math.hypot(pt[0] - parseFloat(m.style.left), pt[1] - parseFloat(m.style.top)) < 13) {
+            m.dataset.left = Math.max(0, m.dataset.left - dist / (ctx.round.level === 1 ? 35 : 55));
+            m.style.opacity = m.dataset.left;
+            if (now - lastFx > 120) { lastFx = now; puff(e, "🫧"); Jeux.sounds.noise(0.12, { from: 900, to: 1400, q: 2, volume: 0.1 }); }
+            if (m.dataset.left <= 0) { m.remove(); Jeux.sounds.pop(); ctx.round.burst(m, { emojis: ["🫧", "✨"], count: 10 }); }
+          }
+        }
+        if (ctx.sick.mud.every((m) => m.dataset.left <= 0)) stepDone("Tout propre ! Ça brille !");
+      }
+      if (s.type === "pull") {
+        if (!drag.grabbed && D.inZone(pt, s.zone)) { drag.grabbed = true; Jeux.sounds.slide(500, 800, 0.08, 0.2); ctx.round.say("Tu l'as attrapée ! Tire !"); }
+        if (drag.grabbed && ctx.sick.thorn) {
+          const z = D.ZONES[s.zone];
+          ctx.sick.thorn.style.left = pt[0] + "%"; ctx.sick.thorn.style.top = pt[1] + "%";
+          if (Math.hypot(pt[0] - z[0], pt[1] - z[1]) > 26) { ctx.sick.thorn.remove(); ctx.sick.thorn = null; Jeux.sounds.slide(300, 1000, 0.15, 0.3); stepDone("Pop ! L'épine est partie !"); }
         }
       }
-    });
-    const up = () => {
-      down = false;
-      if (pullStart && sick.thorn) { sick.thorn.style.left = Z.patte[0] + "%"; sick.thorn.style.top = Z.patte[1] + "%"; }
-      pullStart = null;
-      if (!matchMedia("(hover: hover)").matches) cursor.style.display = "none";
-    };
-    patientEl.addEventListener("pointerup", up);
-    patientEl.addEventListener("pointercancel", up);
-    patientEl.addEventListener("pointerleave", () => { if (!down) cursor.style.display = "none"; });
-
-    function moveCursor(e) {
-      if (!tool) return;
-      cursor.textContent = TOOLS[tool][0];
-      cursor.style.display = "block";
-      cursor.style.left = e.clientX + "px";
-      cursor.style.top = e.clientY + "px";
     }
+
+    function onUp(e) {
+      if (!drag) return;
+      const { btn, tool, ghost } = drag;
+      btn.removeEventListener("pointermove", onMove);
+      btn.removeEventListener("pointerup", onUp);
+      btn.removeEventListener("pointercancel", onUp);
+      const pt = rel(e);
+      const s = currentStep();
+      let consumed = false;
+      const stepChanged = drag.stepAtStart !== ctx.step || drag.patientAtStart !== ctx.patient;
+      if (s && !ctx.busy && !stepChanged && onPatient(pt)) {
+        if (!D.isRightTool(s, tool)) {
+          // mauvais outil posé sur l'animal : il rigole (et ça compte comme une erreur douce)
+          ctx.round.miss(btn, pickOne(["Hihi, ça chatouille ! Ce n'est pas le bon outil.", "Hihihi ! Essaie un autre outil.", "Ça chatouille ! Regarde la bulle : quel outil faut-il ?"]));
+          Jeux.sounds.slide(600, 900, 0.1, 0.2);
+        } else if (s.type === "place") {
+          if (D.inZone(pt, s.zone, 1.4)) { consumed = true; place(s, tool); }
+          else { ctx.round.say(s.say); ctx.round.hint(ctx.target); }
+        } else if (s.type === "pull" && drag.grabbed && ctx.sick.thorn) {
+          // on a lâché trop tôt : l'épine retourne dans la patte
+          const z = D.ZONES[s.zone];
+          ctx.sick.thorn.style.left = z[0] + "%"; ctx.sick.thorn.style.top = z[1] + "%";
+          ctx.round.say("Tire plus loin, sans lâcher !");
+        }
+      }
+      // l'outil retourne dans la trousse
+      const r = btn.getBoundingClientRect();
+      if (consumed) ghost.remove();
+      else {
+        ghost.classList.add("back");
+        ghost.style.left = r.left + r.width / 2 + "px";
+        ghost.style.top = r.top + r.height / 2 + "px";
+        setTimeout(() => ghost.remove(), 300);
+      }
+      btn.classList.remove("lifted");
+      if (ctx.target) ctx.target.classList.remove("hot");
+      drag = null;
+    }
+
+    // ======================================================================
+    // Effets des outils
+    // ======================================================================
+    const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
+    function setPct(v) { if (ctx.target) ctx.target.style.setProperty("--pct", Math.min(100, v * 100) + "%"); }
     function puff(e, emoji) {
-      const p = document.createElement("div");
-      p.className = "puff";
+      const p = el("div", "puff");
       p.textContent = emoji;
-      p.style.left = e.clientX + "px";
-      p.style.top = e.clientY - 40 + "px";
+      p.style.left = e.clientX + "px"; p.style.top = e.clientY - 40 + "px";
       p.style.setProperty("--dx", (Math.random() - 0.5) * 60 + "px");
       document.body.appendChild(p);
       setTimeout(() => p.remove(), 800);
     }
-    function tickle(msg) {
-      const now = performance.now();
-      if (now - lastTickle < 2500) return;
-      lastTickle = now;
-      sounds.slide(600, 900, 0.1, 0.2);
-      sounds.slide(700, 1000, 0.1, 0.2, "sine", 0.15);
-      say(msg || pick(["Hihi, ça chatouille !", "Hihihi ! Ce n'est pas le bon outil !", "Ça chatouille ! Essaie un autre outil."]));
+    function rubEffect(tool, e, now) {
+      const s = ctx.sick;
+      if (tool === "desinfectant" && now - lastFx > 140) { lastFx = now; puff(e, "💨"); Jeux.sounds.noise(0.15, { from: 3000, to: 5000, q: 0.8, volume: 0.1 }); if (s.scratch) s.scratch.style.opacity = Math.max(0.35, 1 - ctx.progress / currentStep().amount); }
+      if (tool === "loupe" && s.thorn) s.thorn.style.opacity = Math.min(1, 0.1 + ctx.progress / currentStep().amount);
+      if (tool === "radio") { if (s.bones) s.bones.style.opacity = Math.min(1, ctx.progress / currentStep().amount); if (now - lastFx > 220) { lastFx = now; Jeux.sounds.tone(1200, 0.05, "sine", 0.06); } }
+      if (tool === "stethoscope" && now - lastBeat > 650) { lastBeat = now; Jeux.sounds.slide(90, 60, 0.12, 0.5); Jeux.sounds.slide(90, 60, 0.1, 0.4, "sine", 0.18); puff(e, "💓"); }
     }
-
-    function setProgress(pct) {
-      if (targetEl) targetEl.style.setProperty("--pct", Math.min(100, pct) + "%");
+    function rubMessage(tool) {
+      return { desinfectant: "C'est tout propre !", loupe: "Je vois une épine !", radio: "Oh ! L'os est cassé !", stethoscope: "Boum boum… et ça gargouille !" }[tool] || "";
     }
-
-    function doRub(s, dist, e) {
-      progress += dist / 100;
-      setProgress((progress / s.amount) * 100);
-      const now = performance.now();
-      if (tool === "desinfectant" && now - lastFx > 140) { lastFx = now; puff(e, "💨"); sounds.noise(0.15, { from: 3000, to: 5000, q: 0.8, volume: 0.1 }); if (sick.scratch) sick.scratch.style.opacity = Math.max(0.35, 1 - progress / s.amount); }
-      if (tool === "loupe") sick.thorn.style.opacity = Math.min(1, 0.08 + progress / s.amount);
-      if (tool === "radio") { sick.bones.style.opacity = Math.min(1, progress / s.amount); if (now - lastFx > 200) { lastFx = now; sounds.tone(1200, 0.05, "sine", 0.06); } }
-      if (tool === "stethoscope" && now - lastBeat > 650) { lastBeat = now; sounds.slide(90, 60, 0.12, 0.5); sounds.slide(90, 60, 0.1, 0.4, "sine", 0.18); puff(e, "💓"); }
-      if (progress >= s.amount) {
-        progress = 0;
-        if (tool === "loupe") say("Je vois une épine !");
-        if (tool === "radio") say("Oh ! L'os est cassé !");
-        if (tool === "stethoscope") { say("Boum boum... et ça gargouille !"); }
-        if (tool === "desinfectant") say("C'est tout propre !");
-        nextStep();
-      }
-    }
-
-    function rubMud(p, dist, e) {
-      const now = performance.now();
-      for (const m of sick.mud) {
-        if (m.dataset.left <= 0) continue;
-        const x = parseFloat(m.style.left), y = parseFloat(m.style.top);
-        if (Math.hypot(p[0] - x, p[1] - y) < 12) {
-          m.dataset.left = Math.max(0, m.dataset.left - dist / 60);
-          m.style.opacity = m.dataset.left;
-          if (now - lastFx > 120) { lastFx = now; puff(e, "🫧"); sounds.noise(0.12, { from: 900, to: 1400, q: 2, volume: 0.1 }); }
-          if (m.dataset.left <= 0) { m.remove(); sounds.pop(); }
-        }
-      }
-      if (stepIndex === 0 && sick.mud.every((m) => m.dataset.left <= 0)) { say("Tout propre ! Ça brille !"); nextStep(0); }
-    }
-
-    function doTap(s, e) {
-      if (taps >= s.count) return;
-      taps++;
-      const z = Z[s.zone];
-      if (tool === "pansement") {
-        const b = fx("", z[0], z[1]);
-        b.textContent = "🩹";
-        b.style.fontSize = "calc(var(--P) * 0.13)";
-        b.style.transform = "translate(-50%, -50%) rotate(-20deg)";
-        b.style.zIndex = 7;
-        sounds.slide(400, 700, 0.08, 0.2);
-        if (sick.scratch) sick.scratch.remove();
-      }
+    function place(s, tool) {
+      const z = D.ZONES[s.zone];
+      const p = ctx.patientEl;
+      ctx.placed++;
       if (tool === "thermometre") {
-        busy = true;
-        const th = fx("", z[0] + 12, z[1]);
-        th.textContent = "🌡️";
-        th.style.fontSize = "calc(var(--P) * 0.12)";
-        th.style.transform = "translate(-50%, -50%) rotate(40deg)";
-        th.style.zIndex = 7;
-        const t = document.getElementById("temp");
-        t.style.display = "block";
+        ctx.busy = true;
+        const th = fx(p, "applied", z[0] + 12, z[1]); th.textContent = "🌡️"; th.style.transform = "translate(-50%, -50%) rotate(40deg)";
+        const t = el("div", "temp"); p.appendChild(t);
         let deg = 36;
         const iv = setInterval(() => {
           deg += 0.5;
           t.textContent = deg.toFixed(1).replace(".", ",") + "°";
-          sounds.tone(500 + deg * 10, 0.05, "sine", 0.08);
-          if (deg >= 39.5) {
-            clearInterval(iv);
-            t.style.color = "#d00000";
-            setTimeout(() => { th.remove(); t.style.display = "none"; busy = false; nextStep(0); }, 1200);
-          }
-        }, 220);
+          Jeux.sounds.tone(500 + deg * 10, 0.05, "sine", 0.08);
+          if (deg >= 39.5) { clearInterval(iv); t.style.color = "#e03131"; setTimeout(() => { th.remove(); t.remove(); ctx.busy = false; stepDone("Il a de la fièvre !"); }, 1100); }
+        }, 200);
         return;
       }
-      if (tool === "sirop") {
-        puff(e, "🥄");
-        sounds.yum();
-        say(taps < s.count ? pick(["Miam !", "Encore !", "Beurk... non, c'est bon !"]) : "C'est bon !");
-      }
-      if (tool === "glace") {
-        const g = fx("", z[0], z[1] - 2);
-        g.textContent = "🧊";
-        g.style.fontSize = "calc(var(--P) * 0.12)";
-        g.style.zIndex = 7;
-        sounds.slide(1200, 800, 0.1, 0.15);
-        if (sick.fever) sick.fever.remove();
-        say("Ahhh, ça fait du bien !");
-      }
-      if (tool === "platre") {
-        const c = fx("cast", z[0] - 1, z[1] - 1, 20 + taps * 2, 10 + taps * 4);
-        sounds.noise(0.2, { from: 600, to: 1200, q: 1, volume: 0.12 });
-        if (taps === s.count && sick.bolt) sick.bolt.remove();
-      }
-      if (tool === "seringue") {
-        const shot = fx("", z[0], z[1] - 4, 16, 16);
-        shot.textContent = "💉"; shot.style.fontSize = "calc(var(--P) * 0.12)"; shot.style.zIndex = 8;
-        puff(e, "✨"); sounds.bell(740, 0, .14, .7); say("Piqûre terminée !");
-      }
-      if (tool === "croquettes") { puff(e, "🦴"); sounds.yum(); say(taps < s.count ? "Miam, encore une bouchée !" : "Bien mangé !"); }
-      setProgress((taps / s.count) * 100);
-      const idx = stepIndex;
-      if (taps >= s.count) setTimeout(() => nextStep(idx), tool === "sirop" ? 900 : 400);
+      if (tool === "sirop") { Jeux.sounds.yum(); ctx.round.burst(p.querySelector(".head"), { emojis: ["💖", "✨"], count: 8, power: 0.6 }); }
+      if (tool === "pansement") { const b = fx(p, "applied", z[0], z[1]); b.textContent = "🩹"; b.style.transform = "translate(-50%, -50%) rotate(-20deg)"; if (ctx.sick.scratch) ctx.sick.scratch.remove(); Jeux.sounds.slide(400, 700, 0.08, 0.2); }
+      if (tool === "glace") { const g = fx(p, "applied", z[0], z[1] - 2); g.textContent = "🧊"; if (ctx.sick.fever) ctx.sick.fever.remove(); Jeux.sounds.slide(1200, 800, 0.1, 0.15); }
+      if (tool === "platre") { fx(p, "cast", z[0] - 1, z[1] - 1, 18 + ctx.placed * 3, 10 + ctx.placed * 4); Jeux.sounds.noise(0.2, { from: 600, to: 1200, q: 1, volume: 0.12 }); }
+      setPct(ctx.placed / s.count);
+      if (ctx.placed >= s.count) {
+        if (tool === "platre" && ctx.sick.bolt) ctx.sick.bolt.remove();
+        stepDone({ sirop: "Miam ! C'est bon !", pansement: "Voilà un joli pansement !", glace: "Ahh, ça rafraîchit !", platre: "Le plâtre est bien mis !" }[tool] || "");
+      } else if (tool === "sirop") ctx.round.say(pickOne(["Miam !", "Encore une cuillère !", "C'est bon !"]));
     }
 
-    // ---------- Déroulement ----------
-    function nextStep(expected = stepIndex) {
-      if (expected !== stepIndex || stepIndex >= ailment.steps.length) return;
-      stepIndex++;
-      progress = 0; taps = 0;
-      sounds.success();
-      renderInfo();
-      showTarget();
-      if (stepIndex >= ailment.steps.length) return cured();
-      setTimeout(() => { const s = ailment.steps[stepIndex]; if (s) say(s.say); }, 900);
-      scheduleHint();
+    // ======================================================================
+    // Étapes et guérison
+    // ======================================================================
+    function stepDone(msg) {
+      if (ctx.step >= ctx.patient.steps.length) return; // déjà guéri
+      ctx.step++;
+      ctx.progress = 0; ctx.placed = 0;
+      if (drag) drag.grabbed = false;
+      Jeux.sounds.step(ctx.step);
+      renderStep();
+      const s = currentStep();
+      if (!s) return cured();
+      ctx.round.say(`${msg} ${s.say}`);
     }
 
     function cured() {
-      busy = true;
-      clearTimeout(hintTimer);
-      (sick.tears || []).forEach((t) => t.remove());
-      if (sick.swirl) sick.swirl.remove();
-      if (sick.fever) sick.fever.remove();
-      if (sick.bones) sick.bones.style.opacity = 0;
-      patientEl.classList.remove("sick");
-      patientEl.classList.add("happy");
-      setMood("😄");
-      healed++;
-      localStorage.setItem("jeux.patients", healed);
-      document.getElementById("healed").textContent = "❤️ " + healed;
-      Jeux.addStars(1);
-      sounds.win();
-      confetti(45, ["❤️", "💖", "⭐", "✨"]);
-      setTimeout(() => say(`Merci docteur ${NAME} ! Je me sens beaucoup mieux !`), 600);
-      setTimeout(newPatient, 5000);
+      ctx.busy = true;
+      const p = ctx.patientEl;
+      (ctx.sick.tears || []).forEach((t) => t.remove());
+      ["swirl", "fever"].forEach((k) => ctx.sick[k] && ctx.sick[k].remove());
+      if (ctx.sick.bones) ctx.sick.bones.style.opacity = 0;
+      p.classList.remove("sick");
+      p.classList.add("happy");
+      ctx.mood.textContent = "😄";
+      ctx.round.burst(p, { emojis: ["❤️", "💖", "⭐", "✨"], count: 30 });
+      const name = Jeux.NAME ? ` ${Jeux.NAME}` : "";
+      ctx.round.win(null, `Merci docteur${name} ! Je me sens beaucoup mieux !`, { delay: 3200, praise: false });
     }
 
-    function newPatient() {
-      busy = false;
-      tool = null;
-      cursor.style.display = "none";
-      patient = pick(ANIMALS.filter((a) => a !== patient));
-      const ids = Object.keys(AILMENTS).filter((a) => a !== lastAilment);
-      const id = pick(ids);
-      lastAilment = id;
-      ailment = { id, ...AILMENTS[id] };
-      stepIndex = 0; progress = 0; taps = 0;
-      patientEl.className = "";
-      buildPatient();
-      showSickness();
-      setMood(id === "fievre" ? "🤒" : "😢");
-      void patientEl.offsetWidth;
-      patientEl.classList.add("arrive", "sick");
-      buildTray();
-      renderInfo();
-      showTarget();
-      scheduleHint();
-      setTimeout(() => say(`Bonjour docteur ${NAME} ! ${ailment.intro} ${ailment.steps[0].say}`), 700);
-    }
-
-    document.getElementById("healed").textContent = "❤️ " + healed;
-    document.getElementById("docTitle").textContent = "🩺 Docteur " + NAME;
-    resize();
-    newPatient();
+    // on démarre le jeu une fois que toutes les fonctions sont définies
+    Kit.game({
+      id: "docteur",
+      title: "Le Docteur des animaux",
+      icon: "🩺",
+      bg: "linear-gradient(180deg, #e3fafc 0%, #e7f5ff 60%, #d0ebff 100%)",
+      instruction: () => "Tu es le docteur ! Glisse les outils de la trousse sur l'animal pour le soigner.",
+      levels: D.LEVELS,
+      start(round) {
+        if (round.index === 0) session = D.session(round.level);
+        const patient = session.patients[round.index];
+        const tray = round.level === 1 ? D.trayFor([patient.ailment], 1) : session.tray;
+        buildRoom(round, patient, tray);
+      },
+    });
   </script>
 </body>
 </html>
