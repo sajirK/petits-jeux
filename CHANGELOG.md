@@ -1,8 +1,8 @@
 # Journal des versions
 
-## 2.0.0-dev — 2026-11-22
+## 2.0.0 — 2026-11-22
 
-- V2 en préparation (branche `v2`, pas encore publiée) :
+- V2 : la refonte de tous les jeux :
   - les 36 jeux passent sur le même « kit » : même barre, mêmes boutons, voix, aide 👆, particules, écran de victoire ;
   - 3 niveaux partout (🟢 Facile, 🟡 Moyen, 🔴 Difficile), mémorisés par jeu, et Plume propose le niveau suivant ;
   - chaque jeu a une vraie fin : manches, objectif à atteindre (jeux d'action) ou bouton ✅ (jeux libres) ;
