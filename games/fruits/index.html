@@ -124,7 +124,7 @@
       });
       // pour le robot de test : un coup de doigt à travers un fruit visible
       round.setHintTarget(() => {
-        const o = objects.find((x) => x.delay <= 0 && !FL.isMistake(x.kind) && x.y > R && x.y < H - R && x.x > R && x.x < W - R);
+        const o = objects.find((x) => x.delay <= 0 && !FL.isMistake(x.kind) && x.y > R && x.y < H - R && x.x > R && x.x < W - R && !objects.some((y) => FL.isMistake(y.kind) && Math.hypot(y.x - x.x, y.y - x.y) < R * 2.5));
         if (!o) return null;
         const r = canvas.getBoundingClientRect();
         return { swipe: [r.left + o.x - R * 0.6, r.top + o.y, r.left + o.x + R * 0.6, r.top + o.y], el: canvas };
