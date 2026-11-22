@@ -81,7 +81,7 @@
     const canvas = document.getElementById("c");
     const ctx = canvas.getContext("2d");
     const wrap = document.getElementById("wrap");
-    let level = 1, cols, rows, grid, gems, bats, torches, door, hero, S, totalGems = 0, doorOpen = false, busy = false;
+    let level = 1, cols, rows, grid, gems, bats, torches, door, hero, S, totalGems = 0, doorOpen = false, busy = false, batCooldown = 0;
     const GEMS = ["💎", "💍", "👑", "🔮", "⭐", "🪙"];
 
     // Labyrinthe généré au hasard, avec des passages en plus pour que ce soit facile
@@ -120,18 +120,20 @@
       rows = grid.length; cols = grid[0].length;
       const free = [];
       for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) if (!grid[y][x]) free.push([x, y]);
-      hero = { x: 1, y: 1, px: 1, py: 1 };
+      hero = { x: 1, y: 1, px: 1, py: 1, lastX: 1, lastY: 1 };
       door = { x: cols - 2, y: rows - 2 };
       const far = free.filter(([x, y]) => x + y > 4 && !(x === door.x && y === door.y));
       const picks = shuffle(far);
       gems = picks.slice(0, 3 + level).map(([x, y]) => ({ x, y, e: pick(GEMS) }));
       torches = picks.slice(3 + level, 6 + level).map(([x, y]) => ({ x, y, lit: false }));
-      // Les premiers niveaux restent dégagés. Plus tard, les chauves-souris
-      // décorent le labyrinthe sans renvoyer le joueur au départ.
+      // Une chauve-souris apparaît dès le premier niveau, puis leur nombre
+      // augmente doucement. Elles patrouillent dans des couloirs libres.
       bats = [];
-      const corridors = level >= 3 ? picks.slice(10) : [];
+      batCooldown = 0;
+      const batCount = Math.min(1 + Math.floor(level / 3), 3);
+      const corridors = picks.slice(10);
       for (const [x, y] of corridors) {
-        if (bats.length >= Math.min(level - 2, 2)) break;
+        if (bats.length >= batCount) break;
         const horiz = !grid[y][x - 1] && !grid[y][x + 1];
         const vert = !grid[y - 1]?.[x] && !grid[y + 1]?.[x];
         if (horiz || vert) bats.push({ x, y, px: x, py: y, dx: horiz ? 1 : 0, dy: horiz ? 0 : 1, timer: 0 });
@@ -181,6 +183,7 @@
       const [dx, dy] = DIRS[dir];
       const nx = hero.x + dx, ny = hero.y + dy;
       if (grid[ny]?.[nx] !== 0) { sounds.slide(220, 150, 0.08, 0.12); return; }
+      hero.lastX = hero.x; hero.lastY = hero.y;
       hero.x = nx; hero.y = ny;
       sounds.slide(500, 420, 0.04, 0.06);
       const gi = gems.findIndex((g) => g.x === nx && g.y === ny);
@@ -220,6 +223,7 @@
     function loop(now) {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now; t += dt;
+      batCooldown = Math.max(0, batCooldown - dt);
       if (held) { repeatTimer -= dt; if (repeatTimer <= 0) { step(held); repeatTimer = 0.17; } }
       // animation douce du héros
       hero.px += (hero.x - hero.px) * Math.min(1, dt * 18);
@@ -234,6 +238,13 @@
         }
         b.px += (b.x - b.px) * Math.min(1, dt * 6);
         b.py += (b.y - b.py) * Math.min(1, dt * 6);
+        if (!busy && batCooldown === 0 && Math.hypot(b.px - hero.px, b.py - hero.py) < 0.55) {
+          batCooldown = 1.2;
+          hero.x = hero.lastX; hero.y = hero.lastY;
+          sounds.wrong();
+          say("Oups ! La chauve-souris te repousse d'une case. Tu gardes tes trésors !");
+          break;
+        }
       }
       draw();
       requestAnimationFrame(loop);
@@ -289,7 +300,7 @@
 
     build();
     requestAnimationFrame(loop);
-    setTimeout(() => say("Glisse ton doigt pour avancer, allumer les torches et ramasser les trésors !"), 600);
+    setTimeout(() => say("Glisse ton doigt pour avancer, ramasser les trésors et éviter les chauves-souris !"), 600);
   </script>
 </body>
 </html>
