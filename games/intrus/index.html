@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Trouve l'intrus</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    body { background: linear-gradient(160deg, #fdfcdc, #fed9b7); }
+    #question { font-size: clamp(18px, 4.2vmin, 26px); margin: 4px 0 14px; display: flex; align-items: center; gap: 8px; text-align: center; }
+    #question button { background: #fff; border-radius: 50%; width: 46px; height: 46px; font-size: 24px; box-shadow: var(--shadow); }
+    #grid { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(10px, 2.5vmin, 20px); max-width: min(96vw, 760px); }
+    .card {
+      width: clamp(96px, 24vmin, 160px); aspect-ratio: 1;
+      background: #fff; border-radius: 26px; box-shadow: 0 7px 0 rgba(0,0,0,0.12);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: clamp(54px, 13vmin, 96px); line-height: 1;
+      animation: bounce-in 0.4s both; transition: transform 0.15s, opacity 0.3s;
+      position: relative;
+    }
+    .card:active { transform: scale(0.94); }
+    .card small { font-size: clamp(11px, 2.4vmin, 15px); margin-top: 6px; opacity: 0; transition: opacity 0.3s; }
+    .card.reveal small { opacity: 0.8; }
+    .card.odd { background: #b7efc5; transform: scale(1.08); }
+    .card.dim { opacity: 0.55; }
+    .card.nope { background: #ffe3e3; }
+    #explain {
+      margin-top: 18px; background: #fff; border-radius: 20px; padding: 10px 16px;
+      font-size: clamp(16px, 3.8vmin, 22px); max-width: min(92vw, 640px); text-align: center;
+      box-shadow: var(--shadow); visibility: hidden;
+    }
+    #next { margin-top: 14px; visibility: hidden; }
+    #stars { font-size: clamp(20px, 4.5vmin, 28px); min-height: 1.3em; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="brain">
+    <h1 class="game-title">Trouve l'intrus</h1>
+    <div class="brain-bar" id="bar"></div>
+    <div id="question"><span>Lequel n'est pas comme les autres ?</span><button id="speak" aria-label="Écouter">🔊</button></div>
+    <div id="grid"></div>
+    <div id="explain"></div>
+    <button class="big-btn" id="next">Suivant ➡️</button>
+    <div id="stars"></div>
+  </div>
+
+  <script src="../../js/common.js"></script>
+  <script src="logic.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, confetti } = Jeux;
+    const prog = Jeux.progress("intrus", 3);
+    const badge = Jeux.levelBadge(prog, () => next());
+    document.getElementById("bar").appendChild(badge);
+    const grid = document.getElementById("grid");
+    const explainEl = document.getElementById("explain");
+    const nextBtn = document.getElementById("next");
+    const starsEl = document.getElementById("stars");
+    let q, done = false, stars = 0, firstTry = true;
+    const C = IntrusLogic.CATEGORIES;
+
+    document.getElementById("speak").onclick = () => say("Lequel n'est pas comme les autres ?");
+    nextBtn.onclick = () => { sounds.click(); next(); };
+
+    function next() {
+      done = false; firstTry = true;
+      q = IntrusLogic.generate(prog.level);
+      explainEl.style.visibility = nextBtn.style.visibility = "hidden";
+      grid.innerHTML = "";
+      q.items.forEach((it, i) => {
+        const c = document.createElement("button");
+        c.className = "card";
+        c.style.animationDelay = i * 0.07 + "s";
+        const label = it.name.replace(/^(le |la |les |l')/, "");
+        c.innerHTML = `${it.emoji}<small>${label}</small>`;
+        c.onclick = () => choose(c, it);
+        grid.appendChild(c);
+      });
+      setTimeout(() => say("Lequel n'est pas comme les autres ?"), 400);
+    }
+
+    function choose(card, it) {
+      if (done) return;
+      if (it.odd) {
+        done = true;
+        [...grid.children].forEach((c) => { c.classList.add("reveal"); if (c !== card) c.classList.add("dim"); });
+        card.classList.remove("dim");
+        card.classList.add("odd");
+        sounds.success();
+        explainEl.textContent = "✅ " + q.explanation;
+        explainEl.style.visibility = "visible";
+        say("Bravo ! " + q.explanation);
+        if (firstTry) {
+          stars++;
+          starsEl.textContent = "⭐".repeat(stars % 10 || 10);
+          if (stars % 10 === 0) { confetti(50); sounds.win(); Jeux.addStars(1); }
+          if (prog.success() === "up") { badge.update(); setTimeout(() => { sounds.win(); say(`Niveau ${prog.level} ! Les questions deviennent plus difficiles !`); }, 4500); }
+        }
+        setTimeout(() => (nextBtn.style.visibility = "visible"), 900);
+      } else {
+        firstTry = false;
+        card.classList.add("nope", "shake", "reveal");
+        setTimeout(() => card.classList.remove("shake"), 400);
+        sounds.wrong();
+        if (prog.fail() === "down") badge.update();
+        say(IntrusLogic.whyNot(it.name, q.groupKey));
+      }
+    }
+
+    next();
+  </script>
+</body>
+</html>

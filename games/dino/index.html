@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Super Saut Dino</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    #hud {
+      position: fixed;
+      top: max(14px, env(safe-area-inset-top));
+      right: max(14px, env(safe-area-inset-right));
+      display: flex; gap: 10px;
+      z-index: 10;
+    }
+    .pill {
+      background: #fff; border-radius: 999px; padding: 6px 18px;
+      font-size: clamp(22px, 5vw, 34px); box-shadow: var(--shadow);
+    }
+    .ctrl {
+      position: fixed;
+      bottom: max(18px, env(safe-area-inset-bottom));
+      width: clamp(80px, 18vmin, 120px);
+      height: clamp(80px, 18vmin, 120px);
+      border-radius: 50%;
+      background: rgba(255,255,255,0.85);
+      box-shadow: 0 6px 0 rgba(0,0,0,0.2);
+      font-size: clamp(38px, 9vmin, 60px);
+      display: grid; place-items: center;
+      z-index: 10;
+      touch-action: none;
+    }
+    .ctrl.on { transform: translateY(4px) scale(0.95); background: #ffd166; }
+    #left { left: max(16px, env(safe-area-inset-left)); }
+    #right { left: calc(max(16px, env(safe-area-inset-left)) + clamp(96px, 21vmin, 140px)); }
+    #jump { right: max(16px, env(safe-area-inset-right)); width: clamp(100px, 22vmin, 150px); height: clamp(100px, 22vmin, 150px); background: rgba(255, 209, 102, 0.95); }
+  </style>
+</head>
+<body class="mute-left">
+  <canvas id="c"></canvas>
+  <div id="hud"><div class="pill" id="level">🚩 1</div><div class="pill" id="apples">🍎 0</div></div>
+  <button class="ctrl" id="left" aria-label="Gauche">⬅️</button>
+  <button class="ctrl" id="right" aria-label="Droite">➡️</button>
+  <button class="ctrl" id="jump" aria-label="Sauter">⬆️</button>
+
+  <script src="../../js/common.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, confetti, bravo, pick } = Jeux;
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+    let W, H, T; // T = taille d'une case en pixels
+
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      W = innerWidth; H = innerHeight;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      T = H / 10;
+    }
+    addEventListener("resize", resize);
+    resize();
+
+    // ---------- Niveau ----------
+    let level = 1, platforms, apples, flag, clouds, totalApples = 0;
+    const GROUND_Y = 8; // le sol est à la case 8 (sur 10)
+
+    function buildLevel(n) {
+      platforms = []; apples = [];
+      let x = -6;
+      const length = 50 + n * 20;
+      // départ : grand sol
+      platforms.push({ x, y: GROUND_Y, w: 16, h: 3, kind: "ground" });
+      x += 16;
+      while (x < length) {
+        const gap = Math.random() < 0.5 ? 0 : 1 + Math.floor(Math.random() * Math.min(2, 1 + n * 0.5));
+        x += gap;
+        const w = 5 + Math.floor(Math.random() * 7);
+        const h = Math.random() < 0.3 ? 1 : 0; // petite marche
+        platforms.push({ x, y: GROUND_Y - h, w, h: 3 + h, kind: "ground" });
+        // pommes sur le sol
+        for (let i = 1; i < w - 1; i += 2) if (Math.random() < 0.5) apples.push({ x: x + i + 0.5, y: GROUND_Y - h - 0.7 });
+        // plateforme flottante avec des pommes
+        if (Math.random() < 0.7) {
+          const py = GROUND_Y - h - (2 + Math.floor(Math.random() * 2));
+          const pw = 3 + Math.floor(Math.random() * 2);
+          const px = x + Math.floor(Math.random() * Math.max(1, w - pw));
+          platforms.push({ x: px, y: py, w: pw, h: 0.6, kind: "float" });
+          for (let i = 0; i < pw; i++) apples.push({ x: px + i + 0.5, y: py - 0.7 });
+        }
+        x += w;
+      }
+      platforms.push({ x, y: GROUND_Y, w: 14, h: 3, kind: "ground" });
+      flag = { x: x + 6, y: GROUND_Y - 1.6 };
+      clouds = Array.from({ length: 12 }, (_, i) => ({ x: i * 9 + Math.random() * 6, y: 0.5 + Math.random() * 3, s: 0.8 + Math.random() }));
+      player.x = 0; player.y = GROUND_Y - 1; player.vx = player.vy = 0;
+      safe = { x: 0, y: GROUND_Y - 1 };
+      document.getElementById("level").textContent = "🚩 " + n;
+    }
+
+    // ---------- Joueur ----------
+    const player = { x: 0, y: 0, vx: 0, vy: 0, w: 0.9, h: 0.9, onGround: false, face: 1, squash: 0 };
+    let safe = { x: 0, y: 0 };
+    const keys = { left: false, right: false, jump: false };
+    const GRAV = 38, JUMP = 15.5, SPEED = 6.5;
+    let jumpBuffered = 0, coyote = 0, won = false;
+
+    function bindBtn(id, key) {
+      const b = document.getElementById(id);
+      const on = (e) => { e.preventDefault(); keys[key] = true; b.classList.add("on"); if (key === "jump") jumpBuffered = 0.15; };
+      const off = (e) => { keys[key] = false; b.classList.remove("on"); };
+      b.addEventListener("pointerdown", on);
+      b.addEventListener("pointerup", off);
+      b.addEventListener("pointercancel", off);
+      b.addEventListener("pointerleave", off);
+    }
+    bindBtn("left", "left"); bindBtn("right", "right"); bindBtn("jump", "jump");
+    const KEYMAP = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "jump", " ": "jump", q: "left", d: "right", z: "jump" };
+    addEventListener("keydown", (e) => { const k = KEYMAP[e.key]; if (k) { keys[k] = true; if (k === "jump" && !e.repeat) jumpBuffered = 0.15; e.preventDefault(); } });
+    addEventListener("keyup", (e) => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
+
+    function overlaps(a, p) {
+      return a.x < p.x + p.w && a.x + a.w > p.x && a.y < p.y + p.h && a.y + a.h > p.y;
+    }
+
+    function update(dt) {
+      if (won) return;
+      const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+      player.vx += (dir * SPEED - player.vx) * Math.min(1, dt * 12);
+      if (dir) player.face = dir;
+      jumpBuffered -= dt; coyote -= dt;
+      if (player.onGround) coyote = 0.12;
+      if (jumpBuffered > 0 && coyote > 0) {
+        player.vy = -JUMP; jumpBuffered = 0; coyote = 0;
+        sounds.jump();
+      }
+      // saut plus court si on relâche
+      if (!keys.jump && player.vy < -6) player.vy += GRAV * dt * 1.5;
+      player.vy = Math.min(player.vy + GRAV * dt, 22);
+
+      // X
+      player.x += player.vx * dt;
+      for (const p of platforms) {
+        if (p.kind === "float") continue; // on passe à travers les plateformes flottantes de côté
+        if (overlaps(player, p)) {
+          if (player.vx > 0) player.x = p.x - player.w; else if (player.vx < 0) player.x = p.x + p.w;
+          player.vx = 0;
+        }
+      }
+      // Y
+      const prevBottom = player.y + player.h;
+      player.y += player.vy * dt;
+      const wasOnGround = player.onGround;
+      player.onGround = false;
+      for (const p of platforms) {
+        if (!overlaps(player, p)) continue;
+        if (player.vy > 0 && prevBottom <= p.y + 0.05) {
+          player.y = p.y - player.h; player.vy = 0; player.onGround = true;
+          if (p.kind === "ground") safe = { x: Math.max(p.x + 0.2, Math.min(player.x, p.x + p.w - 1.2)), y: p.y - 1 };
+        } else if (p.kind !== "float" && player.vy < 0) {
+          player.y = p.y + p.h; player.vy = 0;
+        }
+      }
+      if (player.onGround && !wasOnGround) player.squash = 1;
+      player.squash = Math.max(0, player.squash - dt * 5);
+
+      // tombé dans un trou → on revient, sans punition
+      if (player.y > 11) {
+        sounds.wrong();
+        say(pick(["Oups !", "Plouf !", "On réessaie !"]));
+        player.x = safe.x; player.y = safe.y - 1; player.vx = player.vy = 0;
+      }
+
+      // pommes
+      for (let i = apples.length - 1; i >= 0; i--) {
+        const a = apples[i];
+        if (Math.abs(a.x - (player.x + player.w / 2)) < 0.7 && Math.abs(a.y - (player.y + player.h / 2)) < 0.8) {
+          apples.splice(i, 1);
+          totalApples++;
+          document.getElementById("apples").textContent = "🍎 " + totalApples;
+          sounds.coin();
+          if (totalApples % 25 === 0) say(`${totalApples} pommes !`);
+        }
+      }
+
+      // drapeau
+      if (player.x + player.w > flag.x && !won) {
+        won = true;
+        sounds.win(); confetti(60, ["🎉", "🍎", "⭐", "🦕"]);
+        Jeux.addStars(1);
+        bravo("Niveau réussi !");
+        setTimeout(() => { level++; won = false; buildLevel(level); }, 3000);
+      }
+    }
+
+    // ---------- Dessin ----------
+    function emoji(ch, x, y, size, flip = false, sx = 1, sy = 1) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(flip ? -sx : sx, sy);
+      ctx.font = `${size}px serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(ch, 0, 0);
+      ctx.restore();
+    }
+
+    let t = 0;
+    function draw() {
+      const camX = player.x - (W / T) * 0.35;
+      // ciel
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#6ec6ff"); g.addColorStop(1, "#d6f5ff");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      emoji("☀️", W - T * 2.2, T * 1.6, T * 1.4);
+      // collines (parallaxe)
+      ctx.fillStyle = "#a7e3a1";
+      for (let i = -1; i < W / (T * 6) + 2; i++) {
+        const base = Math.floor(camX * 0.3 / 6) + i;
+        const hx = base * 6 * T - camX * 0.3 * T;
+        ctx.beginPath(); ctx.arc(hx, H * 0.85, T * 3.5, Math.PI, 0); ctx.fill();
+      }
+      const span = W + T * 6;
+      for (const c of clouds) {
+        const cx = ((((c.x - camX * 0.5) * T) % span) + span) % span - T * 3;
+        emoji("☁️", cx, c.y * T, T * c.s * 1.2);
+      }
+
+      ctx.save();
+      ctx.translate(-camX * T, 0);
+      // plateformes
+      for (const p of platforms) {
+        if ((p.x + p.w - camX) * T < 0 || (p.x - camX) * T > W) continue;
+        if (p.kind === "ground") {
+          ctx.fillStyle = "#9c6b3f"; ctx.fillRect(p.x * T, p.y * T, p.w * T, p.h * T);
+          ctx.fillStyle = "#5cc85c"; ctx.fillRect(p.x * T, p.y * T, p.w * T, T * 0.35);
+          ctx.fillStyle = "#47a847"; for (let i = 0; i < p.w; i++) ctx.fillRect((p.x + i + 0.3) * T, p.y * T + T * 0.35, T * 0.12, T * 0.12);
+        } else {
+          ctx.fillStyle = "#ffb703"; roundRect(p.x * T, p.y * T, p.w * T, p.h * T, T * 0.25);
+          ctx.fillStyle = "#fb8500"; roundRect(p.x * T, (p.y + p.h * 0.6) * T, p.w * T, p.h * 0.4 * T, T * 0.2);
+        }
+      }
+      // pommes (qui flottent un peu)
+      for (const a of apples) emoji("🍎", a.x * T, (a.y + Math.sin(t * 3 + a.x) * 0.08) * T, T * 0.7);
+      // drapeau
+      emoji("🏁", flag.x * T, flag.y * T, T * 1.6);
+      emoji("🏰", (flag.x + 4) * T, (GROUND_Y - 1.4) * T, T * 3);
+      // dino (l'emoji regarde à gauche : on le retourne pour aller à droite)
+      const sq = player.squash * 0.25;
+      const run = player.onGround && Math.abs(player.vx) > 0.5 ? Math.sin(t * 18) * 0.06 : 0;
+      emoji("🦕", (player.x + player.w / 2) * T, (player.y + player.h / 2 - 0.1 + run) * T, T * 1.25, player.face > 0, 1 + sq, 1 - sq);
+      ctx.restore();
+    }
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.fill();
+    }
+
+    let last = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.033, (now - last) / 1000);
+      last = now; t += dt;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+    buildLevel(level);
+    requestAnimationFrame(loop);
+    setTimeout(() => say("Attrape les pommes et va jusqu'au drapeau !"), 600);
+  </script>
+</body>
+</html>

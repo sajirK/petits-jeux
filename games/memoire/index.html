@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Memory des animaux</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    html, body { height: 100%; }
+    body {
+      background: linear-gradient(160deg, #d8f3dc, #b5e48c);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 20px;
+    }
+    .levels { display: flex; gap: 12px; margin: 6px 0 14px; }
+    .levels .big-btn { font-size: clamp(18px, 4vw, 26px); padding: 10px 18px; }
+    .levels .big-btn.active { background: #ffd166; }
+    #board {
+      display: grid;
+      gap: clamp(8px, 2vw, 16px);
+      width: min(96vw, 760px);
+      perspective: 900px;
+    }
+    .card {
+      aspect-ratio: 1;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.4s;
+      cursor: pointer;
+    }
+    .card.flipped, .card.found { transform: rotateY(180deg); }
+    .face {
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      display: grid;
+      place-items: center;
+      box-shadow: var(--shadow);
+    }
+    .back {
+      background: repeating-linear-gradient(45deg, #52b788 0 14px, #74c69d 14px 28px);
+      font-size: clamp(28px, 7vw, 54px);
+      color: #fff;
+    }
+    .front {
+      background: #fff;
+      transform: rotateY(180deg);
+      font-size: clamp(36px, 10vw, 76px);
+    }
+    .card.found .front { background: #fff3b0; animation: bounce-in 0.5s; }
+  </style>
+</head>
+<body>
+  <h1 class="game-title">Memory des animaux</h1>
+  <div class="levels" id="levels"></div>
+  <div id="board"></div>
+
+  <script src="../../js/common.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, confetti, shuffle } = Jeux;
+    const animals = [
+      ["🐶", "le chien"], ["🐱", "le chat"], ["🐰", "le lapin"], ["🦁", "le lion"],
+      ["🐸", "la grenouille"], ["🐷", "le cochon"], ["🐮", "la vache"], ["🐵", "le singe"],
+      ["🐔", "la poule"], ["🐘", "l'éléphant"], ["🦒", "la girafe"], ["🐧", "le pingouin"],
+    ];
+    const LEVELS = [
+      { label: "😊 Facile", pairs: 3, cols: 3 },
+      { label: "😃 Moyen", pairs: 6, cols: 4 },
+      { label: "🤩 Difficile", pairs: 8, cols: 4 },
+    ];
+    let level = 0;
+    const board = document.getElementById("board");
+    const levelsEl = document.getElementById("levels");
+
+    LEVELS.forEach((l, i) => {
+      const b = document.createElement("button");
+      b.className = "big-btn";
+      b.textContent = l.label;
+      b.onclick = () => { sounds.click(); level = i; start(); };
+      levelsEl.appendChild(b);
+    });
+
+    let first = null, lock = false, found = 0;
+
+    function start() {
+      [...levelsEl.children].forEach((b, i) => b.classList.toggle("active", i === level));
+      const { pairs, cols } = LEVELS[level];
+      board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+      // Sur écran large et bas (paysage), on limite la largeur pour que tout tienne
+      const rows = Math.ceil((pairs * 2) / cols);
+      board.style.width = `min(96vw, 760px, ${(innerHeight - 190) * cols / rows}px)`;
+      board.innerHTML = "";
+      first = null; lock = false; found = 0;
+      const chosen = shuffle(animals).slice(0, pairs);
+      shuffle([...chosen, ...chosen]).forEach(([emoji, name]) => {
+        const c = document.createElement("div");
+        c.className = "card";
+        c.innerHTML = `<div class="face back">?</div><div class="face front">${emoji}</div>`;
+        c.dataset.emoji = emoji;
+        c.dataset.name = name;
+        c.addEventListener("click", () => flip(c));
+        board.appendChild(c);
+      });
+    }
+
+    function flip(c) {
+      if (lock || c === first || c.classList.contains("found")) return;
+      sounds.click();
+      c.classList.add("flipped");
+      say(c.dataset.name);
+      if (!first) { first = c; return; }
+      lock = true;
+      if (first.dataset.emoji === c.dataset.emoji) {
+        setTimeout(() => {
+          first.classList.add("found");
+          c.classList.add("found");
+          sounds.success();
+          found++;
+          first = null; lock = false;
+          if (found === LEVELS[level].pairs) {
+            setTimeout(() => {
+              sounds.win();
+              confetti(60);
+              Jeux.addStars(1);
+              Jeux.bravo("Tu as tout trouvé !");
+              setTimeout(start, 3500);
+            }, 400);
+          }
+        }, 500);
+      } else {
+        setTimeout(() => {
+          first.classList.remove("flipped");
+          c.classList.remove("flipped");
+          first = null; lock = false;
+        }, 1100);
+      }
+    }
+
+    start();
+  </script>
+</body>
+</html>

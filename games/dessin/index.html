@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Je dessine</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { background: #fff7fb; display: flex; flex-direction: column; }
+    canvas { flex: 1; width: 100%; touch-action: none; display: block; background: #fff; }
+    #tools {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 10px max(10px, env(safe-area-inset-bottom));
+      background: #ffe0f0;
+      box-shadow: 0 -4px 0 rgba(0,0,0,0.06);
+    }
+    .tool {
+      width: clamp(44px, 9vw, 60px);
+      height: clamp(44px, 9vw, 60px);
+      border-radius: 50%;
+      font-size: clamp(22px, 5vw, 32px);
+      background: #fff;
+      box-shadow: 0 4px 0 rgba(0,0,0,0.12);
+      display: grid;
+      place-items: center;
+      transition: transform 0.1s;
+    }
+    .tool.active { transform: scale(1.2); outline: 4px solid #3b2a4d; }
+    .sep { width: 2px; background: rgba(0,0,0,0.1); margin: 0 4px; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div id="tools"></div>
+
+  <script src="../../js/common.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say } = Jeux;
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+    const tools = document.getElementById("tools");
+    const COLORS = ["#ef476f", "#ff9f1c", "#ffd166", "#06d6a0", "#118ab2", "#7b2cbf", "#8d5524", "#222222"];
+    const STAMPS = ["⭐", "❤️", "🌸", "🐱", "🚗", "🦖"];
+    let mode = { type: "color", value: COLORS[0] };
+    let rainbow = 0;
+
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      const r = canvas.getBoundingClientRect();
+      const old = document.createElement("canvas");
+      old.width = canvas.width; old.height = canvas.height;
+      old.getContext("2d").drawImage(canvas, 0, 0);
+      canvas.width = r.width * dpr;
+      canvas.height = r.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.drawImage(old, 0, 0, old.width / dpr, old.height / dpr);
+    }
+
+    function addTool(label, m, bg) {
+      const b = document.createElement("button");
+      b.className = "tool";
+      b.innerHTML = label;
+      if (bg) b.style.background = bg;
+      b.onclick = () => {
+        sounds.click();
+        if (m.type === "clear") {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          say("Tout propre !");
+          return;
+        }
+        mode = m;
+        [...tools.querySelectorAll(".tool")].forEach((t) => t.classList.remove("active"));
+        b.classList.add("active");
+      };
+      tools.appendChild(b);
+      return b;
+    }
+    COLORS.forEach((c, i) => {
+      const b = addTool("", { type: "color", value: c }, c);
+      if (i === 0) b.classList.add("active");
+    });
+    addTool("🌈", { type: "rainbow" });
+    const sep = document.createElement("div"); sep.className = "sep"; tools.appendChild(sep);
+    STAMPS.forEach((s) => addTool(s, { type: "stamp", value: s }));
+    addTool("🧽", { type: "eraser" });
+    addTool("🗑️", { type: "clear" });
+
+    const pointers = new Map();
+    function pos(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+    function size() { return Math.max(10, Math.min(innerWidth, innerHeight) / 40); }
+
+    canvas.addEventListener("pointerdown", (e) => {
+      canvas.setPointerCapture(e.pointerId);
+      const p = pos(e);
+      if (mode.type === "stamp") {
+        const s = size() * 4;
+        ctx.font = `${s}px serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(mode.value, p.x, p.y);
+        sounds.pop();
+        return;
+      }
+      pointers.set(e.pointerId, p);
+      dot(p);
+    });
+    canvas.addEventListener("pointermove", (e) => {
+      const last = pointers.get(e.pointerId);
+      if (!last) return;
+      const p = pos(e);
+      stroke(last, p);
+      pointers.set(e.pointerId, p);
+    });
+    const end = (e) => pointers.delete(e.pointerId);
+    canvas.addEventListener("pointerup", end);
+    canvas.addEventListener("pointercancel", end);
+
+    function style() {
+      ctx.globalCompositeOperation = mode.type === "eraser" ? "destination-out" : "source-over";
+      let c = mode.value;
+      if (mode.type === "rainbow") { rainbow = (rainbow + 4) % 360; c = `hsl(${rainbow},90%,55%)`; }
+      ctx.strokeStyle = ctx.fillStyle = c || "#000";
+      ctx.lineWidth = mode.type === "eraser" ? size() * 3 : size();
+      ctx.lineCap = ctx.lineJoin = "round";
+    }
+    function dot(p) {
+      style();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, ctx.lineWidth / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    function stroke(a, b) {
+      style();
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+    }
+
+    addEventListener("resize", resize);
+    resize();
+  </script>
+</body>
+</html>

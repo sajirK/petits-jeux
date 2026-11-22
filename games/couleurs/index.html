@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Les Couleurs</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: linear-gradient(160deg, #fff, #ffe5ec);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #stars { font-size: clamp(22px, 5vw, 34px); min-height: 1.4em; }
+    #ask {
+      display: flex; align-items: center; gap: 12px;
+      font-size: clamp(26px, 6vw, 44px);
+      background: #fff; border-radius: 999px; padding: 8px 24px;
+      box-shadow: var(--shadow); margin: 8px 0;
+    }
+    #ask b { padding: 0 6px; border-radius: 12px; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,0.3); }
+    #balloons {
+      flex: 1;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(14px, 4vw, 40px);
+      width: min(96vw, 900px);
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+    }
+    .balloon {
+      width: clamp(90px, 24vw, 170px);
+      aspect-ratio: 0.8;
+      border-radius: 50% 50% 48% 48% / 55% 55% 45% 45%;
+      position: relative;
+      box-shadow: inset -12px -14px 0 rgba(0,0,0,0.12), 0 8px 0 rgba(0,0,0,0.1);
+      animation: float 2.4s ease-in-out infinite, bounce-in 0.4s both;
+    }
+    .balloon::before {
+      content: "";
+      position: absolute; top: 14%; left: 20%;
+      width: 18%; height: 24%;
+      background: rgba(255,255,255,0.6);
+      border-radius: 50%;
+    }
+    .balloon::after {
+      content: "";
+      position: absolute; bottom: -40px; left: 50%;
+      width: 2px; height: 40px; background: #888;
+    }
+    @keyframes float {
+      0%, 100% { translate: 0 0; }
+      50% { translate: 0 -14px; }
+    }
+    .balloon.pop { animation: popit 0.3s forwards; }
+    @keyframes popit { to { transform: scale(1.6); opacity: 0; } }
+  </style>
+</head>
+<body>
+  <h1 class="game-title">Les Couleurs</h1>
+  <div id="stars"></div>
+  <div id="ask"><span id="art">Touche le</span> <b id="target"></b> <button id="speak" style="background:none;font-size:32px">🔊</button></div>
+  <div id="balloons"></div>
+
+  <script src="../../js/common.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, shuffle, pick, confetti, bravo } = Jeux;
+    const COLORS = [
+      { name: "rouge", c: "#e63946" },
+      { name: "bleu", c: "#1d70f5" },
+      { name: "jaune", c: "#ffd60a" },
+      { name: "vert", c: "#2dc653" },
+      { name: "orange", c: "#ff8c1a" },
+      { name: "violet", c: "#8338ec" },
+      { name: "rose", c: "#ff70a6" },
+      { name: "marron", c: "#8d5524" },
+      { name: "noir", c: "#222" },
+      { name: "blanc", c: "#fdfdfd" },
+    ];
+    const target = document.getElementById("target");
+    const balloons = document.getElementById("balloons");
+    const starsEl = document.getElementById("stars");
+    let goal, stars = 0, busy = false;
+
+    // "le rouge", mais "l'orange"
+    const le = (name) => (/^[aeiouo]/.test(name) ? "l'" : "le ") + name;
+    function ask() { say(`Touche ${le(goal.name)} !`); }
+    document.getElementById("speak").onclick = ask;
+
+    function round() {
+      busy = false;
+      const n = stars < 4 ? 3 : stars < 10 ? 4 : 6;
+      const set = shuffle(COLORS).slice(0, n);
+      goal = pick(set);
+      target.textContent = goal.name;
+      document.getElementById("art").textContent = goal.name === "orange" ? "Touche l'" : "Touche le";
+      target.style.background = goal.c;
+      target.style.color = goal.name === "blanc" || goal.name === "jaune" ? "#3b2a4d" : "#fff";
+      balloons.innerHTML = "";
+      set.forEach((col, i) => {
+        const b = document.createElement("button");
+        b.className = "balloon";
+        b.style.background = col.c;
+        b.style.animationDelay = `${i * 0.3}s, ${i * 0.08}s`;
+        b.onclick = () => choose(b, col);
+        balloons.appendChild(b);
+      });
+      setTimeout(ask, 400);
+    }
+
+    function choose(b, col) {
+      if (busy) return;
+      if (col === goal) {
+        busy = true;
+        b.classList.add("pop");
+        sounds.pop();
+        sounds.success();
+        stars++;
+        starsEl.textContent = "⭐".repeat(stars % 10 || 10);
+        Jeux.addStars(1);
+        if (stars % 10 === 0) { confetti(60); sounds.win(); }
+        bravo(`C'est ${le(col.name)} !`);
+        setTimeout(round, 2000);
+      } else {
+        sounds.wrong();
+        b.classList.remove("shake"); void b.offsetWidth; b.classList.add("shake");
+        say(`Ça c'est ${le(col.name)}. Cherche ${le(goal.name)} !`);
+      }
+    }
+    round();
+  </script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>La Mémoire Musicale</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { background: radial-gradient(circle at 50% 30%, #3a0ca3, #10002b); color: #fff; }
+    .game-title { color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,0.3); }
+    .brain { height: 100%; }
+    .brain-pill { color: var(--ink); }
+    #status { font-size: clamp(18px, 4.2vmin, 28px); min-height: 1.5em; margin-bottom: 10px; text-align: center; }
+    #pads {
+      flex: 1; min-height: 0; width: 100%;
+      display: grid; place-items: center;
+    }
+    #grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: clamp(12px, 3vmin, 24px);
+      width: min(90vw, 62vh, 520px); aspect-ratio: 1;
+    }
+    .pad {
+      border-radius: 30px; font-size: clamp(48px, 12vmin, 90px);
+      box-shadow: 0 8px 0 rgba(0,0,0,0.35), inset 0 -10px 0 rgba(0,0,0,0.15);
+      filter: brightness(0.75) saturate(0.85);
+      transition: filter 0.08s, transform 0.08s;
+      touch-action: none;
+    }
+    .pad.lit { filter: brightness(1.25) saturate(1.2); transform: scale(1.04); box-shadow: 0 0 40px 10px rgba(255,255,255,0.6), 0 8px 0 rgba(0,0,0,0.35); }
+    .pad:disabled { opacity: 1; }
+    #start { margin: 12px 0 max(16px, env(safe-area-inset-bottom)); color: var(--ink); }
+  </style>
+</head>
+<body>
+  <div class="brain">
+    <h1 class="game-title">La Mémoire Musicale</h1>
+    <div class="brain-bar"><div class="brain-pill" id="score">🎵 0</div><div class="brain-pill" id="best">🏆 0</div></div>
+    <div id="status">Écoute la mélodie, puis rejoue-la !</div>
+    <div id="pads"><div id="grid"></div></div>
+    <button class="big-btn" id="start">▶️ Jouer</button>
+  </div>
+
+  <script src="../../js/common.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, confetti, bravo } = Jeux;
+    // 4 notes qui sonnent bien ensemble (do, mi, sol, do aigu)
+    const PADS = [
+      { c: "#ef476f", e: "🐶", f: 523.25, name: "le chien" },
+      { c: "#118ab2", e: "🐱", f: 659.25, name: "le chat" },
+      { c: "#ffd166", e: "🐥", f: 783.99, name: "le poussin" },
+      { c: "#06d6a0", e: "🐸", f: 1046.5, name: "la grenouille" },
+    ];
+    const grid = document.getElementById("grid");
+    const status = document.getElementById("status");
+    const startBtn = document.getElementById("start");
+    let seq = [], pos = 0, listening = false, secondChance = true, best = parseInt(localStorage.getItem("jeux.melodie.best") || "0", 10);
+    document.getElementById("best").textContent = "🏆 " + best;
+
+    const pads = PADS.map((p, i) => {
+      const b = document.createElement("button");
+      b.className = "pad";
+      b.style.background = p.c;
+      b.textContent = p.e;
+      b.addEventListener("pointerdown", (e) => { e.preventDefault(); press(i); });
+      grid.appendChild(b);
+      return b;
+    });
+
+    function light(i, ms = 380) {
+      pads[i].classList.add("lit");
+      sounds.bell(PADS[i].f, 0, 0.25, ms / 600);
+      setTimeout(() => pads[i].classList.remove("lit"), ms);
+    }
+
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    async function playSeq() {
+      listening = false;
+      status.textContent = "👂 Écoute bien...";
+      await wait(700);
+      // plus la mélodie est longue, plus elle va vite (mais jamais trop)
+      const speed = Math.max(330, 650 - seq.length * 25);
+      for (const i of seq) {
+        light(i, speed * 0.75);
+        await wait(speed);
+      }
+      pos = 0;
+      listening = true;
+      status.textContent = "🎹 À toi !";
+    }
+
+    function press(i) {
+      if (!listening) return;
+      light(i, 250);
+      if (i === seq[pos]) {
+        pos++;
+        if (pos === seq.length) {
+          listening = false;
+          secondChance = true; // une nouvelle chance à chaque nouvelle longueur
+          document.getElementById("score").textContent = "🎵 " + seq.length;
+          if (seq.length > best) {
+            best = seq.length;
+            localStorage.setItem("jeux.melodie.best", best);
+            document.getElementById("best").textContent = "🏆 " + best;
+          }
+          if (seq.length % 5 === 0) { Jeux.addStars(1); confetti(40, ["🎵", "🎶", "⭐"]); bravo(`${seq.length} notes !`); }
+          else status.textContent = "✅ Bravo !";
+          setTimeout(() => { seq.push(Math.floor(Math.random() * 4)); playSeq(); }, 1100);
+        }
+      } else {
+        listening = false;
+        sounds.wrong();
+        if (secondChance) {
+          secondChance = false;
+          status.textContent = "🙂 Oups ! Écoute encore une fois.";
+          say("Oups ! Écoute encore une fois.");
+          setTimeout(playSeq, 1500);
+        } else {
+          const got = seq.length - 1;
+          status.textContent = `Tu as retenu ${got} note${got > 1 ? "s" : ""} ! 🏆 Record : ${best}`;
+          say(got >= 3 ? `Bravo ${Jeux.NAME} ! Tu as retenu ${got} notes !` : `Tu as retenu ${got} note${got > 1 ? "s" : ""}. On recommence ?`);
+          if (got >= 5) confetti(40);
+          startBtn.style.visibility = "visible";
+          startBtn.textContent = "🔁 Rejouer";
+        }
+      }
+    }
+
+    startBtn.onclick = () => {
+      startBtn.style.visibility = "hidden";
+      seq = [Math.floor(Math.random() * 4), Math.floor(Math.random() * 4)];
+      secondChance = true;
+      document.getElementById("score").textContent = "🎵 0";
+      say("Écoute la mélodie, puis rejoue-la !");
+      setTimeout(playSeq, 1200);
+    };
+  </script>
+</body>
+</html>

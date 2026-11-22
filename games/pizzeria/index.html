@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>La Pizzeria</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background:
+        repeating-linear-gradient(45deg, rgba(255,255,255,0.0) 0 22px, rgba(255,255,255,0.0) 22px 44px),
+        linear-gradient(180deg, #fff1e6 0 62%, #e9c46a 62%);
+      display: grid;
+      grid-template-areas: "top" "client" "pizza" "tray";
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      justify-items: center;
+      align-items: center;
+    }
+    /* nappe à carreaux rouge et blanc en haut */
+    body::before {
+      content: "";
+      position: fixed; left: 0; right: 0; top: 0; height: 18px;
+      background: repeating-linear-gradient(90deg, #e63946 0 18px, #fff 18px 36px);
+      z-index: 0;
+    }
+    #top { grid-area: top; display: flex; align-items: center; gap: 10px; margin-top: max(26px, env(safe-area-inset-top)); }
+    #top h1 { margin: 0; font-size: clamp(22px, 5vw, 38px); }
+    .pill { background: #fff; border-radius: 999px; padding: 4px 16px; font-size: clamp(18px, 4vw, 28px); box-shadow: var(--shadow); }
+
+    /* Le client et sa commande */
+    #client { grid-area: client; display: flex; align-items: center; gap: 12px; padding: 6px 12px; max-width: 100%; }
+    #face { font-size: clamp(56px, 14vmin, 100px); line-height: 1; transition: transform 0.5s; }
+    #face.arrive { animation: arrive 0.7s ease-out; }
+    @keyframes arrive { from { transform: translateX(-60vw) rotate(-20deg); } }
+    #face.eat { animation: munch 0.25s ease-in-out 6; }
+    @keyframes munch { 50% { transform: scale(1.15, 0.9); } }
+    #bubble {
+      position: relative;
+      background: #fff;
+      border-radius: 22px;
+      padding: 8px 12px;
+      box-shadow: var(--shadow);
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+      max-width: min(70vw, 460px);
+      cursor: pointer;
+    }
+    #bubble::before {
+      content: ""; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
+      border: 8px solid transparent; border-right: 12px solid #fff; border-left: 0;
+    }
+    .chip {
+      display: flex; align-items: center; gap: 4px;
+      background: #fff3e0; border-radius: 14px; padding: 4px 10px;
+      font-size: clamp(18px, 4vmin, 28px);
+      border: 3px solid transparent;
+    }
+    .chip.ok { border-color: #06d6a0; background: #e9fff7; }
+    .chip.too-many { border-color: #ef476f; }
+    .chip small { font-size: 0.7em; opacity: 0.75; }
+    #message { font-size: clamp(16px, 3.6vmin, 22px); width: 100%; }
+
+    /* La pizza */
+    #pizzaZone { grid-area: pizza; width: 100%; height: 100%; min-height: 0; overflow: hidden; display: grid; place-items: center; position: relative; }
+    #board {
+      width: var(--S); height: var(--S);
+      border-radius: 50%;
+      background: radial-gradient(circle, #c68b59 60%, #a86a3d 61% 66%, transparent 67%);
+      display: grid; place-items: center;
+      transform: scale(1.1);
+    }
+    #pizza {
+      position: relative;
+      width: var(--S); height: var(--S);
+      touch-action: none;
+      transition: transform 0.8s ease-in, opacity 0.8s;
+    }
+    #pizza canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #pizza.baked canvas, #pizza.baked .top { filter: sepia(0.35) saturate(1.35) brightness(0.93); }
+    .top {
+      position: absolute;
+      transform: translate(-50%, -50%) rotate(var(--r));
+      font-size: calc(var(--S) * 0.11);
+      line-height: 1;
+      animation: plop 0.25s ease-out;
+      cursor: pointer;
+    }
+    @keyframes plop { from { transform: translate(-50%, -120%) rotate(var(--r)) scale(1.4); opacity: 0.4; } }
+    #pizza.bite1 { clip-path: polygon(50% 50%, 100% 0, 100% 100%, 0 100%, 0 0); }
+    #pizza.bite2 { clip-path: polygon(50% 50%, 100% 50%, 100% 100%, 0 100%, 0 0, 50% 0); }
+    #pizza.bite3 { clip-path: polygon(50% 50%, 50% 100%, 0 100%, 0 0, 50% 0); }
+    #pizza.bite4 { opacity: 0; }
+
+    /* Les ingrédients */
+    #tray {
+      grid-area: tray;
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+      padding: 8px 10px max(12px, env(safe-area-inset-bottom));
+      max-width: 760px;
+    }
+    .ing {
+      width: clamp(56px, 12.5vmin, 84px); height: clamp(56px, 12.5vmin, 84px);
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: clamp(28px, 6.5vmin, 44px);
+      line-height: 1.05;
+      transition: transform 0.1s;
+    }
+    .ing small { font-size: clamp(10px, 2.2vmin, 13px); }
+    .ing.active { background: #ffd166; transform: translateY(-4px) scale(1.06); }
+    .ing:active { transform: scale(0.9); }
+    .action {
+      height: clamp(56px, 12.5vmin, 84px);
+      padding: 0 18px;
+      border-radius: 18px;
+      font-size: clamp(20px, 4.5vmin, 30px);
+      box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+      color: #fff;
+      text-shadow: 0 2px 0 rgba(0,0,0,0.2);
+    }
+    #bake { background: #f77f00; }
+    #serve { background: #06d6a0; display: none; }
+    #trash { background: #adb5bd; padding: 0 12px; }
+    .action:active { transform: scale(0.94) translateY(3px); }
+    .action:disabled { opacity: 0.5; }
+
+    /* Le four */
+    #oven {
+      position: fixed; inset: 0; z-index: 50;
+      display: none; place-items: center;
+      background: rgba(40, 20, 10, 0.55);
+    }
+    #oven.show { display: grid; }
+    #ovenBox {
+      width: min(84vw, 440px);
+      background: linear-gradient(#6c757d, #495057);
+      border-radius: 28px;
+      padding: 18px;
+      box-shadow: 0 10px 0 rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    #ovenWindow {
+      height: min(46vw, 230px);
+      border-radius: 18px;
+      background: radial-gradient(circle at 50% 80%, #ffb703, #fb8500 40%, #6a040f 90%);
+      display: grid; place-items: center;
+      overflow: hidden;
+      position: relative;
+      border: 8px solid #343a40;
+    }
+    #ovenWindow img { width: 60%; animation: glow 0.6s ease-in-out infinite alternate; }
+    @keyframes glow { to { filter: brightness(1.2) sepia(0.4); } }
+    #flames { position: absolute; bottom: 4px; left: 0; right: 0; font-size: 34px; letter-spacing: 4px; animation: flicker 0.3s infinite alternate; }
+    @keyframes flicker { to { transform: scaleY(1.2) translateY(-3px); } }
+    #bar { height: 18px; border-radius: 9px; background: #343a40; margin-top: 14px; overflow: hidden; }
+    #bar div { height: 100%; width: 0; background: linear-gradient(90deg, #ffd166, #ef476f); }
+
+    @media (orientation: landscape) {
+      body {
+        grid-template-areas: "top top top" "client pizza tray";
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        background: linear-gradient(180deg, #fff1e6 0 70%, #e9c46a 70%);
+      }
+      #client { flex-direction: column; align-self: center; }
+      #bubble::before { display: none; }
+      #bubble { max-width: 30vw; }
+      #tray { align-self: center; max-width: 34vw; }
+    }
+    /* Téléphone debout : laisser la place au bouton son en haut à droite */
+    @media (max-width: 600px) {
+      #top { margin-top: max(30px, env(safe-area-inset-top)); margin-bottom: 8px; }
+    }
+    /* Téléphone couché : boutons plus petits pour que tout tienne */
+    @media (orientation: landscape) and (max-height: 500px) {
+      #top h1 { display: none; }
+      #top { margin-top: 20px; }
+      .ing { width: 44px; height: 44px; font-size: 24px; border-radius: 12px; }
+      .ing small { display: none; }
+      .action { height: 44px; font-size: 18px; padding: 0 12px; }
+      #tray { gap: 6px; max-width: 40vw; }
+      #face { font-size: 48px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="top"><h1>🍕 La Pizzeria</h1><div class="pill" id="coins">🪙 0</div></div>
+
+  <div id="client">
+    <div id="face">🐻</div>
+    <div id="bubble" title="Écouter la commande"></div>
+  </div>
+
+  <div id="pizzaZone">
+    <div id="board"><div id="pizza"><canvas id="layer"></canvas><div id="tops"></div></div></div>
+  </div>
+
+  <div id="tray"></div>
+
+  <div id="oven"><div id="ovenBox"><div id="ovenWindow"><img id="ovenPizza" alt="" /><div id="flames">🔥🔥🔥🔥🔥</div></div><div id="bar"><div></div></div></div></div>
+
+  <script src="../../js/common.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, confetti, pick, shuffle, NAME } = Jeux;
+
+    // ---------- Données ----------
+    const TOPPINGS = {
+      "🍄": ["champignon", "champignons"],
+      "🫒": ["olive", "olives"],
+      "🍅": ["tomate", "tomates"],
+      "🌶️": ["piment", "piments"],
+      "🍍": ["morceau d'ananas", "morceaux d'ananas"],
+      "🧅": ["oignon", "oignons"],
+      "🥓": ["tranche de jambon", "tranches de jambon"],
+      "🌿": ["feuille de basilic", "feuilles de basilic"],
+      "🦐": ["crevette", "crevettes"],
+      "🥚": ["œuf", "œufs"],
+    };
+    const CLIENTS = [
+      ["🐻", "Monsieur Ours"], ["🐱", "Madame Chat"], ["🐸", "Grenouille"], ["🦊", "Renard"],
+      ["🐼", "Panda"], ["🐷", "Petit Cochon"], ["🐵", "Singe"], ["🦁", "Lion"],
+      ["🐰", "Lapin"], ["👽", "Petit Martien"], ["🐧", "Pingouin"], ["🐮", "Vache"],
+    ];
+    const LABELS = { "🍄": "champi", "🫒": "olive", "🍅": "tomate", "🌶️": "piment", "🍍": "ananas", "🧅": "oignon", "🥓": "jambon", "🌿": "basilic", "🦐": "crevette", "🥚": "œuf" };
+    const NUM = ["zéro", "un", "deux", "trois", "quatre", "cinq", "six"];
+    const NUM_F = ["zéro", "une", "deux", "trois", "quatre", "cinq", "six"];
+    const FEMININE = new Set(["🫒", "🍅", "🥓", "🌿", "🦐"]);
+
+    // ---------- État ----------
+    let served = parseInt(localStorage.getItem("jeux.pizzas") || "0", 10);
+    let coins = parseInt(localStorage.getItem("jeux.coins") || "0", 10);
+    let order, client, tool = "sauce", baked = false, busy = false;
+    let sauceDabs = [], cheeseDabs = [], tops = [];
+    let S = 300;
+
+    const pizzaEl = document.getElementById("pizza");
+    const layer = document.getElementById("layer");
+    const lctx = layer.getContext("2d");
+    const topsEl = document.getElementById("tops");
+    const bubble = document.getElementById("bubble");
+    const faceEl = document.getElementById("face");
+    const tray = document.getElementById("tray");
+
+    // Points de contrôle pour mesurer combien la pizza est couverte
+    const SAMPLES = [];
+    for (let y = -0.75; y <= 0.75; y += 0.1) for (let x = -0.75; x <= 0.75; x += 0.1) if (x * x + y * y < 0.72 * 0.72) SAMPLES.push([x, y]);
+    const coverage = (dabs, r) => SAMPLES.filter(([x, y]) => dabs.some((d) => (d.x - x) ** 2 + (d.y - y) ** 2 < r * r)).length / SAMPLES.length;
+    const SAUCE_R = 0.17, CHEESE_R = 0.15;
+
+    // ---------- Taille ----------
+    function resize() {
+      const zone = document.getElementById("pizzaZone").getBoundingClientRect();
+      S = Math.floor(Math.max(160, Math.min(zone.width * 0.88, zone.height * 0.86, 520)));
+      document.documentElement.style.setProperty("--S", S + "px");
+      const dpr = window.devicePixelRatio || 1;
+      layer.width = S * dpr; layer.height = S * dpr;
+      lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      redraw();
+    }
+    new ResizeObserver(resize).observe(document.getElementById("pizzaZone"));
+
+    // ---------- Dessin de la pizza ----------
+    function toPx(v) { return (v + 1) / 2 * S; }
+    function rand(seed) { const x = Math.sin(seed * 9301 + 49297) * 233280; return x - Math.floor(x); }
+
+    function drawDough() {
+      lctx.clearRect(0, 0, S, S);
+      const c = S / 2;
+      // croûte
+      const g = lctx.createRadialGradient(c, c, S * 0.36, c, c, S * 0.5);
+      g.addColorStop(0, baked ? "#e9b872" : "#f6dca8");
+      g.addColorStop(0.75, baked ? "#c47a32" : "#efc98a");
+      g.addColorStop(1, baked ? "#9c5a1f" : "#e0b272");
+      lctx.fillStyle = g;
+      lctx.beginPath(); lctx.arc(c, c, S * 0.48, 0, Math.PI * 2); lctx.fill();
+      // pâte
+      lctx.fillStyle = baked ? "#f3d9a4" : "#fbe9c6";
+      lctx.beginPath(); lctx.arc(c, c, S * 0.4, 0, Math.PI * 2); lctx.fill();
+      // petites bulles de pâte
+      lctx.fillStyle = "rgba(200,150,90,0.25)";
+      for (let i = 0; i < 18; i++) {
+        const a = rand(i) * Math.PI * 2, r = rand(i + 50) * 0.36;
+        lctx.beginPath(); lctx.arc(c + Math.cos(a) * r * S, c + Math.sin(a) * r * S, S * 0.012, 0, Math.PI * 2); lctx.fill();
+      }
+    }
+    function clipInner() {
+      lctx.save();
+      lctx.beginPath(); lctx.arc(S / 2, S / 2, S * 0.41, 0, Math.PI * 2); lctx.clip();
+    }
+    function drawSauce(d) {
+      clipInner();
+      const x = toPx(d.x), y = toPx(d.y), r = SAUCE_R * S / 2 * 1.15;
+      const g = lctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, "rgba(214, 40, 40, 0.95)");
+      g.addColorStop(0.7, "rgba(200, 35, 35, 0.9)");
+      g.addColorStop(1, "rgba(200, 35, 35, 0)");
+      lctx.fillStyle = g;
+      lctx.beginPath(); lctx.arc(x, y, r, 0, Math.PI * 2); lctx.fill();
+      lctx.restore();
+    }
+    function drawCheese(d) {
+      clipInner();
+      const x = toPx(d.x), y = toPx(d.y), r = CHEESE_R * S / 2;
+      for (let i = 0; i < 9; i++) {
+        const a = rand(d.seed + i) * Math.PI * 2, dist = rand(d.seed + i + 20) * r;
+        const px = x + Math.cos(a) * dist, py = y + Math.sin(a) * dist;
+        lctx.save();
+        lctx.translate(px, py);
+        lctx.rotate(rand(d.seed + i + 40) * Math.PI);
+        lctx.fillStyle = i % 2 ? "#ffe066" : "#ffd43b";
+        if (baked) lctx.fillStyle = i % 2 ? "#ffd166" : "#f4a261";
+        const w = S * 0.05, h = S * 0.014;
+        lctx.beginPath();
+        lctx.roundRect ? lctx.roundRect(-w / 2, -h / 2, w, h, h / 2) : lctx.rect(-w / 2, -h / 2, w, h);
+        lctx.fill();
+        lctx.restore();
+      }
+      lctx.restore();
+    }
+    function redraw() {
+      drawDough();
+      sauceDabs.forEach(drawSauce);
+      cheeseDabs.forEach(drawCheese);
+      topsEl.innerHTML = "";
+      tops.forEach(renderTop);
+    }
+
+    // ---------- Garnitures ----------
+    function renderTop(t) {
+      const el = document.createElement("div");
+      el.className = "top";
+      el.textContent = t.e;
+      el.style.left = (t.x + 1) * 50 + "%";
+      el.style.top = (t.y + 1) * 50 + "%";
+      el.style.setProperty("--r", t.r + "deg");
+      // toucher une garniture l'enlève
+      el.addEventListener("pointerdown", (ev) => {
+        ev.stopPropagation();
+        if (baked || busy) return;
+        tops.splice(tops.indexOf(t), 1);
+        el.remove();
+        sounds.pop();
+        updateBubble();
+      });
+      topsEl.appendChild(el);
+    }
+    function addTop(e, x, y) {
+      if (tops.length >= 30) return;
+      if (x === undefined) {
+        // place libre au hasard sur la pizza
+        let best = null, bestD = -1;
+        for (let k = 0; k < 25; k++) {
+          const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * 0.62;
+          const cx = Math.cos(a) * r, cy = Math.sin(a) * r;
+          const d = Math.min(1, ...tops.map((t) => Math.hypot(t.x - cx, t.y - cy)));
+          if (d > bestD) { bestD = d; best = [cx, cy]; }
+        }
+        [x, y] = best;
+      }
+      const t = { e, x, y, r: Math.floor(Math.random() * 60 - 30) };
+      tops.push(t);
+      renderTop(t);
+      const n = tops.filter((o) => o.e === e).length;
+      sounds.step(n - 1);
+      say(FEMININE.has(e) ? NUM_F[n] || String(n) : NUM[n] || String(n));
+      updateBubble();
+    }
+
+    // ---------- Peindre au doigt ----------
+    let painting = false, lastPaint = 0;
+    function pointToPizza(e) {
+      const r = pizzaEl.getBoundingClientRect();
+      return { x: ((e.clientX - r.left) / r.width) * 2 - 1, y: ((e.clientY - r.top) / r.height) * 2 - 1 };
+    }
+    pizzaEl.addEventListener("pointerdown", (e) => {
+      if (baked || busy) return;
+      const p = pointToPizza(e);
+      if (p.x * p.x + p.y * p.y > 0.85 * 0.85) return;
+      if (tool === "sauce" || tool === "fromage") {
+        painting = true;
+        try { pizzaEl.setPointerCapture(e.pointerId); } catch (err) {}
+        paint(p);
+      } else {
+        addTop(tool, Math.max(-0.7, Math.min(0.7, p.x)), Math.max(-0.7, Math.min(0.7, p.y)));
+      }
+    });
+    pizzaEl.addEventListener("pointermove", (e) => { if (painting) paint(pointToPizza(e)); });
+    const stopPaint = () => { if (painting) { painting = false; updateBubble(); } };
+    pizzaEl.addEventListener("pointerup", stopPaint);
+    pizzaEl.addEventListener("pointercancel", stopPaint);
+
+    function paint(p) {
+      if (p.x * p.x + p.y * p.y > 0.95) return;
+      const list = tool === "sauce" ? sauceDabs : cheeseDabs;
+      const last = list[list.length - 1];
+      if (last && Math.hypot(last.x - p.x, last.y - p.y) < 0.05) return;
+      const d = { x: p.x, y: p.y, seed: Math.random() * 1000 };
+      list.push(d);
+      (tool === "sauce" ? drawSauce : drawCheese)(d);
+      const now = performance.now();
+      if (now - lastPaint > 120) {
+        lastPaint = now;
+        if (tool === "sauce") sounds.noise(0.12, { from: 400, to: 250, q: 2, volume: 0.12 });
+        else sounds.noise(0.08, { from: 3000, to: 4000, q: 3, volume: 0.08 });
+      }
+      if (list.length % 6 === 0) updateBubble();
+    }
+
+    // ---------- Commande ----------
+    function newOrder() {
+      const level = served;
+      const nTypes = level < 2 ? 1 : level < 6 ? 2 : 1 + Math.floor(Math.random() * 3);
+      const maxCount = level < 2 ? 3 : level < 6 ? 4 : 5;
+      const types = shuffle(Object.keys(TOPPINGS)).slice(0, nTypes);
+      order = {
+        sauce: true,
+        cheese: level < 4 || Math.random() < 0.85,
+        tops: Object.fromEntries(types.map((t) => [t, 1 + Math.floor(Math.random() * maxCount)])),
+      };
+      client = pick(CLIENTS.filter((c) => c !== client));
+    }
+
+    function orderSentence() {
+      const parts = ["de la sauce tomate"];
+      if (order.cheese) parts.push("du fromage");
+      for (const [e, n] of Object.entries(order.tops)) {
+        const [one, many] = TOPPINGS[e];
+        parts.push(`${FEMININE.has(e) ? NUM_F[n] : NUM[n]} ${n > 1 ? many : one}`);
+      }
+      const last = parts.pop();
+      let s = `Bonjour ${NAME} ! Je voudrais une pizza avec ${parts.join(", ")} et ${last}`;
+      if (!order.cheese) s += ", mais sans fromage";
+      return s + ", s'il te plaît !";
+    }
+
+    function updateBubble(msg) {
+      const sauceOk = coverage(sauceDabs, SAUCE_R) > 0.5;
+      const cheeseCov = coverage(cheeseDabs, CHEESE_R);
+      let html = `<span class="chip ${sauceOk ? "ok" : ""}">🥫<small>sauce</small></span>`;
+      if (order.cheese) html += `<span class="chip ${cheeseCov > 0.4 ? "ok" : ""}">🧀<small>fromage</small></span>`;
+      else html += `<span class="chip ${cheeseCov > 0.05 ? "too-many" : "ok"}">🚫🧀</span>`;
+      for (const [e, n] of Object.entries(order.tops)) {
+        const have = tops.filter((t) => t.e === e).length;
+        html += `<span class="chip ${have === n ? "ok" : have > n ? "too-many" : ""}">${e} ${have}/${n}</span>`;
+      }
+      if (msg) html += `<div id="message">${msg}</div>`;
+      bubble.innerHTML = html;
+    }
+    bubble.addEventListener("click", () => say(orderSentence()));
+
+    // ---------- Plateau d'ingrédients ----------
+    function buildTray() {
+      tray.innerHTML = "";
+      const items = [["sauce", "🥫", "sauce"], ["fromage", "🧀", "fromage"]];
+      // les garnitures demandées + quelques autres pour choisir
+      const wanted = Object.keys(order.tops);
+      const others = shuffle(Object.keys(TOPPINGS).filter((e) => !wanted.includes(e))).slice(0, Math.max(2, 5 - wanted.length));
+      shuffle([...wanted, ...others]).forEach((e) => items.push([e, e, LABELS[e]]));
+      for (const [id, emoji, label] of items) {
+        const b = document.createElement("button");
+        b.className = "ing" + (id === tool ? " active" : "");
+        b.innerHTML = `${emoji}<small>${label}</small>`;
+        b.onclick = () => {
+          if (baked || busy) return;
+          tool = id;
+          [...tray.querySelectorAll(".ing")].forEach((x) => x.classList.remove("active"));
+          b.classList.add("active");
+          sounds.click();
+          if (id === "sauce") say("Étale la sauce avec ton doigt !");
+          else if (id === "fromage") say("Mets le fromage avec ton doigt !");
+          else addTop(id); // un toucher = une garniture sur la pizza
+        };
+        tray.appendChild(b);
+      }
+      const trash = document.createElement("button");
+      trash.className = "action"; trash.id = "trash"; trash.textContent = "🔄";
+      trash.title = "Recommencer la pizza";
+      trash.onclick = () => { if (baked || busy) return; sauceDabs = []; cheeseDabs = []; tops = []; redraw(); updateBubble(); sounds.wrong(); };
+      tray.appendChild(trash);
+      const bake = document.createElement("button");
+      bake.className = "action"; bake.id = "bake"; bake.textContent = "🔥 Au four !";
+      bake.onclick = bakePizza;
+      tray.appendChild(bake);
+      const serve = document.createElement("button");
+      serve.className = "action"; serve.id = "serve"; serve.textContent = "🍽️ Servir !";
+      serve.onclick = servePizza;
+      tray.appendChild(serve);
+    }
+
+    // ---------- Four ----------
+    function bakePizza() {
+      if (baked || busy) return;
+      if (!sauceDabs.length && !tops.length && !cheeseDabs.length) {
+        say("La pizza est toute vide ! Commence par la sauce tomate.");
+        sounds.wrong();
+        return;
+      }
+      busy = true;
+      const oven = document.getElementById("oven");
+      // photo de la pizza pour la voir dans le four
+      const snap = document.createElement("canvas");
+      snap.width = S; snap.height = S;
+      const sc = snap.getContext("2d");
+      sc.drawImage(layer, 0, 0, S, S);
+      sc.textAlign = "center"; sc.textBaseline = "middle"; sc.font = `${S * 0.11}px serif`;
+      tops.forEach((t) => sc.fillText(t.e, (t.x + 1) / 2 * S, (t.y + 1) / 2 * S));
+      document.getElementById("ovenPizza").src = snap.toDataURL();
+      const bar = document.querySelector("#bar div");
+      bar.style.transition = "none"; bar.style.width = "0";
+      oven.classList.add("show");
+      say("Au four ! Ça chauffe !");
+      requestAnimationFrame(() => { bar.style.transition = "width 3.2s linear"; bar.style.width = "100%"; });
+      const crackle = setInterval(() => sounds.noise(0.3, { from: 1500, to: 900, q: 0.7, volume: 0.07 }), 280);
+      setTimeout(() => {
+        clearInterval(crackle);
+        sounds.ding();
+        baked = true;
+        pizzaEl.classList.add("baked");
+        redraw();
+        oven.classList.remove("show");
+        busy = false;
+        document.getElementById("bake").style.display = "none";
+        document.getElementById("trash").style.display = "none";
+        document.getElementById("serve").style.display = "";
+        say("Ding ! La pizza est cuite ! Sers-la vite !");
+      }, 3400);
+    }
+
+    // ---------- Servir et juger ----------
+    function judge() {
+      const notes = [];
+      let perfect = true;
+      if (coverage(sauceDabs, SAUCE_R) < 0.5) { perfect = false; notes.push("il manque un peu de sauce"); }
+      const cheese = coverage(cheeseDabs, CHEESE_R);
+      if (order.cheese && cheese < 0.4) { perfect = false; notes.push("je voulais plus de fromage"); }
+      if (!order.cheese && cheese > 0.05) { perfect = false; notes.push("j'avais dit sans fromage"); }
+      for (const [e, n] of Object.entries(order.tops)) {
+        const have = tops.filter((t) => t.e === e).length;
+        if (have !== n) {
+          perfect = false;
+          const [one, many] = TOPPINGS[e];
+          const nb = (k) => (FEMININE.has(e) ? NUM_F[k] : NUM[k]) || String(k);
+          notes.push(`je voulais ${nb(n)} ${n > 1 ? many : one}, et il y en a ${nb(have)}`);
+        }
+      }
+      const extras = [...new Set(tops.map((t) => t.e))].filter((e) => !(e in order.tops));
+      if (extras.length) { perfect = false; notes.push(`il y a des ${TOPPINGS[extras[0]][1]} en plus, rigolo`); }
+      return { perfect, notes };
+    }
+
+    function servePizza() {
+      if (!baked || busy) return;
+      busy = true;
+      document.getElementById("serve").style.display = "none";
+      const { perfect, notes } = judge();
+      // le client mange la pizza en 4 bouchées
+      faceEl.classList.add("eat");
+      let bite = 0;
+      const eat = setInterval(() => {
+        bite++;
+        pizzaEl.className = "baked bite" + bite;
+        sounds.yum();
+        if (bite >= 4) {
+          clearInterval(eat);
+          faceEl.classList.remove("eat");
+          react(perfect, notes);
+        }
+      }, 420);
+    }
+
+    function react(perfect, notes) {
+      const gain = perfect ? 3 : 1;
+      coins += gain;
+      served++;
+      localStorage.setItem("jeux.coins", coins);
+      localStorage.setItem("jeux.pizzas", served);
+      document.getElementById("coins").textContent = "🪙 " + coins;
+      if (perfect) {
+        faceEl.textContent = client[0] + "😋";
+        Jeux.addStars(1);
+        sounds.win();
+        confetti(50, ["🍕", "⭐", "🪙", "🎉"]);
+        const s = pick(["C'est parfait ! Miam miam !", "Exactement ce que je voulais ! Merci chef !", "Délicieux ! Tu es le meilleur pizzaïolo !"]);
+        updateBubble(`😋 ${s} +3 🪙`);
+        say(`${s} Bravo ${NAME} !`);
+      } else {
+        faceEl.textContent = client[0] + "🙂";
+        sounds.success();
+        const s = `Merci ! C'était bon ! Mais ${notes[0]}.`;
+        updateBubble(`🙂 ${s} +1 🪙`);
+        say(s);
+      }
+      setTimeout(nextClient, perfect ? 4500 : 5500);
+    }
+
+    function nextClient() {
+      busy = false; baked = false;
+      sauceDabs = []; cheeseDabs = []; tops = [];
+      tool = "sauce";
+      pizzaEl.className = "";
+      newOrder();
+      faceEl.textContent = client[0];
+      faceEl.classList.remove("arrive"); void faceEl.offsetWidth; faceEl.classList.add("arrive");
+      buildTray();
+      redraw();
+      updateBubble();
+      setTimeout(() => say(orderSentence()), 700);
+    }
+
+    document.getElementById("coins").textContent = "🪙 " + coins;
+    resize();
+    nextClient();
+  </script>
+</body>
+</html>

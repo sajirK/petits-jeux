@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Le Château Magique</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: radial-gradient(circle at 50% 20%, #5a3d8a, #1e1035);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .game-title { color: #ffe066; text-shadow: 0 3px 0 #7b2cbf; margin-bottom: 4px; }
+    #hud { display: flex; gap: 10px; margin-bottom: 8px; }
+    .pill { background: rgba(255,255,255,0.15); border-radius: 999px; padding: 4px 16px; font-size: clamp(20px, 4.5vw, 30px); }
+    #main {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 0 10px max(14px, env(safe-area-inset-bottom));
+      min-height: 0;
+    }
+    #wrap { flex: 1; min-height: 0; width: 100%; display: grid; place-items: center; overflow: hidden; }
+    #wrap canvas { position: absolute; inset: 0; margin: auto; }
+    #wrap { position: relative; }
+    canvas { touch-action: none; border-radius: 18px; box-shadow: 0 0 40px rgba(180, 120, 255, 0.5); }
+    #pad {
+      display: grid;
+      grid-template-columns: repeat(3, clamp(62px, 15vmin, 96px));
+      grid-template-rows: repeat(2, clamp(62px, 15vmin, 96px));
+      gap: 8px;
+    }
+    #pad button {
+      border-radius: 22px;
+      background: rgba(255,255,255,0.9);
+      box-shadow: 0 5px 0 rgba(0,0,0,0.3);
+      font-size: clamp(30px, 7vmin, 48px);
+      touch-action: none;
+    }
+    #pad button.on { transform: translateY(4px); background: #ffe066; }
+    #up { grid-column: 2; }
+    #left { grid-column: 1; grid-row: 2; }
+    #down { grid-column: 2; grid-row: 2; }
+    #right { grid-column: 3; grid-row: 2; }
+    @media (orientation: landscape) {
+      #main { flex-direction: row; align-items: stretch; }
+      #wrap { min-width: 0; height: 100%; }
+      #pad { align-self: center; }
+    }
+    @media (orientation: landscape) and (max-height: 700px) {
+      .game-title { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <h1 class="game-title">Le Château Magique</h1>
+  <div id="hud"><div class="pill" id="lvl">🏰 1</div><div class="pill" id="gems">💎 0</div></div>
+  <div id="main">
+    <div id="wrap"><canvas id="c"></canvas></div>
+    <div id="pad">
+      <button id="up" aria-label="Haut">⬆️</button>
+      <button id="left" aria-label="Gauche">⬅️</button>
+      <button id="down" aria-label="Bas">⬇️</button>
+      <button id="right" aria-label="Droite">➡️</button>
+    </div>
+  </div>
+
+  <script src="../../js/common.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, confetti, bravo, pick, shuffle } = Jeux;
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+    const wrap = document.getElementById("wrap");
+    let level = 1, cols, rows, grid, gems, bats, door, hero, S, totalGems = 0, doorOpen = false, busy = false;
+    const GEMS = ["💎", "💍", "👑", "🔮", "⭐", "🪙"];
+
+    // Labyrinthe généré au hasard, avec des passages en plus pour que ce soit facile
+    function makeMaze(cw, ch) {
+      const W = cw * 2 + 1, H = ch * 2 + 1;
+      const g = Array.from({ length: H }, () => Array(W).fill(1));
+      const stack = [[0, 0]];
+      const seen = new Set(["0,0"]);
+      g[1][1] = 0;
+      while (stack.length) {
+        const [x, y] = stack[stack.length - 1];
+        const n = shuffle([[1, 0], [-1, 0], [0, 1], [0, -1]]).find(([dx, dy]) => {
+          const nx = x + dx, ny = y + dy;
+          return nx >= 0 && ny >= 0 && nx < cw && ny < ch && !seen.has(nx + "," + ny);
+        });
+        if (!n) { stack.pop(); continue; }
+        const nx = x + n[0], ny = y + n[1];
+        seen.add(nx + "," + ny);
+        g[y * 2 + 1 + n[1]][x * 2 + 1 + n[0]] = 0;
+        g[ny * 2 + 1][nx * 2 + 1] = 0;
+        stack.push([nx, ny]);
+      }
+      // on casse des murs pour faire des boucles (moins de culs-de-sac)
+      for (let i = 0; i < cw * ch * 0.35; i++) {
+        const x = 1 + Math.floor(Math.random() * (W - 2));
+        const y = 1 + Math.floor(Math.random() * (H - 2));
+        if ((x + y) % 2 === 1) g[y][x] = 0;
+      }
+      return g;
+    }
+
+    function build() {
+      const size = Math.min(2 + level, 6);
+      const cw = size + 1, ch = size;
+      grid = makeMaze(cw, ch);
+      rows = grid.length; cols = grid[0].length;
+      const free = [];
+      for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) if (!grid[y][x]) free.push([x, y]);
+      hero = { x: 1, y: 1, px: 1, py: 1 };
+      door = { x: cols - 2, y: rows - 2 };
+      const far = free.filter(([x, y]) => x + y > 4 && !(x === door.x && y === door.y));
+      const picks = shuffle(far);
+      gems = picks.slice(0, 3 + level).map(([x, y]) => ({ x, y, e: pick(GEMS) }));
+      // chauves-souris : elles font des allers-retours dans un couloir
+      bats = [];
+      const corridors = picks.slice(10);
+      for (const [x, y] of corridors) {
+        if (bats.length >= Math.min(level, 4)) break;
+        const horiz = !grid[y][x - 1] && !grid[y][x + 1];
+        const vert = !grid[y - 1]?.[x] && !grid[y + 1]?.[x];
+        if (horiz || vert) bats.push({ x, y, px: x, py: y, dx: horiz ? 1 : 0, dy: horiz ? 0 : 1, timer: 0 });
+      }
+      doorOpen = false; busy = false;
+      document.getElementById("lvl").textContent = "🏰 " + level;
+      resize();
+    }
+
+    function resize() {
+      const r = wrap.getBoundingClientRect();
+      S = Math.floor(Math.min(r.width / cols, r.height / rows));
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = cols * S * dpr; canvas.height = rows * S * dpr;
+      canvas.style.width = cols * S + "px"; canvas.style.height = rows * S + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    new ResizeObserver(() => cols && resize()).observe(wrap);
+
+    // ---------- Contrôles : boutons, clavier, glisser ----------
+    let held = null, repeatTimer = 0;
+    const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+    for (const id of Object.keys(DIRS)) {
+      const b = document.getElementById(id);
+      b.addEventListener("pointerdown", (e) => { e.preventDefault(); held = id; b.classList.add("on"); step(id); repeatTimer = 0.28; });
+      const off = () => { if (held === id) held = null; b.classList.remove("on"); };
+      b.addEventListener("pointerup", off); b.addEventListener("pointercancel", off); b.addEventListener("pointerleave", off);
+    }
+    const KEYS = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", z: "up", s: "down", q: "left", d: "right" };
+    addEventListener("keydown", (e) => { const d = KEYS[e.key]; if (d) { e.preventDefault(); if (!e.repeat) { held = d; step(d); repeatTimer = 0.28; } } });
+    addEventListener("keyup", (e) => { if (KEYS[e.key] === held) held = null; });
+    // glisser le doigt sur le château
+    let sw = null;
+    canvas.addEventListener("pointerdown", (e) => { sw = { x: e.clientX, y: e.clientY }; });
+    canvas.addEventListener("pointermove", (e) => {
+      if (!sw) return;
+      const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) > S * 0.6) {
+        step(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
+        sw = { x: e.clientX, y: e.clientY };
+      }
+    });
+    addEventListener("pointerup", () => (sw = null));
+
+    function step(dir) {
+      if (busy) return;
+      const [dx, dy] = DIRS[dir];
+      const nx = hero.x + dx, ny = hero.y + dy;
+      if (grid[ny]?.[nx] !== 0) { sounds.slide(220, 150, 0.08, 0.12); return; }
+      hero.x = nx; hero.y = ny;
+      sounds.slide(500, 420, 0.04, 0.06);
+      const gi = gems.findIndex((g) => g.x === nx && g.y === ny);
+      if (gi >= 0) {
+        gems.splice(gi, 1);
+        totalGems++;
+        document.getElementById("gems").textContent = "💎 " + totalGems;
+        sounds.coin();
+        sparkle(nx, ny);
+        if (!gems.length) {
+          doorOpen = true;
+          sounds.win();
+          say("La porte magique est ouverte ! Va vite dedans !");
+        }
+      }
+      if (doorOpen && nx === door.x && ny === door.y) {
+        busy = true;
+        confetti(60, ["💎", "✨", "⭐", "👑"]);
+        Jeux.addStars(1);
+        bravo("Tu as trouvé tous les trésors !");
+        setTimeout(() => { level++; build(); }, 3000);
+      }
+    }
+
+    const particles = [];
+    function sparkle(x, y) {
+      for (let i = 0; i < 14; i++) {
+        const a = Math.random() * Math.PI * 2, v = 1 + Math.random() * 2;
+        particles.push({ x: x + 0.5, y: y + 0.5, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1 });
+      }
+    }
+
+    function hitBat() {
+      sounds.wrong();
+      say(pick(["Oh non, une chauve-souris !", "Attention aux chauves-souris !"]));
+      hero.x = hero.px = 1; hero.y = hero.py = 1;
+    }
+
+    // ---------- Boucle ----------
+    let t = 0, last = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now; t += dt;
+      if (held) { repeatTimer -= dt; if (repeatTimer <= 0) { step(held); repeatTimer = 0.17; } }
+      // animation douce du héros
+      hero.px += (hero.x - hero.px) * Math.min(1, dt * 18);
+      hero.py += (hero.y - hero.py) * Math.min(1, dt * 18);
+      // chauves-souris (lentes)
+      for (const b of bats) {
+        b.timer += dt;
+        if (b.timer > 0.9 && !busy) {
+          b.timer = 0;
+          if (grid[b.y + b.dy]?.[b.x + b.dx] !== 0) { b.dx *= -1; b.dy *= -1; }
+          if (grid[b.y + b.dy]?.[b.x + b.dx] === 0) { b.x += b.dx; b.y += b.dy; }
+        }
+        b.px += (b.x - b.px) * Math.min(1, dt * 6);
+        b.py += (b.y - b.py) * Math.min(1, dt * 6);
+        if (!busy && Math.hypot(b.px - hero.px, b.py - hero.py) < 0.55) hitBat();
+      }
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function em(ch, x, y, size) {
+      ctx.font = `${size}px serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(ch, x, y);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, cols * S, rows * S);
+      for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+        if (grid[y][x]) {
+          ctx.fillStyle = (x + y) % 2 ? "#9a86cf" : "#a793da";
+          ctx.fillRect(x * S, y * S, S, S);
+          ctx.fillStyle = "#5e4b94";
+          ctx.fillRect(x * S, y * S + S * 0.75, S, S * 0.25);
+          ctx.strokeStyle = "rgba(255,255,255,0.25)";
+          ctx.strokeRect(x * S + 1, y * S + 1, S - 2, S * 0.48);
+        } else {
+          ctx.fillStyle = (x + y) % 2 ? "#1f1236" : "#24163d";
+          ctx.fillRect(x * S, y * S, S, S);
+        }
+      }
+      // torches qui scintillent
+      ctx.globalAlpha = 0.6 + Math.sin(t * 8) * 0.2;
+      em("🕯️", S * 0.5, S * 0.5, S * 0.6);
+      em("🕯️", (cols - 0.5) * S, S * 0.5, S * 0.6);
+      ctx.globalAlpha = 1;
+      // porte
+      em(doorOpen ? "🌀" : "🚪", (door.x + 0.5) * S, (door.y + 0.5) * S, S * 0.8);
+      if (doorOpen) { ctx.save(); ctx.globalAlpha = 0.4 + Math.sin(t * 6) * 0.3; em("✨", (door.x + 0.5) * S, (door.y + 0.2) * S, S * 0.6); ctx.restore(); }
+      // gemmes
+      for (const g of gems) em(g.e, (g.x + 0.5) * S, (g.y + 0.5 + Math.sin(t * 4 + g.x) * 0.06) * S, S * 0.65);
+      // chauves-souris
+      for (const b of bats) em("🦇", (b.px + 0.5) * S, (b.py + 0.5 + Math.sin(t * 10) * 0.08) * S, S * 0.75);
+      // héros
+      em("🧙", (hero.px + 0.5) * S, (hero.py + 0.5) * S, S * 0.8);
+      // étincelles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx * 0.016; p.y += p.vy * 0.016; p.life -= 0.025;
+        if (p.life <= 0) { particles.splice(i, 1); continue; }
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = "#ffe066";
+        ctx.beginPath(); ctx.arc(p.x * S, p.y * S, S * 0.08, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    build();
+    requestAnimationFrame(loop);
+    setTimeout(() => say("Ramasse tous les trésors, et fais attention aux chauves-souris !"), 600);
+  </script>
+</body>
+</html>

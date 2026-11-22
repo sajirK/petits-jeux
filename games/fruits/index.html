@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Tranche les Fruits</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+    #hud {
+      position: fixed; top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right));
+      display: flex; gap: 10px; z-index: 10; pointer-events: none;
+    }
+    .pill { background: rgba(255,255,255,0.92); border-radius: 999px; padding: 6px 18px; font-size: clamp(20px, 4.5vw, 32px); box-shadow: var(--shadow); }
+    #overlay {
+      position: fixed; inset: 0; z-index: 20;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+      background: rgba(60, 30, 10, 0.45); color: #fff; text-align: center; padding: 20px;
+    }
+    #overlay h2 { font-size: clamp(32px, 8vw, 64px); margin: 0; text-shadow: 0 4px 0 rgba(0,0,0,0.25); }
+    #overlay p { font-size: clamp(18px, 4.5vw, 28px); margin: 0; }
+    #overlay .big-btn { color: var(--ink); }
+    #overlay.hidden { display: none; }
+    #modes { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  </style>
+</head>
+<body class="mute-left">
+  <canvas id="c"></canvas>
+  <div id="hud"><div class="pill" id="time">⏱️ 60</div><div class="pill" id="score">🍉 0</div></div>
+  <div id="overlay">
+    <h2 id="otitle">🍉 Tranche les Fruits</h2>
+    <p id="otext">Glisse ton doigt pour couper les fruits !<br />Attention, ne coupe pas la chaussette 🧦</p>
+    <div id="modes">
+      <button class="big-btn" data-mode="calme">🐢 Tranquille</button>
+      <button class="big-btn" data-mode="rapide">⚡ Rapide</button>
+    </div>
+  </div>
+
+  <script src="../../js/common.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, confetti, bravo, pick } = Jeux;
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+    let W, H, R; // R = rayon d'un fruit
+
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      W = innerWidth; H = innerHeight;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      R = Math.max(34, Math.min(W, H) * 0.075);
+      makeBackground();
+    }
+
+    // Fond : planche en bois dessinée une seule fois
+    let bg;
+    function makeBackground() {
+      bg = document.createElement("canvas");
+      bg.width = W; bg.height = H;
+      const b = bg.getContext("2d");
+      const plank = Math.max(60, H / 7);
+      for (let y = 0, i = 0; y < H; y += plank, i++) {
+        b.fillStyle = i % 2 ? "#c68b59" : "#b97a4b";
+        b.fillRect(0, y, W, plank);
+        b.fillStyle = "rgba(0,0,0,0.12)";
+        b.fillRect(0, y + plank - 4, W, 4);
+        b.strokeStyle = "rgba(90, 50, 20, 0.18)";
+        b.lineWidth = 2;
+        for (let k = 0; k < 4; k++) {
+          const yy = y + 10 + Math.random() * (plank - 20);
+          b.beginPath();
+          b.moveTo(0, yy);
+          b.bezierCurveTo(W * 0.3, yy + 10, W * 0.6, yy - 10, W, yy + 4);
+          b.stroke();
+        }
+      }
+    }
+    addEventListener("resize", resize);
+    resize();
+
+    // Fruits : emoji + couleur du jus
+    const FRUITS = [
+      ["🍉", "#ff4d6d"], ["🍊", "#ff9f1c"], ["🍎", "#e63946"], ["🍋", "#ffd60a"],
+      ["🍐", "#b5e48c"], ["🍑", "#ffb4a2"], ["🍍", "#ffd166"], ["🥝", "#80b918"],
+      ["🍇", "#9d4edd"], ["🍓", "#ef233c"], ["🥥", "#f8f9fa"], ["🍌", "#ffe66d"],
+    ];
+
+    let objects = [], halves = [], drops = [], stains = [], texts = [];
+    let score = 0, timeLeft = 60, running = false, mode = "calme", spawnTimer = 0, best = 0;
+    let gravity;
+
+    function spawnWave() {
+      const n = 1 + Math.floor(Math.random() * (mode === "rapide" ? 4 : 3));
+      for (let i = 0; i < n; i++) {
+        const sock = Math.random() < (mode === "rapide" ? 0.12 : 0.07);
+        const golden = !sock && Math.random() < 0.05;
+        const [emoji, juice] = sock ? ["🧦", "#9aa"] : golden ? ["⭐", "#ffd60a"] : pick(FRUITS);
+        const x = W * (0.15 + Math.random() * 0.7);
+        // vitesse calculée pour monter entre 45% et 80% de l'écran
+        const apex = H * (0.45 + Math.random() * 0.35);
+        const vy = -Math.sqrt(2 * gravity * apex);
+        const vx = (W / 2 - x) * (0.3 + Math.random() * 0.5) / (Math.abs(vy) / gravity);
+        objects.push({ emoji, juice, sock, golden, x, y: H + R, vx, vy, rot: 0, vr: (Math.random() - 0.5) * 4, delay: i * 0.25 });
+      }
+    }
+
+    // ---------- Le doigt (ou la souris) ----------
+    let trail = [];
+    let down = false;
+    let swipeCuts = 0, swipeTimer = 0, lastSwoosh = 0;
+    canvas.addEventListener("pointerdown", (e) => {
+      down = true;
+      trail = [{ x: e.clientX, y: e.clientY, t: performance.now() }];
+      swipeCuts = 0;
+    });
+    canvas.addEventListener("pointermove", (e) => {
+      // à la souris on coupe aussi sans cliquer (plus facile sur PC)
+      if (!down && e.pointerType !== "mouse") return;
+      const p = { x: e.clientX, y: e.clientY, t: performance.now() };
+      const last = trail[trail.length - 1];
+      trail.push(p);
+      if (last && running) {
+        const dist = Math.hypot(p.x - last.x, p.y - last.y);
+        if (dist > 3) cutAlong(last, p);
+        if (dist > 25 && p.t - lastSwoosh > 180) { sounds.swoosh(); lastSwoosh = p.t; }
+      }
+    });
+    const up = () => { down = false; finishSwipe(); };
+    canvas.addEventListener("pointerup", up);
+    canvas.addEventListener("pointercancel", up);
+    canvas.addEventListener("pointerleave", () => { if (!down) trail = []; });
+
+    function segDist(px, py, a, b) {
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const l2 = dx * dx + dy * dy || 1;
+      const t = Math.max(0, Math.min(1, ((px - a.x) * dx + (py - a.y) * dy) / l2));
+      return Math.hypot(px - (a.x + t * dx), py - (a.y + t * dy));
+    }
+
+    function cutAlong(a, b) {
+      const angle = Math.atan2(b.y - a.y, b.x - a.x);
+      for (let i = objects.length - 1; i >= 0; i--) {
+        const o = objects[i];
+        if (o.delay > 0) continue;
+        if (segDist(o.x, o.y, a, b) < R * 0.95) {
+          objects.splice(i, 1);
+          slice(o, angle);
+        }
+      }
+    }
+
+    function slice(o, angle) {
+      // deux moitiés qui partent chacune de leur côté
+      const nx = Math.cos(angle + Math.PI / 2), ny = Math.sin(angle + Math.PI / 2);
+      for (const side of [1, -1]) {
+        halves.push({
+          emoji: o.emoji, x: o.x, y: o.y, cut: angle - o.rot, side,
+          vx: o.vx * 0.5 + nx * side * 90, vy: Math.min(o.vy, 0) * 0.3 + ny * side * 90 - 60,
+          rot: o.rot, vr: side * 3, life: 1.6,
+        });
+      }
+      // jus
+      for (let k = 0; k < 16; k++) {
+        const a = Math.random() * Math.PI * 2, v = 80 + Math.random() * 260;
+        drops.push({ x: o.x, y: o.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 80, r: 3 + Math.random() * 5, c: o.juice, life: 0.7 + Math.random() * 0.4 });
+      }
+      if (!o.sock) stains.push({ x: o.x, y: o.y, r: R * (0.9 + Math.random() * 0.5), c: o.juice, life: 3, seed: Math.random() * 10 });
+      sounds.splat();
+
+      if (o.sock) {
+        score = Math.max(0, score - 3);
+        texts.push({ x: o.x, y: o.y, s: "Beurk ! -3", c: "#555", life: 1.2 });
+        say(pick(["Beurk ! Une chaussette !", "Oh non, pas la chaussette !", "Pouah, ça pue !"]));
+        sounds.wrong();
+      } else {
+        const pts = o.golden ? 5 : 1;
+        score += pts;
+        swipeCuts++;
+        if (o.golden) { texts.push({ x: o.x, y: o.y, s: "+5 ⭐", c: "#ffd60a", life: 1.2 }); sounds.coin(); }
+        if (score > 0 && score % 25 < pts) { Jeux.addStars(1); sounds.win(); confetti(25, ["🍉", "🍓", "🍌", "⭐"]); }
+      }
+      updateHud();
+      swipeTimer = 0.25;
+    }
+
+    function finishSwipe() {
+      if (swipeCuts >= 3) {
+        const last = trail[trail.length - 1] || { x: W / 2, y: H / 2 };
+        score += swipeCuts;
+        texts.push({ x: last.x, y: last.y - 40, s: `Combo x${swipeCuts} ! +${swipeCuts}`, c: "#fff", life: 1.4, big: true });
+        sounds.success();
+        say(`Combo ${swipeCuts} !`);
+        updateHud();
+      }
+      swipeCuts = 0;
+    }
+
+    function updateHud() {
+      document.getElementById("score").textContent = "🍉 " + score;
+      document.getElementById("time").textContent = "⏱️ " + Math.ceil(timeLeft);
+    }
+
+    // ---------- Début / fin ----------
+    document.querySelectorAll("#modes button").forEach((b) => {
+      b.onclick = () => {
+        mode = b.dataset.mode;
+        sounds.click();
+        start();
+      };
+    });
+
+    function start() {
+      objects = []; halves = []; drops = []; stains = []; texts = [];
+      score = 0; timeLeft = 60; spawnTimer = 0.5;
+      gravity = H * (mode === "rapide" ? 1.25 : 0.8);
+      running = true;
+      updateHud();
+      document.getElementById("overlay").classList.add("hidden");
+      say("C'est parti ! Coupe les fruits !");
+    }
+
+    function end() {
+      running = false;
+      const record = score > best;
+      best = Math.max(best, score);
+      sounds.win();
+      confetti(50, ["🍉", "🍓", "🍊", "🍇", "⭐"]);
+      bravo(`Tu as coupé ${score} fruits !${record && score > 0 ? " C'est ton record !" : ""}`);
+      document.getElementById("otitle").textContent = `🍉 ${score} fruits !`;
+      document.getElementById("otext").textContent = `Ton record : ${best}`;
+      document.getElementById("overlay").classList.remove("hidden");
+    }
+
+    // ---------- Boucle ----------
+    function update(dt) {
+      if (running) {
+        timeLeft -= dt;
+        if (timeLeft <= 0) { timeLeft = 0; updateHud(); end(); }
+        else if (Math.ceil(timeLeft) !== Math.ceil(timeLeft + dt)) updateHud();
+        spawnTimer -= dt;
+        if (spawnTimer <= 0 && objects.length < 6) {
+          spawnWave();
+          spawnTimer = mode === "rapide" ? 0.9 + Math.random() * 0.7 : 1.4 + Math.random() * 1;
+        }
+      }
+      swipeTimer -= dt;
+      for (let i = objects.length - 1; i >= 0; i--) {
+        const o = objects[i];
+        if (o.delay > 0) { o.delay -= dt; continue; }
+        o.vy += gravity * dt;
+        o.x += o.vx * dt; o.y += o.vy * dt;
+        o.rot += o.vr * dt;
+        if (o.y > H + R * 2 && o.vy > 0) objects.splice(i, 1);
+      }
+      for (let i = halves.length - 1; i >= 0; i--) {
+        const h = halves[i];
+        h.vy += gravity * dt; h.x += h.vx * dt; h.y += h.vy * dt; h.rot += h.vr * dt; h.life -= dt;
+        if (h.life <= 0 || h.y > H + R * 2) halves.splice(i, 1);
+      }
+      for (let i = drops.length - 1; i >= 0; i--) {
+        const d = drops[i];
+        d.vy += gravity * 0.8 * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.life -= dt;
+        if (d.life <= 0) drops.splice(i, 1);
+      }
+      for (let i = stains.length - 1; i >= 0; i--) { stains[i].life -= dt; if (stains[i].life <= 0) stains.splice(i, 1); }
+      for (let i = texts.length - 1; i >= 0; i--) { texts[i].life -= dt; texts[i].y -= 40 * dt; if (texts[i].life <= 0) texts.splice(i, 1); }
+      const now = performance.now();
+      trail = trail.filter((p) => now - p.t < 140);
+    }
+
+    function drawEmoji(ch, x, y, size, rot = 0) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(rot);
+      ctx.font = `${size}px serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(ch, 0, 0);
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.drawImage(bg, 0, 0, W, H);
+      // taches de jus sur la planche
+      for (const s of stains) {
+        ctx.globalAlpha = Math.min(0.55, s.life / 3);
+        ctx.fillStyle = s.c;
+        ctx.beginPath();
+        for (let k = 0; k <= 12; k++) {
+          const a = (k / 12) * Math.PI * 2;
+          const rr = s.r * (0.7 + 0.3 * Math.sin(a * 3 + s.seed));
+          ctx[k ? "lineTo" : "moveTo"](s.x + Math.cos(a) * rr, s.y + Math.sin(a) * rr);
+        }
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      // fruits entiers
+      for (const o of objects) {
+        if (o.delay > 0) continue;
+        if (o.golden) { ctx.shadowColor = "#ffd60a"; ctx.shadowBlur = 25; }
+        drawEmoji(o.emoji, o.x, o.y, R * 2, o.rot);
+        ctx.shadowBlur = 0;
+      }
+      // moitiés : on dessine le fruit coupé en deux avec un "clip"
+      for (const h of halves) {
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, h.life * 2);
+        // la découpe tourne avec le fruit
+        ctx.translate(h.x, h.y);
+        ctx.rotate(h.rot + h.cut);
+        ctx.beginPath();
+        if (h.side > 0) ctx.rect(-R * 2, 0, R * 4, R * 2);
+        else ctx.rect(-R * 2, -R * 2, R * 4, R * 2);
+        ctx.clip();
+        ctx.rotate(-h.cut);
+        ctx.font = `${R * 2}px serif`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(h.emoji, 0, 0);
+        ctx.restore();
+      }
+      // gouttes de jus
+      for (const d of drops) {
+        ctx.globalAlpha = Math.min(1, d.life * 2);
+        ctx.fillStyle = d.c;
+        ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      // traînée du doigt (lame lumineuse)
+      if (trail.length > 1) {
+        for (let i = 1; i < trail.length; i++) {
+          const a = trail[i - 1], b = trail[i];
+          const k = i / trail.length;
+          ctx.strokeStyle = `rgba(255,255,255,${0.3 + k * 0.7})`;
+          ctx.shadowColor = "#bde0fe"; ctx.shadowBlur = 12;
+          ctx.lineWidth = 2 + k * 9;
+          ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        }
+        ctx.shadowBlur = 0;
+      }
+      // textes qui montent
+      for (const t of texts) {
+        ctx.globalAlpha = Math.min(1, t.life * 1.5);
+        ctx.font = `bold ${t.big ? 40 : 30}px "Comic Sans MS", "Chalkboard SE", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.lineWidth = 6; ctx.strokeStyle = "rgba(0,0,0,0.35)";
+        ctx.strokeText(t.s, t.x, t.y);
+        ctx.fillStyle = t.c; ctx.fillText(t.s, t.x, t.y);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    let last = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.033, (now - last) / 1000);
+      last = now;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+    // quelques fruits décoratifs derrière l'écran d'accueil
+    gravity = H * 0.8;
+    requestAnimationFrame(loop);
+    setInterval(() => { if (!running && objects.length < 3) spawnWave(); }, 1500);
+  </script>
+</body>
+</html>

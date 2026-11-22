@@ -1,0 +1,10 @@
+{
+  "name": "Les Petits Jeux",
+  "short_name": "Petits Jeux",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#ffe29f",
+  "theme_color": "#ffe29f",
+  "icons": []
+}

@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Le Docteur des animaux</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: linear-gradient(180deg, #e3f6f5 0 68%, #bae8e8 68%);
+      display: grid;
+      grid-template-areas: "top" "info" "room" "tray";
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      justify-items: center;
+      align-items: center;
+    }
+    #top { grid-area: top; display: flex; align-items: center; gap: 10px; margin-top: max(16px, env(safe-area-inset-top)); }
+    #top h1 { margin: 0; font-size: clamp(20px, 4.8vw, 36px); }
+    .pill { background: #fff; border-radius: 999px; padding: 4px 16px; font-size: clamp(18px, 4vw, 28px); box-shadow: var(--shadow); }
+
+    /* fiche du patient : ce qu'il a + étapes */
+    #info {
+      grid-area: info;
+      background: #fff; border-radius: 22px; box-shadow: var(--shadow);
+      padding: 8px 14px; margin: 6px 10px;
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px;
+      max-width: min(94vw, 560px);
+      cursor: pointer;
+    }
+    #problem { font-size: clamp(16px, 3.8vmin, 24px); }
+    #steps { display: flex; gap: 6px; }
+    .step {
+      width: clamp(38px, 8vmin, 52px); height: clamp(38px, 8vmin, 52px);
+      border-radius: 50%; background: #f1f3f5; display: grid; place-items: center;
+      font-size: clamp(20px, 4.6vmin, 30px); position: relative; border: 3px solid transparent;
+    }
+    .step.now { border-color: #4cc9f0; animation: pulse 1s infinite; }
+    .step.done { background: #d8f3dc; }
+    .step.done::after { content: "✓"; position: absolute; right: -4px; bottom: -6px; font-size: 18px; color: #2d6a4f; font-weight: bold; }
+    @keyframes pulse { 50% { transform: scale(1.08); } }
+
+    /* la salle d'examen */
+    #room { grid-area: room; width: 100%; height: 100%; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+    #bed {
+      flex: none; margin-top: calc(var(--P) * -0.1);
+      width: calc(var(--P) * 1.15); height: calc(var(--P) * 0.12);
+      background: #fff; border-radius: 16px; box-shadow: 0 8px 0 #90a4ae;
+    }
+    #patient {
+      position: relative; width: var(--P); height: var(--P);
+      touch-action: none; z-index: 2; flex: none;
+    }
+    #patient.arrive { animation: arrive 0.8s ease-out; }
+    @keyframes arrive { from { transform: translateX(-80vw); } }
+    #patient.happy { animation: jump 0.5s ease-in-out 3; }
+    @keyframes jump { 50% { transform: translateY(-14%); } }
+    #patient.sick { animation: shiver 2.5s ease-in-out infinite; }
+    @keyframes shiver { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-1.5deg); } 75% { transform: rotate(1.5deg); } }
+    .part { position: absolute; transform: translate(-50%, -50%); }
+    .body { border-radius: 48% 48% 42% 42%; box-shadow: inset -10px -12px 0 rgba(0,0,0,0.1); }
+    .limb { border-radius: 50%; box-shadow: inset -5px -6px 0 rgba(0,0,0,0.12); }
+    .belly { border-radius: 50%; background: rgba(255,255,255,0.35); }
+    .head { font-size: calc(var(--P) * 0.42); line-height: 1; z-index: 3; }
+    .fx { position: absolute; transform: translate(-50%, -50%); pointer-events: none; z-index: 5; }
+    .fever { border-radius: 50%; background: radial-gradient(circle, rgba(255, 60, 60, 0.45), transparent 70%); z-index: 4; }
+    .scratch { z-index: 5; }
+    .scratch i { position: absolute; left: 0; width: 100%; height: 18%; border-radius: 4px; background: #d00000; transform: rotate(-25deg); }
+    .mud { border-radius: 46% 54% 40% 60%; background: #7f5539; box-shadow: inset 3px 3px 0 rgba(255,255,255,0.15); z-index: 6; transition: opacity 0.2s; }
+    .thorn { width: 0; height: 0; border-left: calc(var(--P) * 0.018) solid transparent; border-right: calc(var(--P) * 0.018) solid transparent; border-bottom: calc(var(--P) * 0.07) solid #6b3e1e; z-index: 6; transition: opacity 0.2s; }
+    .bones { font-size: calc(var(--P) * 0.14); z-index: 6; transition: opacity 0.2s; filter: drop-shadow(0 0 6px #4cc9f0); }
+    .cast { border-radius: 40%; background: repeating-linear-gradient(-30deg, #fff 0 8px, #e9ecef 8px 12px); z-index: 6; animation: bounce-in 0.3s; }
+    .tear { font-size: calc(var(--P) * 0.06); animation: tear 1.4s ease-in infinite; z-index: 6; }
+    @keyframes tear { from { opacity: 1; transform: translate(-50%, -50%); } to { opacity: 0; transform: translate(-50%, 250%); } }
+    #mood { position: absolute; right: -6%; top: 0; font-size: calc(var(--P) * 0.14); z-index: 7; animation: bounce-in 0.4s; }
+    .target {
+      border-radius: 50%; border: 4px dashed #4cc9f0; z-index: 8;
+      animation: spin 4s linear infinite;
+      background: conic-gradient(rgba(76, 201, 240, 0.35) var(--pct, 0%), transparent 0);
+    }
+    @keyframes spin { to { rotate: 360deg; } }
+    #cursor { position: fixed; z-index: 60; font-size: 54px; pointer-events: none; transform: translate(-50%, -85%); display: none; filter: drop-shadow(0 4px 4px rgba(0,0,0,0.2)); }
+    .puff { position: fixed; pointer-events: none; z-index: 59; font-size: 26px; animation: puff 0.8s ease-out forwards; }
+    @keyframes puff { to { transform: translate(var(--dx), -40px) scale(1.6); opacity: 0; } }
+    #temp {
+      position: absolute; top: -4%; left: 50%; transform: translateX(-50%);
+      background: #fff; border-radius: 14px; padding: 4px 12px; font-size: calc(var(--P) * 0.08); font-weight: bold;
+      box-shadow: var(--shadow); z-index: 9; display: none;
+    }
+
+    /* la trousse d'outils */
+    #tray {
+      grid-area: tray;
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 7px;
+      padding: 8px 10px max(12px, env(safe-area-inset-bottom));
+      max-width: 760px;
+    }
+    .tool {
+      width: clamp(54px, 12vmin, 80px); height: clamp(54px, 12vmin, 80px);
+      border-radius: 18px; background: #fff; box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: clamp(26px, 6vmin, 40px); line-height: 1.05; transition: transform 0.1s;
+    }
+    .tool small { font-size: clamp(9px, 2.1vmin, 13px); }
+    .tool.active { background: #ffd166; transform: translateY(-4px) scale(1.06); }
+    .tool.hint { animation: hint 0.6s ease-in-out infinite alternate; }
+    @keyframes hint { to { transform: translateY(-6px); box-shadow: 0 0 0 4px #4cc9f0, 0 5px 0 rgba(0,0,0,0.15); } }
+
+    /* téléphone debout : place pour le bouton son en haut à droite */
+    @media (max-width: 600px) {
+      #top { margin-top: max(26px, env(safe-area-inset-top)); }
+      #info { margin-top: 18px; }
+    }
+    @media (orientation: landscape) {
+      body {
+        grid-template-areas: "top top" "info info" "room tray";
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+        grid-template-rows: auto auto minmax(0, 1fr);
+      }
+      #tray { align-self: center; }
+    }
+    @media (orientation: landscape) and (max-height: 500px) {
+      #top h1 { display: none; }
+      .tool { width: 46px; height: 46px; font-size: 24px; border-radius: 12px; }
+      .tool small { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="top"><h1 id="docTitle">🩺 Docteur</h1><div class="pill" id="healed">❤️ 0</div></div>
+  <div id="info" title="Écouter"><span id="problem"></span><div id="steps"></div></div>
+  <div id="room"><div id="patient"></div><div id="bed"></div></div>
+  <div id="tray"></div>
+  <div id="cursor"></div>
+
+  <script src="../../js/common.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, confetti, pick, shuffle, NAME } = Jeux;
+
+    // ---------- Les outils ----------
+    const TOOLS = {
+      desinfectant: ["🧴", "désinfectant"],
+      pansement: ["🩹", "pansement"],
+      thermometre: ["🌡️", "thermomètre"],
+      sirop: ["🥄", "sirop"],
+      glace: ["🧊", "glace"],
+      loupe: ["🔍", "loupe"],
+      pince: ["🥢", "pince"],
+      stethoscope: ["🩺", "stéthoscope"],
+      eponge: ["🧽", "éponge"],
+      radio: ["📷", "radio"],
+      platre: ["🧻", "plâtre"],
+    };
+
+    // ---------- Le corps (positions en % de la boîte du patient) ----------
+    const Z = {
+      front: [50, 15, 11], bouche: [50, 36, 9], joue: [63, 28, 8],
+      ventre: [50, 66, 15], patte: [22, 60, 9], jambe: [63, 88, 10],
+    };
+
+    // ---------- Les maladies ----------
+    // type : rub = frotter sur la zone, tap = toucher n fois, pull = tirer
+    const AILMENTS = {
+      bobo: {
+        intro: "Je suis tombé ! J'ai un gros bobo sur la joue !",
+        label: "Un bobo sur la joue",
+        steps: [
+          { tool: "desinfectant", zone: "joue", type: "rub", amount: 2.5, say: "D'abord on nettoie le bobo avec le désinfectant. Frotte doucement !" },
+          { tool: "pansement", zone: "joue", type: "tap", count: 1, say: "Maintenant, un joli pansement !" },
+        ],
+      },
+      fievre: {
+        intro: "J'ai chaud, j'ai froid... je ne me sens pas bien !",
+        label: "Il est malade",
+        steps: [
+          { tool: "thermometre", zone: "bouche", type: "tap", count: 1, say: "On prend la température. Mets le thermomètre dans la bouche !" },
+          { tool: "sirop", zone: "bouche", type: "tap", count: 3, say: "Il a de la fièvre ! Donne-lui trois cuillères de sirop." },
+          { tool: "glace", zone: "front", type: "tap", count: 1, say: "Et une poche de glace sur le front pour le rafraîchir !" },
+        ],
+      },
+      epine: {
+        intro: "Aïe aïe aïe ! J'ai marché sur quelque chose qui pique !",
+        label: "Ça pique à la patte",
+        steps: [
+          { tool: "loupe", zone: "patte", type: "rub", amount: 2, say: "Cherche avec la loupe sur sa patte !" },
+          { tool: "pince", zone: "patte", type: "pull", say: "Une épine ! Enlève-la avec la pince : touche l'épine et tire !" },
+          { tool: "pansement", zone: "patte", type: "tap", count: 1, say: "Bravo ! Un petit pansement pour finir." },
+        ],
+      },
+      ventre: {
+        intro: "Oh là là, j'ai mal au ventre ! J'ai mangé trop de bonbons !",
+        label: "Mal au ventre",
+        steps: [
+          { tool: "stethoscope", zone: "ventre", type: "rub", amount: 3, say: "Écoute son ventre avec le stéthoscope !" },
+          { tool: "sirop", zone: "bouche", type: "tap", count: 2, say: "Ça gargouille ! Donne-lui deux cuillères de sirop." },
+        ],
+      },
+      boue: {
+        intro: "J'ai sauté dans les flaques de boue ! Je suis tout sale !",
+        label: "Tout plein de boue",
+        steps: [{ tool: "eponge", zone: "mud", type: "mud", say: "Frotte toutes les taches de boue avec l'éponge !" }],
+      },
+      jambe: {
+        intro: "Je suis tombé de vélo ! J'ai très mal à la jambe !",
+        label: "Mal à la jambe",
+        steps: [
+          { tool: "radio", zone: "jambe", type: "rub", amount: 2.5, say: "On fait une radio pour voir les os ! Passe l'appareil sur sa jambe." },
+          { tool: "platre", zone: "jambe", type: "tap", count: 3, say: "L'os est cassé ! Il faut un plâtre. Touche trois fois sa jambe !" },
+        ],
+      },
+    };
+
+    const ANIMALS = [
+      ["🐶", "#c68b59", "#a0693f", "le chien"], ["🐱", "#f4a259", "#d9822b", "le chat"], ["🐰", "#e9ecef", "#ced4da", "le lapin"],
+      ["🐻", "#8d5524", "#6f4518", "l'ours"], ["🐼", "#f8f9fa", "#222", "le panda"], ["🐸", "#80c45a", "#5a9e3a", "la grenouille"],
+      ["🐷", "#ffb3c6", "#ff8fab", "le cochon"], ["🦊", "#f77f00", "#d45d00", "le renard"], ["🐯", "#f9a03f", "#e07b00", "le tigre"],
+      ["🐨", "#adb5bd", "#868e96", "le koala"], ["🦁", "#f6bd60", "#d9a441", "le lion"], ["🐵", "#a0693f", "#7f5539", "le singe"],
+    ];
+
+    // ---------- État ----------
+    let healed = parseInt(localStorage.getItem("jeux.patients") || "0", 10);
+    let patient, ailment, stepIndex, tool = null, busy = false, progress = 0, taps = 0;
+    let lastAilment = null;
+    const patientEl = document.getElementById("patient");
+    const tray = document.getElementById("tray");
+    const cursor = document.getElementById("cursor");
+
+    function resize() {
+      const r = document.getElementById("room").getBoundingClientRect();
+      const P = Math.max(150, Math.min(r.width * 0.75, r.height * 0.84, 440));
+      document.documentElement.style.setProperty("--P", P + "px");
+    }
+    new ResizeObserver(resize).observe(document.getElementById("room"));
+
+    // ---------- Construire le patient ----------
+    function part(cls, x, y, w, h, extra = {}) {
+      const d = document.createElement("div");
+      d.className = "part " + cls;
+      d.style.left = x + "%"; d.style.top = y + "%";
+      if (w) d.style.width = w + "%";
+      if (h) d.style.height = h + "%";
+      Object.assign(d.style, extra);
+      patientEl.appendChild(d);
+      return d;
+    }
+    function fx(cls, x, y, w, h) {
+      const d = part(cls, x, y, w, h);
+      d.classList.add("fx");
+      return d;
+    }
+
+    function buildPatient() {
+      patientEl.innerHTML = "";
+      const [head, body, limbs] = patient;
+      // jambes, bras, corps, ventre, tête
+      part("limb", 37, 88, 18, 14, { background: limbs });
+      part("limb", 63, 88, 18, 14, { background: limbs });
+      part("limb", 22, 60, 16, 16, { background: limbs });
+      part("limb", 78, 60, 16, 16, { background: limbs });
+      part("body", 50, 66, 50, 44, { background: body });
+      part("belly", 50, 70, 30, 26);
+      part("head", 50, 27, null, null).textContent = head;
+      const mood = document.createElement("div");
+      mood.id = "mood";
+      patientEl.appendChild(mood);
+      const temp = document.createElement("div");
+      temp.id = "temp";
+      patientEl.appendChild(temp);
+    }
+    function setMood(e) {
+      const m = document.getElementById("mood");
+      m.textContent = e;
+      m.style.animation = "none"; void m.offsetWidth; m.style.animation = "";
+    }
+
+    // décor de la maladie
+    let sick = {};
+    function showSickness() {
+      sick = {};
+      const tears = [fx("tear", 38, 34), fx("tear", 62, 34)];
+      tears[0].textContent = tears[1].textContent = "💧";
+      tears[1].style.animationDelay = "0.7s";
+      sick.tears = tears;
+      const id = ailment.id;
+      if (id === "bobo") {
+        const s = fx("scratch", Z.joue[0], Z.joue[1], 11, 7);
+        s.innerHTML = "<i style='top:10%'></i><i style='top:45%'></i><i style='top:80%'></i>";
+        sick.scratch = s;
+      } else if (id === "fievre") {
+        sick.fever = fx("fever", 50, 27, 48, 48);
+      } else if (id === "epine") {
+        sick.thorn = fx("thorn", Z.patte[0], Z.patte[1]);
+        sick.thorn.style.opacity = 0.08;
+      } else if (id === "ventre") {
+        sick.swirl = fx("", 50, 68);
+        sick.swirl.textContent = "🌀";
+        sick.swirl.style.fontSize = "calc(var(--P) * 0.09)";
+        sick.swirl.style.opacity = 0.6;
+      } else if (id === "boue") {
+        sick.mud = [[40, 62, 14, 10], [60, 74, 12, 9], [44, 20, 10, 8], [76, 58, 9, 9], [36, 88, 10, 7]].map(([x, y, w, h]) => {
+          const m = fx("mud", x, y, w, h);
+          m.dataset.left = 1;
+          return m;
+        });
+      } else if (id === "jambe") {
+        sick.bones = fx("bones", Z.jambe[0], Z.jambe[1]);
+        sick.bones.textContent = "🦴";
+        sick.bones.style.opacity = 0;
+        sick.bolt = fx("", Z.jambe[0] + 10, Z.jambe[1] - 8);
+        sick.bolt.textContent = "⚡";
+        sick.bolt.style.fontSize = "calc(var(--P) * 0.07)";
+      }
+    }
+
+    // ---------- Fiche + étapes ----------
+    function renderInfo() {
+      document.getElementById("problem").textContent = `${patient[0]} ${ailment.label}`;
+      document.getElementById("steps").innerHTML = ailment.steps
+        .map((s, i) => `<div class="step ${i < stepIndex ? "done" : i === stepIndex ? "now" : ""}">${TOOLS[s.tool][0]}</div>`)
+        .join("");
+    }
+    document.getElementById("info").addEventListener("click", () => {
+      const s = ailment.steps[stepIndex];
+      say(s ? s.say : ailment.intro);
+    });
+
+    let targetEl = null, hintTimer = null;
+    function showTarget() {
+      if (targetEl) targetEl.remove();
+      targetEl = null;
+      const s = ailment.steps[stepIndex];
+      if (!s || s.zone === "mud") return;
+      const [x, y, r] = Z[s.zone];
+      targetEl = fx("target", x, y, r * 2.2, r * 2.2);
+    }
+    function scheduleHint() {
+      clearTimeout(hintTimer);
+      tray.querySelectorAll(".tool").forEach((t) => t.classList.remove("hint"));
+      hintTimer = setTimeout(() => {
+        const s = ailment.steps[stepIndex];
+        if (!s || tool === s.tool) return;
+        tray.querySelector(`[data-tool="${s.tool}"]`)?.classList.add("hint");
+      }, 7000);
+    }
+
+    // ---------- Trousse ----------
+    function buildTray() {
+      tray.innerHTML = "";
+      for (const [id, [e, label]] of Object.entries(TOOLS)) {
+        const b = document.createElement("button");
+        b.className = "tool";
+        b.dataset.tool = id;
+        b.innerHTML = `${e}<small>${label}</small>`;
+        b.onclick = () => {
+          if (busy) return;
+          tool = id;
+          tray.querySelectorAll(".tool").forEach((t) => t.classList.remove("active", "hint"));
+          b.classList.add("active");
+          sounds.click();
+          say(label);
+          scheduleHint();
+        };
+        tray.appendChild(b);
+      }
+    }
+
+    // ---------- Gestes sur le patient ----------
+    function rel(e) {
+      const r = patientEl.getBoundingClientRect();
+      return [((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100];
+    }
+    const inZone = ([x, y], zone, extra = 1) => Math.hypot(x - zone[0], y - zone[1]) < zone[2] * 1.5 * extra;
+
+    let down = false, last = null, pullStart = null, lastFx = 0, lastBeat = 0, lastTickle = 0;
+    patientEl.addEventListener("pointerdown", (e) => {
+      if (busy) return;
+      try { patientEl.setPointerCapture(e.pointerId); } catch (err) {}
+      down = true;
+      last = rel(e);
+      moveCursor(e);
+      const s = ailment.steps[stepIndex];
+      if (!tool) { tickle("Choisis un outil dans ta trousse !"); return; }
+      if (!s) return;
+      if (tool !== s.tool) { tickle(); return; }
+      if (s.type === "tap" && inZone(last, Z[s.zone], 1.3)) doTap(s, e);
+      if (s.type === "pull" && inZone(last, Z[s.zone], 1.3)) pullStart = last;
+    });
+    patientEl.addEventListener("pointermove", (e) => {
+      if (tool) moveCursor(e);
+      if (!down || busy) return;
+      const p = rel(e);
+      const s = ailment.steps[stepIndex];
+      const dist = Math.hypot(p[0] - last[0], p[1] - last[1]);
+      last = p;
+      if (!s || tool !== s.tool) return;
+      if (s.type === "rub" && inZone(p, Z[s.zone])) doRub(s, dist, e);
+      if (s.type === "mud") rubMud(p, dist, e);
+      if (s.type === "pull" && pullStart) {
+        const d = Math.hypot(p[0] - pullStart[0], p[1] - pullStart[1]);
+        sick.thorn.style.left = Z.patte[0] + (p[0] - pullStart[0]) * 0.6 + "%";
+        sick.thorn.style.top = Z.patte[1] + (p[1] - pullStart[1]) * 0.6 + "%";
+        if (d > 22) {
+          pullStart = null;
+          sick.thorn.remove();
+          sounds.slide(300, 900, 0.12, 0.3);
+          say("Pop ! L'épine est partie !");
+          nextStep();
+        }
+      }
+    });
+    const up = () => {
+      down = false;
+      if (pullStart && sick.thorn) { sick.thorn.style.left = Z.patte[0] + "%"; sick.thorn.style.top = Z.patte[1] + "%"; }
+      pullStart = null;
+      if (!matchMedia("(hover: hover)").matches) cursor.style.display = "none";
+    };
+    patientEl.addEventListener("pointerup", up);
+    patientEl.addEventListener("pointercancel", up);
+    patientEl.addEventListener("pointerleave", () => { if (!down) cursor.style.display = "none"; });
+
+    function moveCursor(e) {
+      if (!tool) return;
+      cursor.textContent = TOOLS[tool][0];
+      cursor.style.display = "block";
+      cursor.style.left = e.clientX + "px";
+      cursor.style.top = e.clientY + "px";
+    }
+    function puff(e, emoji) {
+      const p = document.createElement("div");
+      p.className = "puff";
+      p.textContent = emoji;
+      p.style.left = e.clientX + "px";
+      p.style.top = e.clientY - 40 + "px";
+      p.style.setProperty("--dx", (Math.random() - 0.5) * 60 + "px");
+      document.body.appendChild(p);
+      setTimeout(() => p.remove(), 800);
+    }
+    function tickle(msg) {
+      const now = performance.now();
+      if (now - lastTickle < 2500) return;
+      lastTickle = now;
+      sounds.slide(600, 900, 0.1, 0.2);
+      sounds.slide(700, 1000, 0.1, 0.2, "sine", 0.15);
+      say(msg || pick(["Hihi, ça chatouille !", "Hihihi ! Ce n'est pas le bon outil !", "Ça chatouille ! Essaie un autre outil."]));
+    }
+
+    function setProgress(pct) {
+      if (targetEl) targetEl.style.setProperty("--pct", Math.min(100, pct) + "%");
+    }
+
+    function doRub(s, dist, e) {
+      progress += dist / 100;
+      setProgress((progress / s.amount) * 100);
+      const now = performance.now();
+      if (tool === "desinfectant" && now - lastFx > 140) { lastFx = now; puff(e, "💨"); sounds.noise(0.15, { from: 3000, to: 5000, q: 0.8, volume: 0.1 }); if (sick.scratch) sick.scratch.style.opacity = Math.max(0.35, 1 - progress / s.amount); }
+      if (tool === "loupe") sick.thorn.style.opacity = Math.min(1, 0.08 + progress / s.amount);
+      if (tool === "radio") { sick.bones.style.opacity = Math.min(1, progress / s.amount); if (now - lastFx > 200) { lastFx = now; sounds.tone(1200, 0.05, "sine", 0.06); } }
+      if (tool === "stethoscope" && now - lastBeat > 650) { lastBeat = now; sounds.slide(90, 60, 0.12, 0.5); sounds.slide(90, 60, 0.1, 0.4, "sine", 0.18); puff(e, "💓"); }
+      if (progress >= s.amount) {
+        progress = 0;
+        if (tool === "loupe") say("Je vois une épine !");
+        if (tool === "radio") say("Oh ! L'os est cassé !");
+        if (tool === "stethoscope") { say("Boum boum... et ça gargouille !"); }
+        if (tool === "desinfectant") say("C'est tout propre !");
+        nextStep();
+      }
+    }
+
+    function rubMud(p, dist, e) {
+      const now = performance.now();
+      for (const m of sick.mud) {
+        if (m.dataset.left <= 0) continue;
+        const x = parseFloat(m.style.left), y = parseFloat(m.style.top);
+        if (Math.hypot(p[0] - x, p[1] - y) < 12) {
+          m.dataset.left = Math.max(0, m.dataset.left - dist / 60);
+          m.style.opacity = m.dataset.left;
+          if (now - lastFx > 120) { lastFx = now; puff(e, "🫧"); sounds.noise(0.12, { from: 900, to: 1400, q: 2, volume: 0.1 }); }
+          if (m.dataset.left <= 0) { m.remove(); sounds.pop(); }
+        }
+      }
+      if (stepIndex === 0 && sick.mud.every((m) => m.dataset.left <= 0)) { say("Tout propre ! Ça brille !"); nextStep(0); }
+    }
+
+    function doTap(s, e) {
+      if (taps >= s.count) return;
+      taps++;
+      const z = Z[s.zone];
+      if (tool === "pansement") {
+        const b = fx("", z[0], z[1]);
+        b.textContent = "🩹";
+        b.style.fontSize = "calc(var(--P) * 0.13)";
+        b.style.transform = "translate(-50%, -50%) rotate(-20deg)";
+        b.style.zIndex = 7;
+        sounds.slide(400, 700, 0.08, 0.2);
+        if (sick.scratch) sick.scratch.remove();
+      }
+      if (tool === "thermometre") {
+        busy = true;
+        const th = fx("", z[0] + 12, z[1]);
+        th.textContent = "🌡️";
+        th.style.fontSize = "calc(var(--P) * 0.12)";
+        th.style.transform = "translate(-50%, -50%) rotate(40deg)";
+        th.style.zIndex = 7;
+        const t = document.getElementById("temp");
+        t.style.display = "block";
+        let deg = 36;
+        const iv = setInterval(() => {
+          deg += 0.5;
+          t.textContent = deg.toFixed(1).replace(".", ",") + "°";
+          sounds.tone(500 + deg * 10, 0.05, "sine", 0.08);
+          if (deg >= 39.5) {
+            clearInterval(iv);
+            t.style.color = "#d00000";
+            setTimeout(() => { th.remove(); t.style.display = "none"; busy = false; nextStep(0); }, 1200);
+          }
+        }, 220);
+        return;
+      }
+      if (tool === "sirop") {
+        puff(e, "🥄");
+        sounds.yum();
+        say(taps < s.count ? pick(["Miam !", "Encore !", "Beurk... non, c'est bon !"]) : "C'est bon !");
+      }
+      if (tool === "glace") {
+        const g = fx("", z[0], z[1] - 2);
+        g.textContent = "🧊";
+        g.style.fontSize = "calc(var(--P) * 0.12)";
+        g.style.zIndex = 7;
+        sounds.slide(1200, 800, 0.1, 0.15);
+        if (sick.fever) sick.fever.remove();
+        say("Ahhh, ça fait du bien !");
+      }
+      if (tool === "platre") {
+        const c = fx("cast", z[0] - 1, z[1] - 1, 20 + taps * 2, 10 + taps * 4);
+        sounds.noise(0.2, { from: 600, to: 1200, q: 1, volume: 0.12 });
+        if (taps === s.count && sick.bolt) sick.bolt.remove();
+      }
+      setProgress((taps / s.count) * 100);
+      const idx = stepIndex;
+      if (taps >= s.count) setTimeout(() => nextStep(idx), tool === "sirop" ? 900 : 400);
+    }
+
+    // ---------- Déroulement ----------
+    function nextStep(expected = stepIndex) {
+      if (expected !== stepIndex || stepIndex >= ailment.steps.length) return;
+      stepIndex++;
+      progress = 0; taps = 0;
+      sounds.success();
+      renderInfo();
+      showTarget();
+      if (stepIndex >= ailment.steps.length) return cured();
+      setTimeout(() => { const s = ailment.steps[stepIndex]; if (s) say(s.say); }, 900);
+      scheduleHint();
+    }
+
+    function cured() {
+      busy = true;
+      clearTimeout(hintTimer);
+      (sick.tears || []).forEach((t) => t.remove());
+      if (sick.swirl) sick.swirl.remove();
+      if (sick.fever) sick.fever.remove();
+      if (sick.bones) sick.bones.style.opacity = 0;
+      patientEl.classList.remove("sick");
+      patientEl.classList.add("happy");
+      setMood("😄");
+      healed++;
+      localStorage.setItem("jeux.patients", healed);
+      document.getElementById("healed").textContent = "❤️ " + healed;
+      Jeux.addStars(1);
+      sounds.win();
+      confetti(45, ["❤️", "💖", "⭐", "✨"]);
+      setTimeout(() => say(`Merci docteur ${NAME} ! Je me sens beaucoup mieux !`), 600);
+      setTimeout(newPatient, 5000);
+    }
+
+    function newPatient() {
+      busy = false;
+      tool = null;
+      cursor.style.display = "none";
+      patient = pick(ANIMALS.filter((a) => a !== patient));
+      const ids = Object.keys(AILMENTS).filter((a) => a !== lastAilment);
+      const id = pick(ids);
+      lastAilment = id;
+      ailment = { id, ...AILMENTS[id] };
+      stepIndex = 0; progress = 0; taps = 0;
+      patientEl.className = "";
+      buildPatient();
+      showSickness();
+      setMood(id === "fievre" ? "🤒" : "😢");
+      void patientEl.offsetWidth;
+      patientEl.classList.add("arrive", "sick");
+      buildTray();
+      renderInfo();
+      showTarget();
+      scheduleHint();
+      setTimeout(() => say(`Bonjour docteur ${NAME} ! ${ailment.intro} ${ailment.steps[0].say}`), 700);
+    }
+
+    document.getElementById("healed").textContent = "❤️ " + healed;
+    document.getElementById("docTitle").textContent = "🩺 Docteur " + NAME;
+    resize();
+    newPatient();
+  </script>
+</body>
+</html>

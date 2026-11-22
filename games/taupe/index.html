@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Tape la Taupe</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      background: linear-gradient(180deg, #a8e6ff 0 30%, #7ac74f 30%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #score {
+      font-size: clamp(26px, 6vw, 42px);
+      background: #fff;
+      border-radius: 999px;
+      padding: 6px 24px;
+      box-shadow: var(--shadow);
+    }
+    #field {
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: clamp(10px, 3vw, 30px);
+      width: min(94vw, 620px, 110vh);
+      align-content: center;
+      padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+    .hole {
+      position: relative;
+      aspect-ratio: 1;
+      overflow: hidden;
+      border-radius: 0 0 50% 50%;
+    }
+    .hole::after {
+      content: "";
+      position: absolute;
+      left: 5%; right: 5%; bottom: 4%;
+      height: 32%;
+      background: radial-gradient(ellipse at center, #3d2817 0 55%, #5c3d22 56% 70%, transparent 71%);
+      z-index: 0;
+    }
+    .mole {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: -100%;
+      text-align: center;
+      font-size: clamp(56px, 17vw, 120px);
+      line-height: 1;
+      transition: bottom 0.18s ease-out;
+      z-index: 1;
+    }
+    .hole.up .mole { bottom: 15%; }
+    .hole.hit .mole { animation: shake 0.3s; }
+    .bonk {
+      position: absolute;
+      top: 10%; left: 50%;
+      transform: translateX(-50%);
+      font-size: 40px;
+      z-index: 2;
+      pointer-events: none;
+      animation: bounce-in 0.3s;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="game-title">Tape la Taupe</h1>
+  <div id="score">🐹 0</div>
+  <div id="field"></div>
+
+  <script src="../../js/common.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, pick, confetti, bravo, say } = Jeux;
+    const field = document.getElementById("field");
+    const scoreEl = document.getElementById("score");
+    const CRITTERS = ["🐹", "🐹", "🐹", "🐰", "🐭", "🦔", "🐻"];
+    let score = 0;
+    const holes = [];
+
+    for (let i = 0; i < 9; i++) {
+      const h = document.createElement("div");
+      h.className = "hole";
+      h.innerHTML = `<div class="mole"></div>`;
+      h.addEventListener("pointerdown", (e) => { e.preventDefault(); hit(h); });
+      field.appendChild(h);
+      holes.push(h);
+    }
+
+    function hit(h) {
+      if (!h.classList.contains("up") || h.classList.contains("hit")) return;
+      h.classList.add("hit");
+      sounds.bonk();
+      const b = document.createElement("div");
+      b.className = "bonk";
+      b.textContent = pick(["💥", "⭐", "😵", "POUF"]);
+      h.appendChild(b);
+      score++;
+      scoreEl.textContent = "🐹 " + score;
+      setTimeout(() => { h.classList.remove("up", "hit"); b.remove(); }, 350);
+      if (score % 15 === 0) {
+        Jeux.addStars(1);
+        sounds.win();
+        confetti(50);
+        bravo(`${score} taupes !`);
+      } else if (Math.random() < 0.2) {
+        say(pick(["Aïe !", "Ouille !", "Hihihi !", "Raté... non, touché !", "Boing !"]));
+      }
+    }
+
+    function popUp() {
+      const free = holes.filter((h) => !h.classList.contains("up"));
+      if (free.length) {
+        const h = pick(free);
+        h.querySelector(".mole").textContent = pick(CRITTERS);
+        h.classList.add("up");
+        // reste visible plus longtemps au début, puis un peu moins
+        const stay = Math.max(900, 1800 - score * 25);
+        setTimeout(() => { if (!h.classList.contains("hit")) h.classList.remove("up"); }, stay);
+      }
+      setTimeout(popUp, Math.max(450, 1000 - score * 15));
+    }
+    setTimeout(popUp, 800);
+  </script>
+</body>
+</html>

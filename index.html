@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Petits Jeux" />
+  <meta name="theme-color" content="#ffe29f" />
+  <meta name="description" content="Des petits jeux pour les enfants : réfléchir, apprendre, rire et créer. Sur tablette, téléphone et ordinateur." />
+  <link rel="manifest" href="manifest.json" />
+  <title>Les Petits Jeux</title>
+  <link rel="stylesheet" href="css/common.css" />
+  <style>
+    body {
+      padding: max(16px, env(safe-area-inset-top)) 14px 40px;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(255,255,255,0.6) 0 8%, transparent 9%),
+        radial-gradient(circle at 85% 18%, rgba(255,255,255,0.45) 0 5%, transparent 6%),
+        radial-gradient(circle at 70% 60%, rgba(255,255,255,0.3) 0 4%, transparent 5%),
+        linear-gradient(160deg, #ffe29f, #ffa99f 55%, #ff8fab);
+      background-attachment: fixed;
+    }
+    input, textarea { -webkit-user-select: text; user-select: text; font-family: inherit; }
+
+    /* ---------- En-tête ---------- */
+    header { max-width: 1100px; margin: 0 auto 10px; text-align: center; padding-top: 6px; }
+    #hello { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+    #avatar {
+      font-size: clamp(56px, 13vw, 92px); line-height: 1;
+      background: #fff; border-radius: 50%; width: 1.45em; height: 1.45em;
+      display: grid; place-items: center; box-shadow: 0 6px 0 rgba(0,0,0,0.12);
+      animation: wobble 3s ease-in-out infinite;
+    }
+    @keyframes wobble { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg) scale(1.04); } }
+    h1 {
+      margin: 0; font-size: clamp(32px, 7.5vw, 64px); line-height: 1.05;
+      color: #fff; text-shadow: 0 4px 0 #e76f51, 0 8px 0 rgba(0,0,0,0.12);
+    }
+    #subtitle { margin: 6px 0 0; font-size: clamp(16px, 3.6vw, 22px); color: #6d3b47; }
+    #stats { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+    .stat {
+      background: #fff; border-radius: 999px; padding: 6px 16px;
+      font-size: clamp(18px, 4vw, 26px); box-shadow: var(--shadow);
+    }
+    #profileBtn {
+      position: fixed; top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right));
+      z-index: 900; background: #fff; border-radius: 999px; padding: 8px 14px;
+      font-size: 18px; box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+    }
+
+    /* ---------- Filtres ---------- */
+    .filters {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+      margin: 18px auto 8px; max-width: 980px;
+    }
+    .chip {
+      background: rgba(255,255,255,0.6); border-radius: 999px; padding: 9px 16px;
+      font-size: clamp(16px, 3.4vw, 22px); box-shadow: 0 3px 0 rgba(0,0,0,0.1);
+      transition: transform 0.1s, background 0.2s;
+    }
+    .chip b { font-size: 0.8em; opacity: 0.6; margin-left: 4px; }
+    .chip.active { background: #fff; transform: scale(1.06); }
+
+    /* ---------- Sections et cartes ---------- */
+    main { max-width: 1100px; margin: 0 auto; }
+    section { margin-top: 22px; }
+    .sec-head { display: flex; align-items: baseline; gap: 10px; margin: 0 4px 10px; flex-wrap: wrap; }
+    .sec-head h2 { margin: 0; font-size: clamp(22px, 5vw, 34px); color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,0.15); }
+    .sec-head p { margin: 0; font-size: clamp(14px, 3vw, 18px); color: #6d3b47; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(40vw, 180px), 1fr));
+      gap: clamp(12px, 2.6vw, 22px);
+    }
+    .card {
+      position: relative; aspect-ratio: 1 / 1.05;
+      border-radius: var(--radius); box-shadow: 0 8px 0 rgba(0,0,0,0.15);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-decoration: none; color: var(--ink); padding: 10px;
+      animation: bounce-in 0.45s both; transition: transform 0.12s; overflow: hidden;
+    }
+    .card::after {
+      content: ""; position: absolute; top: -30%; left: -30%; width: 70%; height: 70%;
+      background: rgba(255,255,255,0.25); border-radius: 50%;
+    }
+    .card:active { transform: scale(0.93) translateY(6px); }
+    .card .emoji { font-size: clamp(50px, 13vw, 88px); line-height: 1; filter: drop-shadow(0 4px 0 rgba(0,0,0,0.12)); }
+    .card .name { margin-top: 10px; font-size: clamp(16px, 3.6vw, 24px); font-weight: bold; text-align: center; line-height: 1.1; }
+    .ribbon {
+      position: absolute; top: 12px; right: -30px; transform: rotate(35deg);
+      background: #ef476f; color: #fff; font-size: 12px; font-weight: bold;
+      padding: 3px 32px; letter-spacing: 1px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 2;
+    }
+    @media (hover: hover) { .card:hover { transform: translateY(-6px) rotate(-1.5deg); } }
+
+    footer { text-align: center; margin-top: 34px; font-size: 14px; color: #6d3b47; opacity: 0.85; }
+
+    /* ---------- Écran "Comment tu t'appelles ?" ---------- */
+    #welcome {
+      position: fixed; inset: 0; z-index: 1500;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(255, 200, 180, 0.65); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      padding: 16px;
+    }
+    #welcome.show { display: flex; }
+    #welcomeBox {
+      background: #fff; border-radius: 34px; padding: 22px 20px; width: min(560px, 100%);
+      box-shadow: 0 12px 0 rgba(0,0,0,0.12); text-align: center; animation: bounce-in 0.5s;
+      max-height: calc(100vh - 32px); overflow-y: auto;
+    }
+    #welcomeBox h2 { margin: 0 0 4px; font-size: clamp(26px, 6vw, 40px); }
+    #welcomeBox p { margin: 0 0 14px; font-size: clamp(16px, 3.6vw, 20px); opacity: 0.75; }
+    #nameInput {
+      width: 100%; font-size: clamp(26px, 6vw, 40px); text-align: center;
+      border: 4px solid #ffd166; border-radius: 22px; padding: 10px; outline: none; color: var(--ink);
+    }
+    #nameInput:focus { border-color: #ef476f; }
+    #avatars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 16px 0; }
+    .av {
+      font-size: clamp(30px, 7vw, 44px); aspect-ratio: 1; border-radius: 18px; background: #f8f9fa;
+      transition: transform 0.1s;
+    }
+    .av.sel { background: #ffe5ec; outline: 4px solid #ef476f; transform: scale(1.08); }
+    #go { width: 100%; background: #06d6a0; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+    #go:disabled { opacity: 0.5; }
+  </style>
+</head>
+<body>
+  <button id="profileBtn" aria-label="Changer de prénom">✏️ Moi</button>
+
+  <header>
+    <div id="hello">
+      <div id="avatar">🦁</div>
+      <div>
+        <h1 id="title">Les Petits Jeux</h1>
+        <p id="subtitle">Choisis un jeu !</p>
+      </div>
+    </div>
+    <div id="stats">
+      <div class="stat" title="Étoiles gagnées">⭐ <span id="stars">0</span></div>
+      <div class="stat" title="Pièces de la Pizzeria et du Glacier">🪙 <span id="coins">0</span></div>
+      <div class="stat" title="Nombre de jeux">🎮 <span id="count">0</span> jeux</div>
+    </div>
+  </header>
+
+  <nav class="filters" id="filters"></nav>
+  <main id="sections"></main>
+  <footer>🔊 Le bouton en haut à gauche coupe le son · ✏️ « Moi » pour changer de prénom</footer>
+
+  <div id="welcome" role="dialog" aria-modal="true" aria-labelledby="wTitle">
+    <div id="welcomeBox">
+      <h2 id="wTitle">👋 Coucou !</h2>
+      <p>Comment tu t'appelles ?</p>
+      <input id="nameInput" type="text" maxlength="16" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Ton prénom" />
+      <p style="margin-top: 14px">Choisis ton animal :</p>
+      <div id="avatars"></div>
+      <button class="big-btn" id="go">C'est parti ! 🚀</button>
+    </div>
+  </div>
+
+  <script src="js/common.js"></script>
+  <script src="js/games.js"></script>
+  <script>
+    const AVATARS = ["🦁", "🐼", "🦊", "🐯", "🐸", "🐵", "🦄", "🐶", "🐱", "🐰", "🦖", "🐧"];
+    const sectionsEl = document.getElementById("sections");
+    const filters = document.getElementById("filters");
+    let current = "tous";
+
+    const gameTitle = (g) => {
+      const name = Jeux.getName();
+      return name && g.titleWithName ? g.titleWithName.replace("{prenom}", name) : g.title;
+    };
+
+    // ---------- En-tête personnalisé ----------
+    function renderHeader() {
+      const name = Jeux.getName();
+      document.getElementById("avatar").textContent = Jeux.getAvatar();
+      document.getElementById("title").textContent = name ? `Coucou ${name} !` : "Les Petits Jeux";
+      document.title = name ? `Les jeux de ${name}` : "Les Petits Jeux";
+      document.getElementById("stars").textContent = Jeux.getStars();
+      document.getElementById("coins").textContent = Jeux.getCoins();
+      document.getElementById("count").textContent = GAMES.length;
+    }
+
+    // ---------- Filtres ----------
+    function renderFilters() {
+      const all = [["tous", { label: "Tous", emoji: "⭐" }], ...Object.entries(CATEGORIES)];
+      filters.innerHTML = "";
+      all.forEach(([key, cat]) => {
+        const n = key === "tous" ? GAMES.length : GAMES.filter((g) => g.category === key).length;
+        if (!n) return;
+        const b = document.createElement("button");
+        b.className = "chip" + (key === current ? " active" : "");
+        b.innerHTML = `${cat.emoji} ${cat.label}<b>${n}</b>`;
+        b.onclick = () => {
+          Jeux.sounds.click();
+          current = key;
+          renderFilters();
+          renderSections();
+        };
+        filters.appendChild(b);
+      });
+    }
+
+    // ---------- Sections de jeux ----------
+    function card(g, i) {
+      const a = document.createElement("a");
+      a.className = "card";
+      a.href = `games/${g.id}/index.html`;
+      a.style.background = g.color;
+      a.style.animationDelay = Math.min(i, 12) * 0.05 + "s";
+      a.innerHTML = `${g.isNew ? '<span class="ribbon">NOUVEAU</span>' : ""}
+        <span class="emoji">${g.emoji}</span>
+        <span class="name"></span>`;
+      a.querySelector(".name").textContent = gameTitle(g); // le prénom est inséré en texte, jamais en HTML
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        Jeux.sounds.success();
+        Jeux.say(gameTitle(g));
+        setTimeout(() => (location.href = a.href), 450);
+      });
+      return a;
+    }
+
+    function renderSections() {
+      sectionsEl.innerHTML = "";
+      const keys = current === "tous" ? Object.keys(CATEGORIES) : [current];
+      let i = 0;
+      for (const key of keys) {
+        const games = GAMES.filter((g) => g.category === key);
+        if (!games.length) continue;
+        const cat = CATEGORIES[key];
+        const sec = document.createElement("section");
+        sec.innerHTML = `<div class="sec-head"><h2>${cat.emoji} ${cat.label}</h2><p>${cat.desc || ""}</p></div><div class="grid"></div>`;
+        const grid = sec.querySelector(".grid");
+        games.forEach((g) => grid.appendChild(card(g, i++)));
+        sectionsEl.appendChild(sec);
+      }
+    }
+
+    // ---------- Bienvenue : prénom + avatar ----------
+    const welcome = document.getElementById("welcome");
+    const input = document.getElementById("nameInput");
+    const goBtn = document.getElementById("go");
+    const avatarsEl = document.getElementById("avatars");
+    let chosenAvatar = Jeux.getAvatar();
+
+    AVATARS.forEach((a) => {
+      const b = document.createElement("button");
+      b.className = "av" + (a === chosenAvatar ? " sel" : "");
+      b.textContent = a;
+      b.onclick = () => {
+        chosenAvatar = a;
+        avatarsEl.querySelectorAll(".av").forEach((x) => x.classList.toggle("sel", x === b));
+        Jeux.sounds.pop();
+      };
+      avatarsEl.appendChild(b);
+    });
+
+    function openWelcome() {
+      input.value = Jeux.getName();
+      goBtn.disabled = !Jeux.cleanName(input.value);
+      welcome.classList.add("show");
+      setTimeout(() => input.focus(), 300);
+    }
+    input.addEventListener("input", () => (goBtn.disabled = !Jeux.cleanName(input.value)));
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter" && !goBtn.disabled) goBtn.click(); });
+    goBtn.onclick = () => {
+      const name = Jeux.cleanName(input.value);
+      if (!name) return;
+      // première lettre en majuscule, comme un vrai prénom
+      Jeux.setName(name.charAt(0).toUpperCase() + name.slice(1));
+      Jeux.setAvatar(chosenAvatar);
+      welcome.classList.remove("show");
+      input.blur();
+      renderHeader();
+      renderSections();
+      Jeux.sounds.win();
+      Jeux.confetti(40, [chosenAvatar, "⭐", "🎉"]);
+      Jeux.say(`Bonjour ${Jeux.getName()} ! Choisis un jeu !`);
+      sessionStorage.setItem("jeux.hello", "1");
+    };
+    document.getElementById("profileBtn").onclick = () => { Jeux.sounds.click(); openWelcome(); };
+
+    // ---------- Démarrage ----------
+    renderHeader();
+    renderFilters();
+    renderSections();
+    if (!Jeux.getName()) openWelcome();
+    else if (!sessionStorage.getItem("jeux.hello")) {
+      // petit bonjour au premier toucher (iOS exige un geste avant de parler)
+      window.addEventListener("pointerdown", () => {
+        sessionStorage.setItem("jeux.hello", "1");
+        Jeux.say(`Bonjour ${Jeux.getName()} ! On joue à quoi ?`);
+      }, { once: true });
+    }
+  </script>
+</body>
+</html>

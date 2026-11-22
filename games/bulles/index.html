@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Les Bulles</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { background: linear-gradient(180deg, #8ad7ff, #c9f0ff 60%, #e6fbff); }
+    #score {
+      position: fixed;
+      top: max(14px, env(safe-area-inset-top));
+      right: max(14px, env(safe-area-inset-right));
+      background: #fff;
+      border-radius: 999px;
+      padding: 8px 20px;
+      font-size: clamp(24px, 5vw, 38px);
+      box-shadow: var(--shadow);
+      z-index: 10;
+    }
+    .bubble {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0 12%, rgba(255,255,255,0.25) 13% 55%, rgba(120,200,255,0.35) 100%);
+      border: 3px solid rgba(255, 255, 255, 0.8);
+      box-shadow: inset -6px -8px 18px rgba(255, 120, 220, 0.25), inset 6px 6px 14px rgba(120, 255, 230, 0.25);
+      display: grid;
+      place-items: center;
+      will-change: transform;
+      touch-action: none;
+    }
+    .bubble span { pointer-events: none; }
+    .pop-text {
+      position: absolute;
+      pointer-events: none;
+      font-size: 44px;
+      animation: rise 0.9s ease-out forwards;
+    }
+    @keyframes rise {
+      from { transform: translate(-50%, -50%) scale(0.6); opacity: 1; }
+      to { transform: translate(-50%, -160%) scale(1.4); opacity: 0; }
+    }
+    .splash {
+      position: absolute;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #fff;
+      pointer-events: none;
+      animation: splash 0.5s ease-out forwards;
+    }
+    @keyframes splash {
+      to { transform: translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="mute-left">
+  <div id="score">🫧 0</div>
+  <script src="../../js/common.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, confetti, pick } = Jeux;
+    const surprises = ["🐟", "🐙", "🦆", "🐸", "🦄", "🐱", "🐶", "🐥", "🦋", "🐢", "🐳", "🍓", "🍭", "⭐"];
+    const bubbles = [];
+    let score = 0;
+    const scoreEl = document.getElementById("score");
+
+    function spawn() {
+      const size = 70 + Math.random() * 80;
+      const el = document.createElement("div");
+      el.className = "bubble";
+      el.style.width = el.style.height = size + "px";
+      const hasSurprise = Math.random() < 0.45;
+      const item = hasSurprise ? pick(surprises) : null;
+      if (item) {
+        el.innerHTML = `<span style="font-size:${size * 0.45}px">${item}</span>`;
+      }
+      const b = {
+        el, size, item,
+        x: Math.random() * (innerWidth - size),
+        y: innerHeight + size,
+        speed: 0.6 + Math.random() * 1.0,
+        phase: Math.random() * Math.PI * 2,
+      };
+      el.addEventListener("pointerdown", (e) => { e.preventDefault(); popBubble(b); });
+      document.body.appendChild(el);
+      bubbles.push(b);
+    }
+
+    function popBubble(b) {
+      const i = bubbles.indexOf(b);
+      if (i < 0) return;
+      bubbles.splice(i, 1);
+      const cx = b.x + b.size / 2, cy = b.y + b.size / 2;
+      b.el.remove();
+      sounds.pop();
+      // petites gouttes
+      for (let k = 0; k < 8; k++) {
+        const s = document.createElement("div");
+        s.className = "splash";
+        const ang = (k / 8) * Math.PI * 2;
+        s.style.left = cx + "px";
+        s.style.top = cy + "px";
+        s.style.setProperty("--dx", Math.cos(ang) * 60 + "px");
+        s.style.setProperty("--dy", Math.sin(ang) * 60 + "px");
+        document.body.appendChild(s);
+        setTimeout(() => s.remove(), 600);
+      }
+      if (b.item) {
+        const t = document.createElement("div");
+        t.className = "pop-text";
+        t.textContent = b.item;
+        t.style.left = cx + "px";
+        t.style.top = cy + "px";
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 1000);
+      }
+      score++;
+      scoreEl.textContent = "🫧 " + score;
+      if (score % 20 === 0) {
+        sounds.win();
+        confetti(50);
+        Jeux.addStars(1);
+        Jeux.bravo(`${score} bulles !`);
+      }
+    }
+
+    let last = performance.now();
+    let spawnTimer = 0;
+    function loop(now) {
+      const dt = Math.min(50, now - last) / 16.67;
+      last = now;
+      spawnTimer -= dt;
+      if (spawnTimer <= 0 && bubbles.length < 14) {
+        spawn();
+        spawnTimer = 25 + Math.random() * 35;
+      }
+      for (let i = bubbles.length - 1; i >= 0; i--) {
+        const b = bubbles[i];
+        b.y -= b.speed * dt * 1.6;
+        b.phase += 0.03 * dt;
+        const wobble = Math.sin(b.phase) * 20;
+        b.el.style.transform = `translate(${b.x + wobble}px, ${b.y}px)`;
+        if (b.y < -b.size - 20) {
+          b.el.remove();
+          bubbles.splice(i, 1);
+        }
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

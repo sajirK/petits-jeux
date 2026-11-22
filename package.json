@@ -1,0 +1,10 @@
+{
+  "name": "petits-jeux",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Petits jeux pour enfants (tablette, téléphone, PC), sans dépendance",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/*.test.js"
+  }
+}

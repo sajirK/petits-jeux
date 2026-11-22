@@ -1,0 +1,37 @@
+// Liste des jeux affichés sur la page d'accueil.
+// Pour ajouter un jeu : créer games/<id>/index.html puis ajouter une ligne ici.
+window.CATEGORIES = {
+  malin: { label: "Je suis malin", emoji: "🧠", desc: "Réfléchir, programmer, calculer, aller vite" },
+  aventure: { label: "Aventure", emoji: "🗺️", desc: "Sauter, explorer, soigner" },
+  rigolo: { label: "Rigolo", emoji: "😂", desc: "Juste pour rire" },
+  educatif: { label: "J'apprends", emoji: "📚", desc: "Compter, les couleurs, les formes, les lettres" },
+  cuisine: { label: "Cuisine", emoji: "🍳", desc: "Prépare à manger pour tes clients" },
+  creatif: { label: "Créatif", emoji: "🎨", desc: "Dessiner et faire de la musique" },
+};
+
+window.GAMES = [
+  { id: "robot", isNew: true, title: "Le Petit Robot", emoji: "🤖", category: "malin", color: "#b8f2e6" },
+  { id: "suites", isNew: true, title: "Les Suites logiques", emoji: "🧩", category: "malin", color: "#cdb4db" },
+  { id: "intrus", isNew: true, title: "Trouve l'intrus", emoji: "🔎", category: "malin", color: "#fed9b7" },
+  { id: "calcul", isNew: true, title: "Les Calculs malins", emoji: "➕", category: "malin", color: "#9bf6ff" },
+  { id: "premiere-lettre", isNew: true, title: "La Première Lettre", emoji: "🅰️", category: "malin", color: "#ffadad" },
+  { id: "melodie", isNew: true, title: "La Mémoire Musicale", emoji: "🎵", category: "malin", color: "#b8c0ff" },
+  { id: "reflexe", isNew: true, title: "Réflexe Éclair", emoji: "⚡", category: "malin", color: "#ffe066" },
+  { id: "dino", title: "Super Saut Dino", emoji: "🦕", category: "aventure", color: "#9be7a0" },
+  { id: "tresors", title: "Le Château Magique", emoji: "💎", category: "aventure", color: "#c3a6ff" },
+  { id: "course", title: "Course de Bulles", emoji: "🚀", category: "aventure", color: "#8ecdf8" },
+  { id: "fruits", title: "Tranche les Fruits", emoji: "🍉", category: "rigolo", color: "#ff8fa3" },
+  { id: "pizzeria", title: "La Pizzeria", titleWithName: "La Pizzeria de {prenom}", emoji: "🍕", category: "cuisine", color: "#ffbf69" },
+  { id: "glacier", title: "Le Glacier", emoji: "🍦", category: "cuisine", color: "#ffc8dd" },
+  { id: "docteur", title: "Le Docteur des animaux", emoji: "🩺", category: "aventure", color: "#a8dadc" },
+  { id: "bulles", title: "Les Bulles", emoji: "🫧", category: "rigolo", color: "#7fd3ff" },
+  { id: "taupe", title: "Tape la Taupe", emoji: "🐹", category: "rigolo", color: "#f6bd60" },
+  { id: "memoire", title: "Memory des animaux", emoji: "🐶", category: "educatif", color: "#b5e48c" },
+  { id: "compter", title: "Je compte", emoji: "🔢", category: "educatif", color: "#ffd166" },
+  { id: "couleurs", title: "Les Couleurs", emoji: "🌈", category: "educatif", color: "#ffadad" },
+  { id: "lettres", title: "Les Lettres", titleWithName: "Les lettres de {prenom}", emoji: "🔤", category: "educatif", color: "#a0c4ff" },
+  { id: "tours", title: "La Tour des Nombres", emoji: "🧱", category: "educatif", color: "#ffb4a2" },
+  { id: "formes", title: "Les Formes", emoji: "🔺", category: "educatif", color: "#fdffb6" },
+  { id: "dessin", title: "Je dessine", emoji: "🖍️", category: "creatif", color: "#f4a3d8" },
+  { id: "piano", title: "Le Piano rigolo", emoji: "🎹", category: "creatif", color: "#ffc6ff" },
+];

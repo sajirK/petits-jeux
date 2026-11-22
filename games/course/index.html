@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Course de Bulles</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    canvas { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+    #hud {
+      position: fixed; top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right));
+      display: flex; gap: 10px; z-index: 10;
+    }
+    .pill { background: #fff; border-radius: 999px; padding: 6px 18px; font-size: clamp(22px, 5vw, 34px); box-shadow: var(--shadow); }
+    #overlay {
+      position: fixed; inset: 0; z-index: 20;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+      background: rgba(0, 40, 80, 0.45); color: #fff; text-align: center;
+    }
+    #overlay h2 { font-size: clamp(32px, 8vw, 60px); margin: 0; text-shadow: 0 4px 0 rgba(0,0,0,0.2); }
+    #overlay p { font-size: clamp(20px, 4.5vw, 30px); margin: 0; }
+    #overlay.hidden { display: none; }
+    #go { color: var(--ink); }
+  </style>
+</head>
+<body class="mute-left">
+  <canvas id="c"></canvas>
+  <div id="hud"><div class="pill" id="lives">❤️❤️❤️</div><div class="pill" id="score">⭐ 0</div></div>
+  <div id="overlay">
+    <h2 id="otitle">🐠 Course de Bulles</h2>
+    <p id="otext">Glisse ton doigt en haut et en bas<br />pour attraper les étoiles ⭐</p>
+    <button class="big-btn" id="go">▶️ C'est parti !</button>
+  </div>
+
+  <script src="../../js/common.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, confetti, bravo, pick } = Jeux;
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+    let W, H, U; // U = unité = hauteur / 10
+    function resize() {
+      const dpr = window.devicePixelRatio || 1;
+      W = innerWidth; H = innerHeight;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      U = H / 10;
+    }
+    addEventListener("resize", resize);
+    resize();
+
+    // Tout est en unités "U" (10 de haut). La largeur visible = W/U.
+    let player, obstacles, stars, bubbles, speed, dist, score, lives, inv, running = false, nextObs, best = 0;
+
+    function reset() {
+      player = { y: 5, target: 5, r: 0.55 };
+      obstacles = []; stars = []; bubbles = [];
+      speed = 3.2; dist = 0; score = 0; lives = 3; inv = 0; nextObs = 3;
+      updateHud();
+    }
+
+    function updateHud() {
+      document.getElementById("lives").textContent = "❤️".repeat(lives) + "🤍".repeat(3 - lives);
+      document.getElementById("score").textContent = "⭐ " + score;
+    }
+
+    // Contrôle : le poisson suit le doigt (ou la souris), ou les flèches au clavier
+    function setTarget(e) {
+      if (!running) return;
+      player.target = Math.max(0.8, Math.min(9.2, e.clientY / U));
+    }
+    canvas.addEventListener("pointerdown", setTarget);
+    canvas.addEventListener("pointermove", setTarget);
+    const keys = {};
+    addEventListener("keydown", (e) => { keys[e.key] = true; if (e.key.startsWith("Arrow")) e.preventDefault(); });
+    addEventListener("keyup", (e) => { keys[e.key] = false; });
+
+    function spawnObstacle() {
+      const vis = W / U;
+      // trou assez grand pour un enfant de 5 ans, qui rétrécit doucement
+      const gap = Math.max(3.6, 5.2 - dist / 400);
+      const gy = 1 + gap / 2 + Math.random() * (10 - 2 - gap);
+      obstacles.push({ x: vis + 1, w: 1.3, top: gy - gap / 2, bottom: gy + gap / 2, hit: false, kind: pick(["coral", "rock", "weed"]) });
+      // étoiles dans le passage
+      const n = 1 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < n; i++) stars.push({ x: vis + 1.65 + i * 1.2, y: gy + (Math.random() - 0.5) * (gap - 1.4) });
+      // et parfois entre deux obstacles
+      if (Math.random() < 0.6) stars.push({ x: vis + 4, y: 1 + Math.random() * 8 });
+    }
+
+    function update(dt) {
+      if (!running) return;
+      dist += speed * dt;
+      speed = Math.min(6.5, 3.2 + dist / 250);
+      if (keys.ArrowUp) player.target = Math.max(0.8, player.target - 8 * dt);
+      if (keys.ArrowDown) player.target = Math.min(9.2, player.target + 8 * dt);
+      player.y += (player.target - player.y) * Math.min(1, dt * 9);
+      inv = Math.max(0, inv - dt);
+
+      nextObs -= speed * dt;
+      if (nextObs <= 0) { spawnObstacle(); nextObs = 6 + Math.random() * 2.5; }
+
+      const px = 2.5;
+      for (const o of obstacles) {
+        o.x -= speed * dt;
+        if (!o.hit && inv <= 0 && px + player.r * 0.8 > o.x && px - player.r * 0.8 < o.x + o.w &&
+            (player.y - player.r * 0.8 < o.top || player.y + player.r * 0.8 > o.bottom)) {
+          o.hit = true;
+          lives--; inv = 1.5;
+          updateHud();
+          sounds.wrong();
+          if (lives <= 0) return gameOver();
+          say(pick(["Aïe !", "Attention !", "Oups !"]));
+        }
+      }
+      obstacles = obstacles.filter((o) => o.x > -3);
+      for (let i = stars.length - 1; i >= 0; i--) {
+        const s = stars[i];
+        s.x -= speed * dt;
+        if (Math.hypot(s.x - px, s.y - player.y) < player.r + 0.4) {
+          stars.splice(i, 1);
+          score++;
+          updateHud();
+          sounds.coin();
+          if (score % 20 === 0) { Jeux.addStars(1); confetti(30); bravo(`${score} étoiles !`); }
+        } else if (s.x < -2) stars.splice(i, 1);
+      }
+      if (Math.random() < dt * 6) bubbles.push({ x: W / U + 0.5, y: Math.random() * 10, r: 0.08 + Math.random() * 0.2 });
+      for (const b of bubbles) { b.x -= speed * dt * 0.6; b.y -= dt * 0.4; }
+      bubbles = bubbles.filter((b) => b.x > -1);
+    }
+
+    function gameOver() {
+      running = false;
+      best = Math.max(best, score);
+      sounds.win();
+      say(`Bravo ${Jeux.NAME} ! Tu as attrapé ${score} étoiles !`);
+      document.getElementById("otitle").textContent = `⭐ ${score} étoiles !`;
+      document.getElementById("otext").textContent = `Ton record : ${best} ⭐`;
+      document.getElementById("go").textContent = "🔁 Encore !";
+      document.getElementById("overlay").classList.remove("hidden");
+    }
+
+    document.getElementById("go").onclick = () => {
+      sounds.click();
+      reset();
+      running = true;
+      document.getElementById("overlay").classList.add("hidden");
+    };
+
+    function em(ch, x, y, size, alpha = 1) {
+      ctx.globalAlpha = alpha;
+      ctx.font = `${size}px serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(ch, x, y);
+      ctx.globalAlpha = 1;
+    }
+
+    let t = 0;
+    function draw() {
+      const g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#48cae4"); g.addColorStop(1, "#023e8a");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      // rayons de lumière
+      ctx.fillStyle = "rgba(255,255,255,0.06)";
+      for (let i = 0; i < 5; i++) {
+        const x = ((i * 300 - dist * 8) % (W + 300) + W + 300) % (W + 300) - 150;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 80, 0); ctx.lineTo(x - 120, H); ctx.lineTo(x - 220, H); ctx.fill();
+      }
+      // sable
+      ctx.fillStyle = "#f4d58d"; ctx.fillRect(0, H - U * 0.35, W, U * 0.35);
+      // bulles décoratives
+      ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 2;
+      for (const b of bubbles) { ctx.beginPath(); ctx.arc(b.x * U, b.y * U, b.r * U, 0, Math.PI * 2); ctx.stroke(); }
+      // obstacles
+      for (const o of obstacles) {
+        const x = o.x * U, w = o.w * U;
+        const col = o.kind === "coral" ? ["#ff6b6b", "#c9184a"] : o.kind === "rock" ? ["#8d99ae", "#4a4e69"] : ["#52b788", "#1b4332"];
+        drawColumn(x, 0, w, o.top * U, col, true);
+        drawColumn(x, o.bottom * U, w, H - o.bottom * U, col, false);
+      }
+      // étoiles
+      for (const s of stars) em("⭐", s.x * U, s.y * U, U * 0.8 * (1 + Math.sin(t * 6 + s.x) * 0.08));
+      // joueur dans sa bulle
+      const px = 2.5 * U, py = player ? player.y * U : H / 2;
+      const blink = inv > 0 && Math.floor(t * 10) % 2 === 0;
+      ctx.fillStyle = "rgba(255,255,255,0.2)";
+      ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(px, py, U * 0.72, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.save(); ctx.translate(px, py); ctx.scale(-1, 1); // le poisson regarde vers la droite
+      em("🐠", 0, Math.sin(t * 5) * U * 0.05, U * 0.95, blink ? 0.3 : 1);
+      ctx.restore();
+      em("✨", px - U * 0.35, py - U * 0.4, U * 0.3, 0.8);
+    }
+    function drawColumn(x, y, w, h, [c1, c2], top) {
+      if (h <= 0) return;
+      ctx.fillStyle = c1;
+      ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, w * 0.4) : ctx.rect(x, y, w, h); ctx.fill();
+      ctx.fillStyle = c2;
+      ctx.fillRect(x + w * 0.65, y, w * 0.2, h);
+      // petits ronds pour faire "corail"
+      ctx.fillStyle = "rgba(255,255,255,0.25)";
+      for (let i = 0.6; i < h / U; i += 1.1) {
+        ctx.beginPath(); ctx.arc(x + w * 0.35, y + (top ? h - i * U : i * U), w * 0.12, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    let last = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.033, (now - last) / 1000);
+      last = now; t += dt;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+    reset();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
