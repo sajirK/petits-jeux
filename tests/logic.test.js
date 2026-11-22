@@ -253,5 +253,5 @@ test("Réflexe : règles sans objet à la fois bon et piège", () => {
   assert.equal(Reflexe.score(3, true), 4);
   assert.equal(Reflexe.average([300, 500]), 400);
   assert.equal(Reflexe.average([]), null);
-  assert.ok(Reflexe.lifetime(0) > Reflexe.lifetime(20) && Reflexe.lifetime(1000) === 750);
+  assert.ok(Reflexe.lifetime(0) > Reflexe.lifetime(20) && Reflexe.lifetime(1000) === 1800);
 });

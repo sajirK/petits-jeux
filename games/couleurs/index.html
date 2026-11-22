@@ -108,6 +108,7 @@
       set.forEach((col, i) => {
         const b = document.createElement("button");
         b.className = "balloon";
+        b.setAttribute("aria-label", `Ballon ${col.name}`);
         b.style.background = col.c;
         b.style.animationDelay = `${i * 0.3}s, ${i * 0.08}s`;
         b.onclick = () => choose(b, col);

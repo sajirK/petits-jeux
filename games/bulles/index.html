@@ -24,7 +24,8 @@
     #colorMode { top: max(14px, env(safe-area-inset-top)); }
     #colorGoal { top: max(68px, calc(env(safe-area-inset-top) + 54px)); display: none; }
     .bubble {
-      position: absolute;
+      position: fixed;
+      left: 0; top: 0;
       border-radius: 50%;
       background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95) 0 12%, rgba(255,255,255,0.25) 13% 55%, rgba(120,200,255,0.35) 100%);
       border: 3px solid rgba(255, 255, 255, 0.8);
@@ -37,7 +38,7 @@
     .bubble span { pointer-events: none; }
     .bubble.wrong-color { animation: shake .35s; }
     .pop-text {
-      position: absolute;
+      position: fixed;
       pointer-events: none;
       font-size: 44px;
       animation: rise 0.9s ease-out forwards;
@@ -47,7 +48,7 @@
       to { transform: translate(-50%, -160%) scale(1.4); opacity: 0; }
     }
     .splash {
-      position: absolute;
+      position: fixed;
       width: 10px; height: 10px;
       border-radius: 50%;
       background: #fff;

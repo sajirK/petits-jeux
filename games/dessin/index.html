@@ -46,7 +46,9 @@
     const ctx = canvas.getContext("2d");
     const tools = document.getElementById("tools");
     const COLORS = ["#ef476f", "#ff9f1c", "#ffd166", "#06d6a0", "#118ab2", "#7b2cbf", "#8d5524", "#222222"];
+    const COLOR_NAMES = ["rose", "orange", "jaune", "vert", "bleu", "violet", "marron", "noir"];
     const STAMPS = ["⭐", "❤️", "🌸", "🐱", "🚗", "🦖"];
+    const STAMP_NAMES = ["étoile", "cœur", "fleur", "chat", "voiture", "dinosaure"];
     let mode = { type: "color", value: COLORS[0] };
     let rainbow = 0;
 
@@ -62,10 +64,11 @@
       ctx.drawImage(old, 0, 0, old.width / dpr, old.height / dpr);
     }
 
-    function addTool(label, m, bg) {
+    function addTool(label, m, bg, accessibleName = label) {
       const b = document.createElement("button");
       b.className = "tool";
       b.innerHTML = label;
+      if (accessibleName) b.setAttribute("aria-label", accessibleName);
       if (bg) b.style.background = bg;
       b.onclick = () => {
         sounds.click();
@@ -82,14 +85,14 @@
       return b;
     }
     COLORS.forEach((c, i) => {
-      const b = addTool("", { type: "color", value: c }, c);
+      const b = addTool("", { type: "color", value: c }, c, `Crayon ${COLOR_NAMES[i]}`);
       if (i === 0) b.classList.add("active");
     });
-    addTool("🌈", { type: "rainbow" });
+    addTool("🌈", { type: "rainbow" }, null, "Crayon arc-en-ciel");
     const sep = document.createElement("div"); sep.className = "sep"; tools.appendChild(sep);
-    STAMPS.forEach((s) => addTool(s, { type: "stamp", value: s }));
-    addTool("🧽", { type: "eraser" });
-    addTool("🗑️", { type: "clear" });
+    STAMPS.forEach((s, i) => addTool(s, { type: "stamp", value: s }, null, `Tampon ${STAMP_NAMES[i]}`));
+    addTool("🧽", { type: "eraser" }, null, "Gomme");
+    addTool("🗑️", { type: "clear" }, null, "Effacer le dessin");
 
     const pointers = new Map();
     function pos(e) {

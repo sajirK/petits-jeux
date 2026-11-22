@@ -13,10 +13,9 @@
     #modes { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 6px; }
     #modes button { background: rgba(255,255,255,0.7); border-radius: 999px; padding: 8px 14px; font-size: clamp(15px, 3.4vmin, 20px); box-shadow: 0 3px 0 rgba(0,0,0,0.08); }
     #modes button.sel { background: #fff; outline: 3px solid #4dabf7; }
-    #strip { display: flex; gap: 6px; overflow-x: auto; max-width: min(100%, 900px); padding: 4px 6px 8px; scrollbar-width: none; }
-    #strip::-webkit-scrollbar { display: none; }
+    #strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; width: min(100%, 900px); margin-inline: auto; padding: 4px 6px 8px; flex: none; }
     #strip button {
-      flex: none; width: 40px; height: 40px; border-radius: 12px; background: #fff; font-size: 20px; font-weight: bold;
+      width: 100%; min-width: 44px; height: 48px; border-radius: 12px; background: #fff; font-size: 20px; font-weight: bold;
       box-shadow: 0 3px 0 rgba(0,0,0,0.08); position: relative;
     }
     #strip button.sel { background: #4dabf7; color: #fff; }
