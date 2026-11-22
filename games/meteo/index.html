@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Ma météo du jour</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    body { background: linear-gradient(160deg, #fff9db, #e3fafc); }
+    .step { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 760px; }
+    .step.show { display: flex; animation: bounce-in 0.35s; }
+    .q { font-size: clamp(20px, 4.8vmin, 30px); text-align: center; margin: 4px 0 14px; }
+    #grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; }
+    .emo {
+      border-radius: 22px; padding: 10px 4px; background: #fff; box-shadow: 0 6px 0 rgba(0,0,0,0.1);
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      font-size: clamp(13px, 3vmin, 18px); font-weight: bold;
+    }
+    .emo span { font-size: clamp(40px, 10vmin, 64px); line-height: 1; }
+    .emo:active { transform: scale(0.94); }
+    #sizes { display: flex; align-items: flex-end; gap: clamp(14px, 4vmin, 30px); }
+    .size { background: #fff; border-radius: 24px; padding: 10px 14px; box-shadow: 0 6px 0 rgba(0,0,0,0.1); display: flex; flex-direction: column; align-items: center; font-weight: bold; font-size: clamp(14px, 3.2vmin, 20px); }
+    .size span { line-height: 1; }
+    #answerCard { background: #fff; border-radius: 28px; padding: 14px 18px; box-shadow: var(--shadow); text-align: center; width: 100%; }
+    #bigFace { font-size: clamp(70px, 18vmin, 120px); line-height: 1; }
+    #validate { font-size: clamp(18px, 4.2vmin, 26px); margin: 8px 0; }
+    #tips { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .tip { display: flex; align-items: center; gap: 10px; background: #f8f9fa; border-radius: 18px; padding: 8px 12px; text-align: left; font-size: clamp(15px, 3.6vmin, 21px); text-decoration: none; color: var(--ink); }
+    .tip b { font-size: 1.6em; }
+    a.tip { background: #e7f5ff; border: 3px solid #74c0fc; }
+    #adult { margin-top: 10px; font-size: clamp(15px, 3.6vmin, 20px); background: #fff3bf; border-radius: 16px; padding: 8px 12px; display: none; }
+    #week { margin-top: 16px; background: #fff; border-radius: 22px; padding: 10px; box-shadow: var(--shadow); width: 100%; }
+    #week h3 { margin: 0 0 6px; text-align: center; font-size: clamp(16px, 3.6vmin, 22px); }
+    #days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+    .day { font-size: clamp(12px, 2.8vmin, 16px); opacity: 0.7; }
+    .day span { display: block; font-size: clamp(26px, 6.5vmin, 40px); line-height: 1.2; }
+    .day.today { opacity: 1; font-weight: bold; }
+    #restart { margin-top: 14px; }
+  </style>
+</head>
+<body>
+  <div class="brain">
+    <h1 class="game-title">Ma météo du jour</h1>
+
+    <div class="step show" id="s1">
+      <div class="q">Comment tu te sens aujourd'hui ?</div>
+      <div id="grid"></div>
+    </div>
+
+    <div class="step" id="s2">
+      <div class="q" id="q2"></div>
+      <div id="sizes"></div>
+    </div>
+
+    <div class="step" id="s3">
+      <div id="answerCard">
+        <div id="bigFace"></div>
+        <div id="validate"></div>
+        <div id="tips"></div>
+        <div id="adult">👨‍👩‍👧 Si c'est très fort, va voir un adulte que tu aimes : il peut t'aider.</div>
+      </div>
+      <div id="week"><h3>Ma semaine</h3><div id="days"></div></div>
+      <button class="big-btn" id="restart">🔁 Changer</button>
+    </div>
+  </div>
+
+  <script src="../../js/common.js"></script>
+  <script src="../../js/emotions.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { say, sounds, confetti } = Jeux;
+    const E = Emotions.EMOTIONS;
+    const ORDER = ["joie", "calme", "surprise", "fatigue", "tristesse", "colere", "peur", "degout"];
+    const POSITIVE = new Set(["joie", "calme"]);
+    const SIZES = [["un peu", 0.6], ["beaucoup", 0.85], ["énormément", 1.15]];
+    // conseils qui mènent à un autre jeu
+    const LINKS = { "🎈": "../respire/index.html", "🎨": "../dessin/index.html", "💃": "../piano/index.html" };
+    const WEEKDAYS = ["D", "L", "M", "M", "J", "V", "S"];
+    let chosen;
+
+    const show = (id) => document.querySelectorAll(".step").forEach((s) => s.classList.toggle("show", s.id === id));
+    const journal = () => { try { return JSON.parse(localStorage.getItem("jeux.meteo") || "{}"); } catch (e) { return {}; } };
+
+    // Étape 1 : choisir l'émotion
+    const grid = document.getElementById("grid");
+    ORDER.forEach((k) => {
+      const b = document.createElement("button");
+      b.className = "emo";
+      b.style.background = E[k].color;
+      b.innerHTML = `<span>${E[k].emoji}</span>${E[k].label}`;
+      b.onclick = () => pickEmotion(k);
+      grid.appendChild(b);
+    });
+
+    function pickEmotion(k) {
+      chosen = k;
+      sounds.pop();
+      const e = E[k];
+      document.getElementById("q2").textContent = `${e.emoji} Un peu, beaucoup, ou énormément ?`;
+      const sizes = document.getElementById("sizes");
+      sizes.innerHTML = "";
+      SIZES.forEach(([label, scale], i) => {
+        const b = document.createElement("button");
+        b.className = "size";
+        b.innerHTML = `<span style="font-size:${scale * 90}px">${e.emoji}</span>${label}`;
+        b.onclick = () => finish(i);
+        sizes.appendChild(b);
+      });
+      show("s2");
+      say(`${e.label}. Un peu, beaucoup, ou énormément ?`);
+    }
+
+    // Étape 3 : accueillir l'émotion + idées
+    function finish(intensity, silent = false) {
+      const e = E[chosen];
+      const j = journal();
+      j[Emotions.todayKey()] = { e: chosen, i: intensity };
+      // on garde seulement les 60 derniers jours
+      const keys = Object.keys(j).sort();
+      while (keys.length > 60) delete j[keys.shift()];
+      localStorage.setItem("jeux.meteo", JSON.stringify(j));
+
+      document.getElementById("bigFace").textContent = e.emoji;
+      const noun = e.noun.charAt(0).toUpperCase() + e.noun.slice(1);
+      const msg = POSITIVE.has(chosen)
+        ? `Merci de me l'avoir dit ! ${noun}, c'est bon à sentir. Profites-en !`
+        : `Merci de me l'avoir dit. Tout le monde ressent ${e.noun.replace(/^le /, "du ").replace(/^la /, "de la ")}, parfois. C'est normal !`;
+      document.getElementById("validate").textContent = msg;
+      const tips = document.getElementById("tips");
+      tips.innerHTML = "";
+      e.tips.forEach(([icon, text]) => {
+        const el = document.createElement(LINKS[icon] ? "a" : "div");
+        el.className = "tip";
+        if (LINKS[icon]) el.href = LINKS[icon];
+        el.innerHTML = `<b></b><span></span>`;
+        el.querySelector("b").textContent = icon;
+        el.querySelector("span").textContent = text + (LINKS[icon] ? " ➡️" : "");
+        tips.appendChild(el);
+      });
+      document.getElementById("adult").style.display = !POSITIVE.has(chosen) && intensity === 2 ? "block" : "none";
+      renderWeek();
+      show("s3");
+      if (!silent) { sounds.bell(659, 0, 0.18, 1); if (POSITIVE.has(chosen)) confetti(25, [e.emoji, "✨"]); }
+      if (!silent) say(`${msg} ${e.tips.map((t) => t[1]).join(" ")}${!POSITIVE.has(chosen) && intensity === 2 ? " Si c'est très fort, va voir un adulte que tu aimes." : ""}`);
+    }
+
+    function renderWeek() {
+      const days = document.getElementById("days");
+      days.innerHTML = "";
+      Emotions.lastDays(journal()).forEach((d, i, arr) => {
+        const el = document.createElement("div");
+        el.className = "day" + (i === arr.length - 1 ? " today" : "");
+        el.innerHTML = `<span>${d.entry && E[d.entry.e] ? E[d.entry.e].emoji : "·"}</span>${i === arr.length - 1 ? "Auj." : WEEKDAYS[d.day]}`;
+        days.appendChild(el);
+      });
+    }
+
+    document.getElementById("restart").onclick = () => { sounds.click(); show("s1"); say("Comment tu te sens ?"); };
+
+    // si déjà rempli aujourd'hui, on montre la semaine directement
+    const today = journal()[Emotions.todayKey()];
+    if (today && E[today.e]) { chosen = today.e; finish(today.i || 0, true); }
+    else setTimeout(() => say("Comment tu te sens aujourd'hui ?"), 500);
+  </script>
+</body>
+</html>

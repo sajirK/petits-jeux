@@ -2,6 +2,7 @@
 // Pour ajouter un jeu : créer games/<id>/index.html puis ajouter une ligne ici.
 window.CATEGORIES = {
   malin: { label: "Je suis malin", emoji: "🧠", desc: "Réfléchir, programmer, calculer, aller vite" },
+  emotions: { label: "Mes émotions", emoji: "💛", desc: "Reconnaître, comprendre et apaiser ce qu'on ressent" },
   aventure: { label: "Aventure", emoji: "🗺️", desc: "Sauter, explorer, soigner" },
   rigolo: { label: "Rigolo", emoji: "😂", desc: "Juste pour rire" },
   educatif: { label: "J'apprends", emoji: "📚", desc: "Compter, les couleurs, les formes, les lettres" },
@@ -10,13 +11,18 @@ window.CATEGORIES = {
 };
 
 window.GAMES = [
-  { id: "robot", isNew: true, title: "Le Petit Robot", emoji: "🤖", category: "malin", color: "#b8f2e6" },
-  { id: "suites", isNew: true, title: "Les Suites logiques", emoji: "🧩", category: "malin", color: "#cdb4db" },
-  { id: "intrus", isNew: true, title: "Trouve l'intrus", emoji: "🔎", category: "malin", color: "#fed9b7" },
-  { id: "calcul", isNew: true, title: "Les Calculs malins", emoji: "➕", category: "malin", color: "#9bf6ff" },
-  { id: "premiere-lettre", isNew: true, title: "La Première Lettre", emoji: "🅰️", category: "malin", color: "#ffadad" },
-  { id: "melodie", isNew: true, title: "La Mémoire Musicale", emoji: "🎵", category: "malin", color: "#b8c0ff" },
-  { id: "reflexe", isNew: true, title: "Réflexe Éclair", emoji: "⚡", category: "malin", color: "#ffe066" },
+  { id: "emotion-visage", isNew: true, title: "Devine l'émotion", emoji: "😊", category: "emotions", color: "#ffe066" },
+  { id: "emotion-situations", isNew: true, title: "Les histoires d'émotions", emoji: "🤔", category: "emotions", color: "#d0bfff" },
+  { id: "que-faire", isNew: true, title: "Que ferais-tu ?", emoji: "🤝", category: "emotions", color: "#b2f2bb" },
+  { id: "respire", isNew: true, title: "Respire avec moi", emoji: "🎈", category: "emotions", color: "#a5d8ff" },
+  { id: "meteo", isNew: true, title: "Ma météo du jour", emoji: "🌤️", category: "emotions", color: "#fff3bf" },
+  { id: "robot", title: "Le Petit Robot", emoji: "🤖", category: "malin", color: "#b8f2e6" },
+  { id: "suites", title: "Les Suites logiques", emoji: "🧩", category: "malin", color: "#cdb4db" },
+  { id: "intrus", title: "Trouve l'intrus", emoji: "🔎", category: "malin", color: "#fed9b7" },
+  { id: "calcul", title: "Les Calculs malins", emoji: "➕", category: "malin", color: "#9bf6ff" },
+  { id: "premiere-lettre", title: "La Première Lettre", emoji: "🅰️", category: "malin", color: "#ffadad" },
+  { id: "melodie", title: "La Mémoire Musicale", emoji: "🎵", category: "malin", color: "#b8c0ff" },
+  { id: "reflexe", title: "Réflexe Éclair", emoji: "⚡", category: "malin", color: "#ffe066" },
   { id: "dino", title: "Super Saut Dino", emoji: "🦕", category: "aventure", color: "#9be7a0" },
   { id: "tresors", title: "Le Château Magique", emoji: "💎", category: "aventure", color: "#c3a6ff" },
   { id: "course", title: "Course de Bulles", emoji: "🚀", category: "aventure", color: "#8ecdf8" },

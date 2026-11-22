@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Les histoires d'émotions</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    body { background: linear-gradient(160deg, #e7f5ff, #d0bfff); }
+    #story {
+      background: #fff; border-radius: 28px; box-shadow: var(--shadow);
+      padding: 14px 20px; max-width: min(94vw, 620px); text-align: center; cursor: pointer;
+      animation: bounce-in 0.45s;
+    }
+    #scene { font-size: clamp(64px, 17vmin, 110px); line-height: 1.1; letter-spacing: 6px; }
+    #text { font-size: clamp(18px, 4.4vmin, 28px); margin-top: 8px; }
+    #ask { font-size: clamp(17px, 4vmin, 24px); margin: 14px 0 10px; text-align: center; }
+    #options { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+    .opt {
+      width: clamp(96px, 22vmin, 140px); padding: 10px 6px; border-radius: 24px;
+      background: #fff; box-shadow: 0 6px 0 rgba(0,0,0,0.12);
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      font-size: clamp(15px, 3.4vmin, 20px); font-weight: bold;
+    }
+    .opt span { font-size: clamp(48px, 12vmin, 76px); line-height: 1; }
+    .opt:active { transform: scale(0.94); }
+    .opt.good { background: #b7efc5; animation: bounce-in 0.4s; }
+    .opt.bad { background: #ffe3e3; }
+    #explain {
+      margin-top: 14px; background: #fff; border-radius: 22px; padding: 10px 16px; box-shadow: var(--shadow);
+      font-size: clamp(16px, 3.8vmin, 22px); max-width: min(94vw, 620px); text-align: center; display: none;
+    }
+    #explain .tip { margin-top: 6px; opacity: 0.85; }
+    #next { margin-top: 12px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="brain">
+    <h1 class="game-title">Les histoires d'émotions</h1>
+    <div class="brain-bar" id="bar"></div>
+    <div id="story" title="Écouter l'histoire"><div id="scene"></div><div id="text"></div></div>
+    <div id="ask"></div>
+    <div id="options"></div>
+    <div id="explain"></div>
+    <button class="big-btn" id="next">Histoire suivante ➡️</button>
+  </div>
+
+  <script src="../../js/common.js"></script>
+  <script src="../../js/emotions.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, confetti, pick } = Jeux;
+    const E = Emotions.EMOTIONS;
+    const prog = Jeux.progress("emotion-situations", 3);
+    const badge = Jeux.levelBadge(prog, () => next());
+    document.getElementById("bar").appendChild(badge);
+    const storyEl = document.getElementById("story");
+    const optionsEl = document.getElementById("options");
+    const explain = document.getElementById("explain");
+    const nextBtn = document.getElementById("next");
+    let q, done = false, wrongs = 0;
+
+    const question = () => `Comment se sent ${q.situation.who} ?`;
+    storyEl.onclick = () => say(`${q.situation.text} ${question()}`);
+    nextBtn.onclick = () => { sounds.click(); next(); };
+
+    function next() {
+      done = false; wrongs = 0;
+      q = Emotions.situationQuestion(prog.level, Math.random, q && q.situation.text);
+      const s = q.situation;
+      document.getElementById("scene").textContent = s.scene;
+      document.getElementById("text").textContent = s.text;
+      document.getElementById("ask").textContent = question();
+      storyEl.style.animation = "none"; void storyEl.offsetWidth; storyEl.style.animation = "";
+      explain.style.display = nextBtn.style.display = "none";
+      optionsEl.innerHTML = "";
+      q.options.forEach((k) => {
+        const b = document.createElement("button");
+        b.className = "opt";
+        b.innerHTML = `<span>${E[k].emoji}</span>${E[k].label}`;
+        b.onclick = () => answer(b, k);
+        optionsEl.appendChild(b);
+      });
+      setTimeout(() => say(`${s.text} ${question()}`), 400);
+    }
+
+    function answer(btn, k) {
+      if (done) return;
+      const s = q.situation;
+      if (k === q.answer) {
+        done = true;
+        btn.classList.add("good");
+        sounds.success();
+        const e = E[k];
+        const tip = pick(e.tips);
+        const why = Emotions.sentence(s, k);
+        explain.innerHTML = `<div></div><div class="tip"></div>`;
+        explain.firstChild.textContent = "✅ " + why;
+        explain.lastChild.textContent = `${tip[0]} ${tip[1]}`;
+        explain.style.display = "block";
+        say(`Oui ! ${why} ${tip[1]}`);
+        if (wrongs === 0) {
+          if (prog.success() === "up") { badge.update(); confetti(40, ["💛", "⭐"]); Jeux.addStars(1); }
+        }
+        setTimeout(() => (nextBtn.style.display = "inline-block"), 1200);
+      } else {
+        wrongs++;
+        btn.classList.add("bad", "shake");
+        setTimeout(() => btn.classList.remove("shake"), 400);
+        sounds.wrong();
+        if (prog.fail() === "down") badge.update();
+        // forme interrogative : pas de subjonctif compliqué
+        say(`Hmm… ${Emotions.isItQuestion(s, k)} Je ne crois pas. Écoute encore : ${s.text}`);
+      }
+    }
+
+    next();
+  </script>
+</body>
+</html>

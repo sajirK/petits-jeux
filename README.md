@@ -24,6 +24,11 @@ Sur iPad / iPhone : Safari → Partager → **Sur l'écran d'accueil** pour l'av
 
 | Jeu | Catégorie | Dossier |
 |---|---|---|
+| 😊 Devine l'émotion | Mes émotions (reconnaître) | `games/emotion-visage` |
+| 🤔 Les histoires d'émotions | Mes émotions (comprendre) | `games/emotion-situations` |
+| 🤝 Que ferais-tu ? | Mes émotions (empathie) | `games/que-faire` |
+| 🎈 Respire avec moi | Mes émotions (se calmer) | `games/respire` |
+| 🌤️ Ma météo du jour | Mes émotions (dire ce qu'on ressent) | `games/meteo` |
 | 🤖 Le Petit Robot | Je suis malin (programmer) | `games/robot` |
 | 🧩 Les Suites logiques | Je suis malin (logique) | `games/suites` |
 | 🔎 Trouve l'intrus | Je suis malin (catégories) | `games/intrus` |
@@ -51,7 +56,7 @@ Sur iPad / iPhone : Safari → Partager → **Sur l'écran d'accueil** pour l'av
 
 ## Tests
 
-La logique des jeux « Je suis malin » (questions générées, bonnes réponses, phrases) est testée automatiquement :
+La logique des jeux « Je suis malin » et le contenu de « Mes émotions » (questions, bonnes réponses, phrases, aucune réponse ambiguë) sont testés automatiquement :
 
 ```bash
 node --test tests/*.test.js
