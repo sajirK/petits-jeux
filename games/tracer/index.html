@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>J'écris</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    body { background: linear-gradient(160deg, #e7f5ff, #fff0f6); }
+    .brain { height: 100%; }
+    #modes { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 6px; }
+    #modes button { background: rgba(255,255,255,0.7); border-radius: 999px; padding: 8px 14px; font-size: clamp(15px, 3.4vmin, 20px); box-shadow: 0 3px 0 rgba(0,0,0,0.08); }
+    #modes button.sel { background: #fff; outline: 3px solid #4dabf7; }
+    #strip { display: flex; gap: 6px; overflow-x: auto; max-width: min(100%, 900px); padding: 4px 6px 8px; scrollbar-width: none; }
+    #strip::-webkit-scrollbar { display: none; }
+    #strip button {
+      flex: none; width: 40px; height: 40px; border-radius: 12px; background: #fff; font-size: 20px; font-weight: bold;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.08); position: relative;
+    }
+    #strip button.sel { background: #4dabf7; color: #fff; }
+    #strip button.done::after { content: "✓"; position: absolute; right: -3px; top: -6px; font-size: 13px; color: #2b8a3e; }
+    #main { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; gap: 16px; }
+    #paper { position: relative; touch-action: none; }
+    canvas { display: block; background: #fff; border-radius: 26px; box-shadow: 0 8px 0 rgba(0,0,0,0.08); touch-action: none; }
+    #side { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+    #word { font-size: clamp(18px, 4vmin, 26px); text-align: center; min-height: 2.6em; }
+    #word span { font-size: 1.8em; display: block; line-height: 1.1; }
+    .act { background: #fff; border-radius: 18px; padding: 10px 16px; font-size: clamp(16px, 3.6vmin, 22px); box-shadow: 0 5px 0 rgba(0,0,0,0.12); }
+    .act:active { transform: scale(0.94) translateY(3px); }
+    #stars { font-size: clamp(18px, 4vmin, 24px); min-height: 1.3em; }
+    @media (orientation: portrait) { #main { flex-direction: column; gap: 8px; } #side { flex-direction: row; flex-wrap: wrap; justify-content: center; } #word { min-height: 0; } }
+    @media (orientation: landscape) and (max-height: 500px) { .game-title { display: none; } .brain { padding-left: 76px; } }
+  </style>
+</head>
+<body>
+  <div class="brain">
+    <h1 class="game-title">J'écris</h1>
+    <div id="modes"></div>
+    <div id="strip"></div>
+    <div id="main">
+      <div id="paper"><canvas id="c"></canvas></div>
+      <div id="side">
+        <div id="word"></div>
+        <button class="act" id="demo">👀 Regarde</button>
+        <button class="act" id="clear">🔄 Recommencer</button>
+        <div id="stars"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../js/common.js"></script>
+  <script src="logic.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, bravo, confetti } = Jeux;
+    const TL = TracerLogic;
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+    const strip = document.getElementById("strip");
+    const wordEl = document.getElementById("word");
+    const LETTER_NAMES = { A: "a", B: "bé", C: "cé", D: "dé", E: "e", F: "effe", G: "gé", H: "hache", I: "i", J: "ji", K: "ka", L: "elle", M: "emme", N: "enne", O: "o", P: "pé", Q: "ku", R: "erre", S: "esse", T: "té", U: "u", V: "vé", W: "double vé", X: "ixe", Y: "i grec", Z: "zède" };
+    const spokenName = (ch) => LETTER_NAMES[ch] || TL.NUMBER_WORDS[+ch];
+
+    // ---------- Modes : lettres, chiffres, prénom ----------
+    const nameLetters = Jeux.NAME.normalize("NFD").replace(/[̀-ͯ]/g, "").toUpperCase().replace(/[^A-Z]/g, "").split("");
+    const MODES = [
+      ["abc", "🔤 Les lettres", Object.keys(TL.LETTERS)],
+      ["123", "🔢 Les chiffres", "0123456789".split("")],
+    ];
+    if (nameLetters.length) MODES.push(["nom", `✨ ${Jeux.NAME}`, nameLetters]);
+    let mode = localStorage.getItem("jeux.tracer.mode") || "abc";
+    if (!MODES.some((m) => m[0] === mode)) mode = "abc";
+    let index = 0;
+    const doneSet = new Set(JSON.parse(localStorage.getItem("jeux.tracer.done") || "[]"));
+    let glyphsDone = 0;
+
+    const modesEl = document.getElementById("modes");
+    MODES.forEach(([id, label]) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      b.onclick = () => { mode = id; index = 0; localStorage.setItem("jeux.tracer.mode", id); sounds.click(); renderModes(); load(); };
+      b.dataset.id = id;
+      modesEl.appendChild(b);
+    });
+    function renderModes() { [...modesEl.children].forEach((b) => b.classList.toggle("sel", b.dataset.id === mode)); }
+    const list = () => MODES.find((m) => m[0] === mode)[2];
+
+    function renderStrip() {
+      strip.innerHTML = "";
+      list().forEach((ch, i) => {
+        const b = document.createElement("button");
+        b.textContent = ch;
+        b.className = (i === index ? "sel" : "") + (doneSet.has(ch) ? " done" : "");
+        b.onclick = () => { index = i; sounds.click(); load(); };
+        strip.appendChild(b);
+      });
+      strip.children[index]?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+    }
+
+    // ---------- Taille du papier ----------
+    let S = 3; // pixels par unité
+    function resize() {
+      const main = document.getElementById("main").getBoundingClientRect();
+      const portrait = matchMedia("(orientation: portrait)").matches;
+      const availW = portrait ? main.width - 24 : main.width - 220;
+      const availH = portrait ? main.height - 70 : main.height - 10;
+      S = Math.max(1.6, Math.min(availW / TL.W, availH / TL.H, 5));
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = TL.W * S * dpr; canvas.height = TL.H * S * dpr;
+      canvas.style.width = TL.W * S + "px"; canvas.style.height = TL.H * S + "px";
+      ctx.setTransform(dpr * S, 0, 0, dpr * S, 0, 0);
+      draw();
+    }
+    new ResizeObserver(resize).observe(document.getElementById("main"));
+
+    // ---------- Lettre en cours ----------
+    let ch, strokes, traces, current, finished = false;
+    function load() {
+      ch = list()[index];
+      strokes = TL.glyph(ch);
+      traces = strokes.map((pts) => TL.newTrace(pts));
+      current = 0;
+      finished = false;
+      renderStrip();
+      wordEl.innerHTML = "";
+      draw();
+      const isDigit = /\d/.test(ch);
+      say(isDigit ? `Écris le chiffre ${spokenName(ch)}. Commence au point vert !` : `Écris la lettre ${spokenName(ch)}. Commence au point vert !`);
+    }
+
+    // ---------- Dessin ----------
+    const COLORS = ["#ff6b6b", "#4dabf7", "#51cf66", "#fcc419", "#cc5de8"];
+    function path(pts, upto = pts.length - 1) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i <= upto; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    }
+    function draw(demoPoint = null) {
+      if (!strokes) return;
+      ctx.clearRect(0, 0, TL.W, TL.H);
+      // lignes du cahier
+      ctx.strokeStyle = "#e7f5ff"; ctx.lineWidth = 0.8;
+      for (const y of [10, 60, 110]) { ctx.beginPath(); ctx.moveTo(2, y); ctx.lineTo(TL.W - 2, y); ctx.stroke(); }
+      ctx.lineCap = ctx.lineJoin = "round";
+      // le chemin à suivre (gris clair)
+      strokes.forEach((pts, i) => {
+        ctx.strokeStyle = i === current && !finished ? "#dee2e6" : "#f1f3f5";
+        ctx.lineWidth = 15;
+        path(pts); ctx.stroke();
+      });
+      // ligne pointillée au milieu du trait en cours
+      if (!finished) {
+        ctx.setLineDash([2, 3]); ctx.strokeStyle = "#adb5bd"; ctx.lineWidth = 1.2;
+        path(strokes[current]); ctx.stroke(); ctx.setLineDash([]);
+      }
+      // ce qui est déjà tracé (en couleur)
+      traces.forEach((tr, i) => {
+        if (tr.progress <= 0) return;
+        ctx.strokeStyle = COLORS[i % COLORS.length]; ctx.lineWidth = 11;
+        path(tr.points, tr.progress); ctx.stroke();
+      });
+      if (!finished) {
+        const tr = traces[current];
+        const p = tr.points[tr.progress];
+        // flèche qui montre le sens
+        const q = tr.points[Math.min(tr.points.length - 1, tr.progress + 5)];
+        const ang = Math.atan2(q[1] - p[1], q[0] - p[0]);
+        ctx.save();
+        ctx.translate(p[0] + Math.cos(ang) * 12, p[1] + Math.sin(ang) * 12);
+        ctx.rotate(ang);
+        ctx.fillStyle = "#2b8a3e";
+        ctx.beginPath(); ctx.moveTo(5, 0); ctx.lineTo(-3, -4.5); ctx.lineTo(-3, 4.5); ctx.closePath(); ctx.fill();
+        ctx.restore();
+        // point vert de départ, avec le numéro du trait
+        ctx.fillStyle = "#40c057";
+        ctx.beginPath(); ctx.arc(p[0], p[1], 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.font = "bold 7px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(String(current + 1), p[0], p[1] + 0.5);
+      }
+      if (demoPoint) {
+        ctx.fillStyle = "#fa5252";
+        ctx.beginPath(); ctx.arc(demoPoint[0], demoPoint[1], 5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // ---------- Le doigt ----------
+    let tracing = false, offPath = 0, lastHint = 0;
+    function toUnits(e) {
+      const r = canvas.getBoundingClientRect();
+      return [((e.clientX - r.left) / r.width) * TL.W, ((e.clientY - r.top) / r.height) * TL.H];
+    }
+    function hint(text) {
+      const now = performance.now();
+      if (now - lastHint < 3500) return;
+      lastHint = now;
+      say(text);
+    }
+    canvas.addEventListener("pointerdown", (e) => {
+      if (finished || demoing) return;
+      e.preventDefault();
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+      const [x, y] = toUnits(e);
+      const tr = traces[current];
+      TL.touchStart(tr);
+      if (!TL.canStartAt(tr, x, y)) { tracing = false; sounds.tone(300, 0.08, "sine", 0.12); hint("Commence au point vert !"); return; }
+      tracing = true; offPath = 0;
+      TL.feed(tr, x, y);
+      draw();
+    });
+    canvas.addEventListener("pointermove", (e) => {
+      if (!tracing || finished) return;
+      const [x, y] = toUnits(e);
+      const tr = traces[current];
+      const res = TL.feed(tr, x, y);
+      if (!res.near) { offPath++; if (offPath > 12) hint("Reste sur le chemin gris !"); }
+      else offPath = 0;
+      if (res.advanced && tr.progress % 8 === 0) sounds.tone(500 + tr.progress * 6, 0.04, "sine", 0.06);
+      if (tr.done) strokeDone();
+      draw();
+    });
+    const up = () => { tracing = false; };
+    canvas.addEventListener("pointerup", up);
+    canvas.addEventListener("pointercancel", up);
+
+    function strokeDone() {
+      tracing = false;
+      sounds.step(current);
+      if (current < strokes.length - 1) {
+        current++;
+        if (strokes.length > 1) say(`Bravo ! Maintenant, le trait numéro ${current + 1}.`);
+      } else finishGlyph();
+    }
+
+    function finishGlyph() {
+      finished = true;
+      doneSet.add(ch);
+      localStorage.setItem("jeux.tracer.done", JSON.stringify([...doneSet]));
+      glyphsDone++;
+      sounds.success();
+      confetti(25, ["⭐", "✏️", "✨"]);
+      if (glyphsDone % 3 === 0) Jeux.addStars(1);
+      document.getElementById("stars").textContent = "⭐".repeat(glyphsDone % 10 || 10);
+      if (/\d/.test(ch)) {
+        const n = +ch;
+        wordEl.innerHTML = `<span>${"🍎".repeat(n) || "0️⃣"}</span>`;
+        bravo(`Tu as écrit le chiffre ${spokenName(ch)} !`);
+      } else {
+        const [w, e] = TL.WORDS[ch];
+        wordEl.innerHTML = `<span>${e}</span>${ch} comme ${w}`;
+        bravo(`${spokenName(ch)}, comme ${w} !`);
+      }
+      renderStrip();
+      setTimeout(() => { index = (index + 1) % list().length; load(); }, 3200);
+    }
+
+    // ---------- Démonstration ----------
+    let demoing = false;
+    document.getElementById("demo").onclick = () => {
+      if (finished || demoing) return;
+      demoing = true;
+      sounds.click();
+      say("Regarde bien le point rouge.");
+      const pts = traces[current].points.slice(traces[current].progress);
+      let i = 0;
+      const step = () => {
+        if (i >= pts.length) { demoing = false; draw(); return; }
+        draw(pts[i]);
+        i += 1;
+        setTimeout(step, 28);
+      };
+      setTimeout(step, 500);
+    };
+    document.getElementById("clear").onclick = () => { if (!demoing) { sounds.pop(); load(); } };
+
+    renderModes();
+    resize();
+    load();
+  </script>
+</body>
+</html>

@@ -116,6 +116,11 @@
     .card .emoji { font-size: clamp(46px, 12vw, 80px); line-height: 1; filter: drop-shadow(0 4px 0 rgba(0,0,0,0.12)); }
     .card .name { margin-top: 8px; font-size: clamp(15px, 3.4vw, 22px); font-weight: bold; text-align: center; line-height: 1.1; }
     .card .age { position: absolute; bottom: 8px; right: 10px; font-size: 12px; background: rgba(255,255,255,0.75); border-radius: 999px; padding: 2px 8px; }
+    .ribbon {
+      position: absolute; top: 12px; right: -30px; transform: rotate(35deg); z-index: 2;
+      background: #ef476f; color: #fff; font-size: 11px; font-weight: bold; letter-spacing: 1px;
+      padding: 3px 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
     @media (hover: hover) { .card:hover { transform: translateY(-6px) rotate(-1.5deg); } }
     /* Téléphone : on laisse la place aux boutons du haut et on agrandit l'aventure */
     @media (max-width: 600px) {
@@ -368,7 +373,7 @@
       a.href = `games/${g.id}/index.html`;
       a.style.background = g.color;
       a.style.animationDelay = Math.min(i, 12) * 0.04 + "s";
-      a.innerHTML = `<span class="emoji">${g.emoji}</span><span class="name"></span><span class="age">${P.ageLabel(g)}</span>`;
+      a.innerHTML = `${g.isNew ? '<span class="ribbon">NOUVEAU</span>' : ""}<span class="emoji">${g.emoji}</span><span class="name"></span><span class="age">${P.ageLabel(g)}</span>`;
       a.querySelector(".name").textContent = gameTitle(g);
       a.addEventListener("click", (e) => openGame(e, g, a.href));
       return a;

@@ -21,9 +21,12 @@
 
   const GAMES = [
     // Lire
+    { id: "tracer", isNew: true, title: "J'écris", emoji: "✍️", skill: "lire", ages: [3, 7], color: "#d0ebff" },
+    { id: "syllabes", isNew: true, title: "Les syllabes magiques", emoji: "🪄", skill: "lire", ages: [5, 8], color: "#eebefa" },
     { id: "premiere-lettre", title: "La Première Lettre", emoji: "🅰️", skill: "lire", ages: [4, 7], color: "#ffadad" },
     { id: "lettres", title: "Les Lettres", titleWithName: "Les lettres de {prenom}", emoji: "🔤", skill: "lire", ages: [4, 7], color: "#a0c4ff" },
     // Compter
+    { id: "boulangerie", isNew: true, title: "La Boulangerie des nombres", emoji: "🥐", skill: "compter", ages: [4, 8], color: "#ffe8cc" },
     { id: "compter", title: "Je compte", emoji: "🔢", skill: "compter", ages: [3, 5], color: "#ffd166" },
     { id: "tours", title: "La Tour des Nombres", emoji: "🧱", skill: "compter", ages: [4, 7], color: "#ffb4a2" },
     { id: "calcul", title: "Les Calculs malins", emoji: "➕", skill: "compter", ages: [5, 8], color: "#9bf6ff" },

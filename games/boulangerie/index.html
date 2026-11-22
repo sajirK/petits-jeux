@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>La Boulangerie des nombres</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    body { background: linear-gradient(180deg, #fff4e6 0 60%, #e8c39e 60%); }
+    /* auvent à rayures */
+    body::before { content: ""; position: fixed; left: 0; right: 0; top: 0; height: 20px; background: repeating-linear-gradient(90deg, #e8590c 0 24px, #fff 24px 48px); }
+    #client { display: flex; align-items: center; gap: 12px; margin: 4px 0 10px; }
+    #face { font-size: clamp(54px, 13vmin, 90px); line-height: 1; }
+    #face.arrive { animation: arrive 0.6s ease-out; }
+    @keyframes arrive { from { transform: translateX(-50vw); } }
+    #bubble { background: #fff; border-radius: 22px; padding: 8px 16px; box-shadow: var(--shadow); cursor: pointer; text-align: center; }
+    #want { font-size: clamp(38px, 10vmin, 64px); font-weight: bold; line-height: 1.1; }
+    #wantText { font-size: clamp(14px, 3.4vmin, 19px); opacity: 0.75; }
+    #boxes { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
+    .box {
+      background: #a0522d; border-radius: 16px; padding: 8px; box-shadow: 0 6px 0 rgba(0,0,0,0.18);
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px;
+    }
+    .cell {
+      width: clamp(38px, 9.5vmin, 60px); aspect-ratio: 1; border-radius: 10px; background: #f8e1c4;
+      display: grid; place-items: center; font-size: clamp(24px, 6.4vmin, 40px);
+    }
+    .cell.full { cursor: pointer; animation: bounce-in 0.25s; }
+    #count { font-size: clamp(17px, 4vmin, 24px); min-height: 1.4em; margin-bottom: 8px; text-align: center; }
+    #count b { font-size: 1.5em; }
+    #controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+    .act { border-radius: 20px; padding: 10px 18px; font-size: clamp(20px, 4.6vmin, 28px); box-shadow: 0 6px 0 rgba(0,0,0,0.15); background: #fff; }
+    .act:active { transform: scale(0.94) translateY(3px); }
+    #addTen { background: #ffd8a8; }
+    #give { background: #40c057; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+    /* argent */
+    #pay { display: none; flex-direction: column; align-items: center; gap: 10px; }
+    #tray { min-height: clamp(70px, 15vmin, 100px); min-width: min(90vw, 520px); background: #e9ecef; border-radius: 20px; padding: 8px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; border: 4px dashed #ced4da; }
+    #wallet { display: flex; gap: 14px; align-items: center; }
+    .coin {
+      width: clamp(60px, 14vmin, 84px); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
+      font-weight: bold; font-size: clamp(18px, 4.4vmin, 26px); color: #5c3c00; box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+    }
+    .coin.c1 { background: radial-gradient(circle, #dee2e6 0 52%, #e0b84c 54%); }
+    .coin.c2 { background: radial-gradient(circle, #e0b84c 0 52%, #dee2e6 54%); }
+    .note5 { width: clamp(96px, 22vmin, 130px); height: clamp(54px, 12vmin, 72px); border-radius: 10px; background: linear-gradient(135deg, #b2c9b0, #8fb08c); display: grid; place-items: center; font-weight: bold; font-size: clamp(20px, 4.6vmin, 28px); color: #2b4a2a; box-shadow: 0 5px 0 rgba(0,0,0,0.2); }
+    #tray .coin, #tray .note5 { animation: bounce-in 0.25s; cursor: pointer; }
+    body.paymode #count, body.paymode #boxes, body.paymode #controls { display: none; }
+    body.paymode #pay { display: flex; }
+    #stars { font-size: clamp(20px, 4.5vmin, 28px); min-height: 1.3em; margin-top: 10px; }
+    /* tout petit téléphone : cases plus petites */
+    @media (max-width: 400px) {
+      .cell { width: 30px; font-size: 20px; border-radius: 8px; }
+      .box { gap: 4px; padding: 6px; }
+      #face { font-size: 48px; }
+      #want { font-size: 34px; }
+      .act { padding: 8px 12px; font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="brain">
+    <h1 class="game-title">La Boulangerie des nombres</h1>
+    <div class="brain-bar" id="bar"></div>
+    <div id="client"><div id="face"></div><div id="bubble" title="Écouter"><div id="want"></div><div id="wantText"></div></div></div>
+    <div id="count"></div>
+    <div id="boxes"></div>
+    <div id="controls">
+      <button class="act" id="addOne"></button>
+      <button class="act" id="addTen">📦 + 10</button>
+      <button class="act" id="give">🛍️ Donner</button>
+    </div>
+    <div id="pay">
+      <div>Touche les pièces pour payer 👇</div>
+      <div id="tray"></div>
+      <div id="paid"></div>
+      <div id="wallet"></div>
+      <button class="act" id="payBtn" style="background:#40c057;color:#fff">💶 Payer</button>
+    </div>
+    <div id="stars"></div>
+  </div>
+
+  <script src="../../js/common.js"></script>
+  <script src="logic.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, confetti, pick } = Jeux;
+    const BL = BoulangerieLogic;
+    const prog = Jeux.progress("boulangerie", BL.MAX_LEVEL);
+    const badge = Jeux.levelBadge(prog, () => next());
+    document.getElementById("bar").appendChild(badge);
+    const boxesEl = document.getElementById("boxes");
+    const countEl = document.getElementById("count");
+    let q, have = 0, coins = [], busy = false, wrongs = 0, stars = 0;
+
+    document.getElementById("bubble").onclick = () => say(q.speech);
+
+    function next() {
+      busy = false; wrongs = 0; have = 0; coins = [];
+      q = BL.generate(prog.level, Math.random, q && (q.n || q.price));
+      const face = document.getElementById("face");
+      face.textContent = q.client;
+      face.classList.remove("arrive"); void face.offsetWidth; face.classList.add("arrive");
+      document.body.classList.toggle("paymode", q.mode === "pay");
+      if (q.mode === "pay") {
+        document.getElementById("want").textContent = `${q.price} €`;
+        document.getElementById("wantText").textContent = `${q.pastry.e} Ça fait ${q.price} euros`;
+        buildWallet();
+        renderPay();
+      } else {
+        document.getElementById("want").textContent = `${q.n} ${q.pastry.e}`;
+        document.getElementById("wantText").textContent = BL.count(q.n, q.pastry);
+        document.getElementById("addOne").textContent = `➕ ${q.pastry.e}`;
+        document.getElementById("addTen").style.display = q.tens ? "" : "none";
+        renderBoxes();
+      }
+      setTimeout(() => say(q.speech), 500);
+    }
+
+    // ---------- Compter avec des boîtes de 10 ----------
+    function renderBoxes() {
+      const nBoxes = q.tens || have > 10 ? 2 : 1;
+      boxesEl.innerHTML = "";
+      for (let b = 0; b < nBoxes; b++) {
+        const box = document.createElement("div");
+        box.className = "box";
+        for (let i = 0; i < 10; i++) {
+          const k = b * 10 + i;
+          const c = document.createElement("div");
+          c.className = "cell" + (k < have ? " full" : "");
+          if (k < have) { c.textContent = q.pastry.e; c.onclick = () => remove(); }
+          box.appendChild(c);
+        }
+        boxesEl.appendChild(box);
+      }
+      const tens = Math.floor(have / 10), ones = have % 10;
+      countEl.innerHTML = have === 0 ? "Touche ➕ pour mettre dans la boîte" :
+        `<b>${have}</b>` + (have >= 10 ? ` = ${tens} boîte${tens > 1 ? "s" : ""} de 10${ones ? ` et ${ones}` : ""}` : "");
+    }
+    function add(n) {
+      if (busy) return;
+      const max = q.tens ? 20 : 10;
+      if (have >= max) { say("Les boîtes sont pleines !"); sounds.wrong(); return; }
+      if (n === 10) {
+        if (have % 10 !== 0 || have + 10 > max) { say("Une boîte de 10, c'est quand la boîte est vide !"); sounds.wrong(); return; }
+        have += 10;
+        sounds.success();
+        say(`Une boîte de 10 ! Ça fait ${have}.`);
+      } else {
+        have++;
+        sounds.step(Math.min(11, (have - 1) % 12));
+        say(String(have), { rate: 1 });
+      }
+      renderBoxes();
+    }
+    function remove() {
+      if (busy || have <= 0) return;
+      have--;
+      sounds.pop();
+      renderBoxes();
+    }
+    document.getElementById("addOne").onclick = () => add(1);
+    document.getElementById("addTen").onclick = () => add(10);
+    document.getElementById("give").onclick = () => {
+      if (busy) return;
+      const fb = BL.feedback(q.n, have, q.pastry);
+      if (fb.ok) {
+        const extra = q.n >= 10 ? " " + BL.decompose(q.n) : "";
+        success(fb.text + extra);
+      } else {
+        wrongs++;
+        sounds.wrong();
+        if (prog.fail() === "down") badge.update();
+        say(fb.text);
+      }
+    };
+
+    // ---------- Payer ----------
+    function coinEl(v) {
+      const d = document.createElement("button");
+      if (v === 5) { d.className = "note5"; d.textContent = "5 €"; }
+      else { d.className = `coin c${v}`; d.textContent = `${v} €`; }
+      return d;
+    }
+    function buildWallet() {
+      const w = document.getElementById("wallet");
+      w.innerHTML = "";
+      q.coins.forEach((v) => {
+        const c = coinEl(v);
+        c.onclick = () => {
+          if (busy) return;
+          if (BL.sum(coins) + v > 30) return;
+          coins.push(v);
+          sounds.tone(1200, 0.06, "sine", 0.15);
+          sounds.tone(1600, 0.05, "sine", 0.1, 0.05);
+          say(`${v} euro${v > 1 ? "s" : ""}`);
+          renderPay();
+        };
+        w.appendChild(c);
+      });
+    }
+    function renderPay() {
+      const tray = document.getElementById("tray");
+      tray.innerHTML = "";
+      coins.forEach((v, i) => {
+        const c = coinEl(v);
+        c.onclick = () => { if (busy) return; coins.splice(i, 1); sounds.pop(); renderPay(); };
+        tray.appendChild(c);
+      });
+      const s = BL.sum(coins);
+      document.getElementById("paid").textContent = s ? `Tu donnes ${s} €` : "";
+    }
+    document.getElementById("payBtn").onclick = () => {
+      if (busy) return;
+      const fb = BL.payFeedback(q.price, coins);
+      if (fb.ok) success(fb.text);
+      else { wrongs++; sounds.wrong(); if (prog.fail() === "down") badge.update(); say(fb.text); }
+    };
+
+    // ---------- Réussite ----------
+    function success(text) {
+      busy = true;
+      sounds.win();
+      confetti(35, [q.pastry.e, "⭐", "🪙"]);
+      document.getElementById("face").textContent = q.client + "😋";
+      say(`${text} Bravo ${Jeux.NAME} !`);
+      if (wrongs === 0) {
+        stars++;
+        document.getElementById("stars").textContent = "⭐".repeat(stars % 10 || 10);
+        if (stars % 3 === 0) Jeux.addStars(1);
+      }
+      const lv = wrongs === 0 ? prog.success() : null;
+      badge.update();
+      const msgs = { 2: "Niveau 2 ! Jusqu'à 10 !", 3: "Niveau 3 ! Les grands nombres, avec des boîtes de 10 !", 4: "Niveau 4 ! Maintenant, on paie avec des pièces !", 5: "Niveau 5 ! Avec des billets de 5 euros !" };
+      if (lv === "up") setTimeout(() => { sounds.win(); say(msgs[prog.level]); }, 4200);
+      setTimeout(next, lv === "up" ? 7500 : 4800);
+    }
+
+    next();
+  </script>
+</body>
+</html>

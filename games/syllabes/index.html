@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Les syllabes magiques</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    body { background: linear-gradient(160deg, #f3d9fa, #d0ebff); }
+    #question { font-size: clamp(17px, 4vmin, 24px); text-align: center; margin-bottom: 6px; }
+    #picture { font-size: clamp(90px, 24vmin, 160px); line-height: 1.05; cursor: pointer; animation: bounce-in 0.45s; }
+    #picture.magic { animation: magic 1.2s ease-in-out; }
+    @keyframes magic { 0% { transform: scale(1); } 30% { transform: scale(1.35) rotate(-8deg); filter: drop-shadow(0 0 30px #fff); } 60% { transform: scale(1.2) rotate(8deg); } 100% { transform: scale(1); } }
+    #slots { display: flex; gap: 8px; margin: 10px 0 18px; flex-wrap: wrap; justify-content: center; }
+    .slot {
+      min-width: clamp(70px, 17vmin, 110px); height: clamp(64px, 15vmin, 96px); padding: 0 10px; border-radius: 20px;
+      border: 4px dashed rgba(0,0,0,0.18); background: rgba(255,255,255,0.5);
+      display: grid; place-items: center; font-size: clamp(30px, 8vmin, 52px); font-weight: bold; letter-spacing: 2px;
+    }
+    .slot.next { border-color: #7048e8; animation: pulse 1.1s infinite; }
+    .slot.full { border: 4px solid transparent; color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,0.2); animation: bounce-in 0.35s; }
+    @keyframes pulse { 50% { transform: scale(1.05); } }
+    #tiles { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 760px; }
+    .tile {
+      min-width: clamp(76px, 18vmin, 120px); height: clamp(70px, 16vmin, 104px); padding: 0 12px; border-radius: 22px;
+      color: #fff; font-size: clamp(30px, 8vmin, 52px); font-weight: bold; letter-spacing: 2px;
+      text-shadow: 0 3px 0 rgba(0,0,0,0.2); box-shadow: 0 7px 0 rgba(0,0,0,0.18); transition: transform 0.1s, opacity 0.3s;
+    }
+    .tile:active { transform: scale(0.92) translateY(4px); }
+    .tile.used { opacity: 0; pointer-events: none; }
+    /* niveau lecture */
+    #readWord { display: none; gap: 4px; font-size: clamp(40px, 11vmin, 76px); font-weight: bold; letter-spacing: 3px; margin: 10px 0 16px; }
+    #readWord span { padding: 2px 6px; border-radius: 12px; cursor: pointer; }
+    #choices { display: none; gap: 14px; }
+    .choice { font-size: clamp(60px, 16vmin, 110px); background: #fff; border-radius: 26px; padding: 6px 14px; box-shadow: 0 7px 0 rgba(0,0,0,0.12); }
+    .choice.good { background: #b7efc5; animation: bounce-in 0.4s; }
+    .choice.bad { background: #ffe3e3; }
+    #stars { font-size: clamp(20px, 4.5vmin, 28px); min-height: 1.3em; margin-top: 14px; }
+    body.read #picture, body.read #slots, body.read #tiles { display: none; }
+    body.read #readWord, body.read #choices { display: flex; }
+  </style>
+</head>
+<body>
+  <div class="brain">
+    <h1 class="game-title">Les syllabes magiques</h1>
+    <div class="brain-bar" id="bar"></div>
+    <div id="question"></div>
+    <div id="picture" title="Écouter le mot"></div>
+    <div id="slots"></div>
+    <div id="tiles"></div>
+    <div id="readWord"></div>
+    <div id="choices"></div>
+    <div id="stars"></div>
+  </div>
+
+  <script src="../../js/common.js"></script>
+  <script src="logic.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, bravo, confetti } = Jeux;
+    const SL = SyllabesLogic;
+    const prog = Jeux.progress("syllabes", 4);
+    const badge = Jeux.levelBadge(prog, () => next());
+    document.getElementById("bar").appendChild(badge);
+    const COLORS = ["#f76707", "#7048e8", "#1c7ed6", "#37b24d", "#e64980"];
+    const pic = document.getElementById("picture");
+    const slotsEl = document.getElementById("slots");
+    const tilesEl = document.getElementById("tiles");
+    const starsEl = document.getElementById("stars");
+    const question = document.getElementById("question");
+    let q, placed = 0, busy = false, wrongs = 0, stars = 0;
+
+    pic.onclick = () => say(q.word.toLowerCase());
+
+    function next() {
+      busy = false; placed = 0; wrongs = 0;
+      q = SL.generate(prog.level, Math.random, q && q.word);
+      document.body.classList.toggle("read", q.mode === "read");
+      if (q.mode === "read") return showRead();
+      question.textContent = "Construis le mot avec les syllabes !";
+      pic.textContent = q.emoji;
+      pic.className = "";
+      void pic.offsetWidth;
+      slotsEl.innerHTML = "";
+      q.syllables.forEach((s, i) => {
+        const d = document.createElement("div");
+        d.className = "slot" + (i === 0 ? " next" : "");
+        slotsEl.appendChild(d);
+      });
+      tilesEl.innerHTML = "";
+      q.tiles.forEach((t, i) => {
+        const b = document.createElement("button");
+        b.className = "tile";
+        b.textContent = t.text;
+        b.style.background = COLORS[i % COLORS.length];
+        b.onclick = () => tap(b, t);
+        tilesEl.appendChild(b);
+      });
+      setTimeout(() => say(`${q.word.toLowerCase()}. Construis le mot ${q.word.toLowerCase()} !`), 400);
+    }
+
+    function tap(btn, t) {
+      if (busy) return;
+      say(t.say, { rate: 0.85 });
+      if (SL.isNext(q, placed, t)) {
+        const slot = slotsEl.children[placed];
+        slot.textContent = t.text;
+        slot.style.background = btn.style.background;
+        slot.classList.remove("next");
+        slot.classList.add("full");
+        btn.classList.add("used");
+        sounds.step(placed);
+        placed++;
+        if (placed < q.syllables.length) slotsEl.children[placed].classList.add("next");
+        else complete();
+      } else {
+        wrongs++;
+        btn.classList.remove("shake"); void btn.offsetWidth; btn.classList.add("shake");
+        sounds.wrong();
+        // indice : on redit le mot en détachant les syllabes
+        setTimeout(() => say(wrongs >= 2 ? `Écoute bien : ${q.syllables.map((s) => s.say).join("... ")}. Il faut « ${q.syllables[placed].say} ».` : `Écoute bien : ${q.syllables.map((s) => s.say).join("... ")}`, { rate: 0.85 }), 700);
+      }
+    }
+
+    function complete() {
+      busy = true;
+      pic.classList.add("magic");
+      sounds.win();
+      confetti(30, [q.emoji, "✨", "⭐"]);
+      win();
+      setTimeout(() => say(SL.blendSpeech(q), { rate: 0.8 }), 400);
+    }
+
+    function win() {
+      if (wrongs === 0) {
+        stars++;
+        starsEl.textContent = "⭐".repeat(stars % 10 || 10);
+        if (stars % 3 === 0) Jeux.addStars(1);
+      }
+      const lv = wrongs === 0 ? prog.success() : null;
+      badge.update();
+      if (lv === "up") setTimeout(() => { sounds.win(); say(prog.level === 4 ? `Niveau 4 ! Maintenant, c'est toi qui lis les mots, ${Jeux.NAME} !` : `Niveau ${prog.level} ! Des mots plus longs !`); }, 3500);
+      setTimeout(next, lv === "up" ? 7000 : 4200);
+    }
+
+    // ---------- Niveau 4 : je lis le mot ----------
+    function showRead() {
+      question.textContent = "Lis le mot, puis touche la bonne image ! (touche une syllabe pour l'entendre)";
+      const rw = document.getElementById("readWord");
+      rw.innerHTML = "";
+      q.syllables.forEach((s, i) => {
+        const sp = document.createElement("span");
+        sp.textContent = s.text;
+        sp.style.color = COLORS[i % COLORS.length];
+        sp.onclick = () => say(s.say, { rate: 0.85 });
+        rw.appendChild(sp);
+      });
+      const ch = document.getElementById("choices");
+      ch.innerHTML = "";
+      q.options.forEach((o) => {
+        const b = document.createElement("button");
+        b.className = "choice";
+        b.textContent = o.emoji;
+        b.onclick = () => {
+          if (busy) return;
+          if (o.word === q.word) {
+            busy = true;
+            b.classList.add("good");
+            sounds.win();
+            confetti(30, [q.emoji, "✨"]);
+            say(`Oui ! ${q.word.toLowerCase()} ! Tu sais lire !`);
+            win();
+          } else {
+            wrongs++;
+            b.classList.add("bad", "shake");
+            sounds.wrong();
+            say(`Ça, c'est ${o.word.toLowerCase()}. Relis bien les syllabes !`);
+          }
+        };
+        ch.appendChild(b);
+      });
+      setTimeout(() => say("Lis le mot, puis touche la bonne image !"), 400);
+    }
+
+    next();
+  </script>
+</body>
+</html>

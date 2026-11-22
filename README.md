@@ -28,6 +28,8 @@ Les jeux sont rangés par **compétence** et par **âge** (3 à 8 ans). L’enfa
 
 | Jeu | Âge | Dossier |
 |---|---|---|
+| ✍️ J'écris | 3-7 ans | `games/tracer` |
+| 🪄 Les syllabes magiques | 5 ans et + | `games/syllabes` |
 | 🅰️ La Première Lettre | 4-7 ans | `games/premiere-lettre` |
 | 🔤 Les Lettres | 4-7 ans | `games/lettres` |
 
@@ -35,6 +37,7 @@ Les jeux sont rangés par **compétence** et par **âge** (3 à 8 ans). L’enfa
 
 | Jeu | Âge | Dossier |
 |---|---|---|
+| 🥐 La Boulangerie des nombres | 4 ans et + | `games/boulangerie` |
 | 🔢 Je compte | 3-5 ans | `games/compter` |
 | 🧱 La Tour des Nombres | 4-7 ans | `games/tours` |
 | ➕ Les Calculs malins | 5 ans et + | `games/calcul` |
