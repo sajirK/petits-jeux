@@ -117,7 +117,7 @@
   // À chaque nouveau toucher du doigt
   function touchStart(trace) { trace.last = null; }
 
-  function feed(trace, x, y) {
+  function feed(trace, x, y, tol = TOLERANCE) {
     if (trace.done) return { near: true, advanced: false };
     const pts = trace.points;
     // on cherche le point du trait le plus proche du doigt, autour de là où on en est
@@ -126,12 +126,12 @@
     let nearest = -1, bestD = Infinity;
     for (let i = from; i <= to; i++) {
       const d = Math.hypot(pts[i][0] - x, pts[i][1] - y);
-      if (d <= TOLERANCE && d < bestD) { nearest = i; bestD = d; }
+      if (d <= tol && d < bestD) { nearest = i; bestD = d; }
     }
     if (nearest < 0) {
       // le doigt est-il quand même sur une autre partie du trait ?
       let near = false;
-      for (const p of pts) if (Math.hypot(p[0] - x, p[1] - y) <= TOLERANCE) { near = true; break; }
+      for (const p of pts) if (Math.hypot(p[0] - x, p[1] - y) <= tol) { near = true; break; }
       return { near, advanced: false };
     }
     let advanced = false;
@@ -148,10 +148,29 @@
     return { near: true, advanced, dist: bestD };
   }
   // Le doigt doit commencer près du début du trait (ou là où il s'était arrêté)
-  function canStartAt(trace, x, y) {
+  function canStartAt(trace, x, y, tol = TOLERANCE) {
     const p = trace.points[trace.progress];
-    return Math.hypot(p[0] - x, p[1] - y) <= TOLERANCE * 1.6;
+    return Math.hypot(p[0] - x, p[1] - y) <= tol * 1.6;
   }
 
-  return { W, H, TOLERANCE, LETTERS, DIGITS, WORDS, NUMBER_WORDS, glyph, newTrace, touchStart, feed, canStartAt, stroke, L, A, Q };
+  // V2 : 3 niveaux. tol : tolérance autour du trait ; width : épaisseur du chemin gris
+  // Facile : lettres en bâtons simples, chemin large ; Moyen : toutes les lettres ; Difficile : lettres et chiffres, chemin fin
+  const EASY = ["I", "L", "T", "H", "E", "F", "O", "C", "V", "U"];
+  const LEVELS = {
+    1: { rounds: 4, set: EASY, tol: 18, width: 20 },
+    2: { rounds: 5, set: Object.keys(LETTERS), tol: 13, width: 15 },
+    3: { rounds: 5, set: [...Object.keys(LETTERS), ..."0123456789"], tol: 10, width: 12 },
+  };
+  // Les lettres d'une partie : d'abord l'initiale du prénom de l'enfant (si elle est dans la liste), puis au hasard, sans doublon
+  function pickGlyphs(level, name = "", rng = Math.random) {
+    const cfg = LEVELS[level];
+    const initial = String(name).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z]/g, "").charAt(0);
+    const pool = cfg.set.slice();
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    const out = cfg.set.includes(initial) ? [initial] : [];
+    for (const g of pool) { if (out.length >= cfg.rounds) break; if (!out.includes(g)) out.push(g); }
+    return out;
+  }
+
+  return { LEVELS, EASY, pickGlyphs, W, H, TOLERANCE, LETTERS, DIGITS, WORDS, NUMBER_WORDS, glyph, newTrace, touchStart, feed, canStartAt, stroke, L, A, Q };
 });

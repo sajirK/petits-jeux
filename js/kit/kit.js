@@ -411,7 +411,7 @@
     addEventListener("pageshow", (e) => { if (e.persisted) startSession(); });
     // accès pour les tests automatiques : la bonne réponse attendue et l'état de la partie
     window.__kit = {
-      target: () => (typeof hintTarget === "function" ? hintTarget() : hintTarget),
+      target: () => (typeof hintTarget === "function" ? hintTarget() : hintTarget) || (mode === "free" && !ended ? doneBtn : null),
       state: () => ({ index, rounds, errors, ended, level, mode }),
       setLevel: (n) => { setLevel(n); startSession(); },
     };

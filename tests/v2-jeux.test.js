@@ -333,3 +333,70 @@ test("Château V2 : tout le labyrinthe est accessible, et le chemin mène aux tr
   assert.ok(TR.LEVELS[1].batSpeed > TR.LEVELS[3].batSpeed);
   assert.equal(TR.LEVELS[1].batCounts, false, "en Facile, la chauve-souris ne compte pas comme une erreur");
 });
+
+// ---------------------------------------------------------------- Lot 5
+const RO = require("../games/robot/logic.js");
+const MEL = require("../games/melodie/logic.js");
+const TC = require("../games/tracer/logic.js");
+
+test("Robot V2 : grilles par niveau, et l'aide mène toujours à la victoire", () => {
+  for (const lv of [1, 2, 3]) for (let i = 0; i < RO.LEVELS[lv].rounds; i++) for (let k = 0; k < 30; k++) {
+    const g = RO.generate(RO.gridFor(lv, i));
+    const prog = ["up"].filter(() => g.solution[0] !== "up"); // une flèche fausse au début
+    for (let s = 0; s < 40; s++) {
+      const m = RO.nextMove(g, prog);
+      if (m === "go") break;
+      if (m === "undo") prog.pop(); else prog.push(m);
+    }
+    assert.equal(RO.run(g, prog).result, "win");
+  }
+  assert.ok(RO.gridFor(1, 0) < RO.gridFor(3, 3));
+});
+
+test("Mélodie V2 : bonnes longueurs, jamais 3 notes pareilles de suite", () => {
+  for (const lv of [1, 2, 3]) {
+    const cfg = MEL.LEVELS[lv];
+    assert.equal(cfg.lengths.length, cfg.rounds);
+    for (const len of cfg.lengths) for (let k = 0; k < 100; k++) {
+      const m = MEL.melody(len, cfg.pads);
+      assert.equal(m.length, len);
+      assert.ok(m.every((n) => n >= 0 && n < cfg.pads));
+      for (let i = 2; i < m.length; i++) assert.ok(!(m[i] === m[i - 1] && m[i] === m[i - 2]));
+    }
+  }
+  assert.ok(MEL.speed(7) < MEL.speed(2) && MEL.speed(20) >= 380);
+});
+
+test("J'écris V2 : lettres du niveau, initiale du prénom en premier, tolérance qui se resserre", () => {
+  for (const lv of [1, 2, 3]) for (let k = 0; k < 30; k++) {
+    const gl = TC.pickGlyphs(lv, "Éloïse");
+    assert.equal(gl.length, TC.LEVELS[lv].rounds);
+    assert.equal(new Set(gl).size, gl.length);
+    for (const g of gl) { assert.ok(TC.LEVELS[lv].set.includes(g)); assert.ok(TC.glyph(g)); }
+    assert.equal(gl[0], "E", "l'initiale (sans accent) d'abord");
+  }
+  assert.ok(TC.pickGlyphs(1, "Zoé")[0] !== "Z" || TC.EASY.includes("Z"));
+  assert.ok(TC.LEVELS[1].tol > TC.LEVELS[2].tol && TC.LEVELS[2].tol > TC.LEVELS[3].tol);
+  // en suivant le trait avec la tolérance du niveau, on le termine
+  for (const lv of [1, 3]) {
+    const tr = TC.newTrace(TC.glyph("B")[1]);
+    TC.touchStart(tr);
+    for (const [x, y] of tr.points) TC.feed(tr, x + 2, y, TC.LEVELS[lv].tol);
+    assert.ok(tr.done);
+  }
+});
+
+test("Jeux libres : dessin, piano, respire, météo n'ont pas de niveaux, et la météo parle juste", () => {
+  for (const g of ["dessin", "piano", "respire", "meteo"]) assert.equal(require(`../games/${g}/logic.js`).FREE, true, g);
+  const MT = require("../games/meteo/logic.js");
+  const EM = require("../js/emotions.js");
+  for (const k of MT.ORDER) {
+    assert.ok(EM.EMOTIONS[k], k);
+    const m = MT.message(k);
+    assert.ok(!/ressent (le|la) /.test(m), `accord : ${m}`);
+  }
+  assert.ok(MT.needsAdult("peur", 2) && !MT.needsAdult("peur", 1) && !MT.needsAdult("joie", 2));
+  const RS = require("../games/respire/logic.js");
+  assert.ok(RS.OUT > RS.IN, "on expire plus longtemps qu'on inspire");
+  assert.equal(RS.duration(), 5 * 10600);
+});

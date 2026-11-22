@@ -48,12 +48,23 @@ Elle n'utilise plus les anciens outils V1 (`Jeux.addHomeButton`, `Jeux.progress`
   pour s'arrêter proprement quand on change de niveau ou que la partie se termine.
 - Aucune erreur JS, aucune page qui déborde (testé sur téléphone, iPad portrait et paysage, PC).
 
-## 6. Contenu juste
+## 6. Testé de bout en bout par le robot
+
+- Le jeu déclare son aide avec `round.setHintTarget(...)` : l'élément à toucher, `{ from, to }` pour un glisser,
+  `{ swipe }` / `{ auto() }` pour les jeux d'action. C'est la main 👆 pour l'enfant, et le chemin du robot de test.
+- `tests/e2e/robot.js` (dans le navigateur, depuis l'accueil) joue chaque jeu aux 3 niveaux en suivant cette aide :
+  ```js
+  const s = document.createElement("script"); s.src = "/tests/e2e/robot.js"; document.head.appendChild(s);
+  robot(["mon-jeu"]).then(console.log)   // attendu : "fin ⭐3 … erreurs=0" pour chaque niveau
+  ```
+- Un jeu qui ne finit pas avec le robot a un bug (aide fausse, niveau impossible, fin qui ne vient jamais).
+
+## 7. Contenu juste
 
 - Ce que le jeu enseigne doit être vrai (faits, orthographe, calculs, sens des lettres…), et testé.
 - Une réponse qui pourrait aussi être juste n'est jamais comptée fausse.
 - Bon français, accords (garçon/fille), voix française.
 
-## 7. Publication
+## 8. Publication
 
 - Travailler sur une branche, `npm test` doit passer, puis `npm run release -- x.y.z "note"` (version, journal, tag).

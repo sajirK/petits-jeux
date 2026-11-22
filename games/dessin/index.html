@@ -2,156 +2,101 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <title>Je dessine</title>
+  <title>Le Dessin</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    html, body { height: 100%; overflow: hidden; }
-    body { background: #fff7fb; display: flex; flex-direction: column; }
-    canvas { flex: 1; width: 100%; touch-action: none; display: block; background: #fff; }
-    #tools {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 8px;
-      padding: 10px 10px max(10px, env(safe-area-inset-bottom));
-      background: #ffe0f0;
-      box-shadow: 0 -4px 0 rgba(0,0,0,0.06);
-    }
-    .tool {
-      width: clamp(44px, 9vw, 60px);
-      height: clamp(44px, 9vw, 60px);
-      border-radius: 50%;
-      font-size: clamp(22px, 5vw, 32px);
-      background: #fff;
-      box-shadow: 0 4px 0 rgba(0,0,0,0.12);
-      display: grid;
-      place-items: center;
-      transition: transform 0.1s;
-    }
-    .tool.active { transform: scale(1.2); outline: 4px solid #3b2a4d; }
-    .sep { width: 2px; background: rgba(0,0,0,0.1); margin: 0 4px; }
+    .k-stage { padding: 0; }
+    .paint { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; }
+    .paint canvas { flex: 1; min-height: 0; width: 100%; touch-action: none; display: block; background: #fff; }
+    .tools { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 8px 8px max(8px, env(safe-area-inset-bottom)); background: #ffe0f0; box-shadow: 0 -4px 0 rgba(0,0,0,0.06); }
+    .tool { width: var(--tap-min); height: var(--tap-min); border-radius: 50%; font-size: 32px; background: #fff; box-shadow: 0 4px 0 rgba(0,0,0,0.12); display: grid; place-items: center; transition: transform 0.1s; }
+    .tool.active { transform: scale(1.15); outline: 4px solid #3b2a4d; }
   </style>
 </head>
 <body>
-  <canvas id="c"></canvas>
-  <div id="tools"></div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say } = Jeux;
-    const canvas = document.getElementById("c");
-    const ctx = canvas.getContext("2d");
-    const tools = document.getElementById("tools");
-    const COLORS = ["#ef476f", "#ff9f1c", "#ffd166", "#06d6a0", "#118ab2", "#7b2cbf", "#8d5524", "#222222"];
-    const COLOR_NAMES = ["rose", "orange", "jaune", "vert", "bleu", "violet", "marron", "noir"];
-    const STAMPS = ["⭐", "❤️", "🌸", "🐱", "🚗", "🦖"];
-    const STAMP_NAMES = ["étoile", "cœur", "fleur", "chat", "voiture", "dinosaure"];
-    let mode = { type: "color", value: COLORS[0] };
-    let rainbow = 0;
-
-    function resize() {
-      const dpr = window.devicePixelRatio || 1;
-      const r = canvas.getBoundingClientRect();
-      const old = document.createElement("canvas");
-      old.width = canvas.width; old.height = canvas.height;
-      old.getContext("2d").drawImage(canvas, 0, 0);
-      canvas.width = r.width * dpr;
-      canvas.height = r.height * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.drawImage(old, 0, 0, old.width / dpr, old.height / dpr);
-    }
-
-    function addTool(label, m, bg, accessibleName = label) {
-      const b = document.createElement("button");
-      b.className = "tool";
-      b.innerHTML = label;
-      if (accessibleName) b.setAttribute("aria-label", accessibleName);
-      if (bg) b.style.background = bg;
-      b.onclick = () => {
-        sounds.click();
-        if (m.type === "clear") {
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          say("Tout propre !");
-          return;
-        }
-        mode = m;
-        [...tools.querySelectorAll(".tool")].forEach((t) => t.classList.remove("active"));
-        b.classList.add("active");
-      };
-      tools.appendChild(b);
-      return b;
-    }
-    COLORS.forEach((c, i) => {
-      const b = addTool("", { type: "color", value: c }, c, `Crayon ${COLOR_NAMES[i]}`);
-      if (i === 0) b.classList.add("active");
-    });
-    addTool("🌈", { type: "rainbow" }, null, "Crayon arc-en-ciel");
-    const sep = document.createElement("div"); sep.className = "sep"; tools.appendChild(sep);
-    STAMPS.forEach((s, i) => addTool(s, { type: "stamp", value: s }, null, `Tampon ${STAMP_NAMES[i]}`));
-    addTool("🧽", { type: "eraser" }, null, "Gomme");
-    addTool("🗑️", { type: "clear" }, null, "Effacer le dessin");
-
-    const pointers = new Map();
-    function pos(e) {
-      const r = canvas.getBoundingClientRect();
-      return { x: e.clientX - r.left, y: e.clientY - r.top };
-    }
-    function size() { return Math.max(10, Math.min(innerWidth, innerHeight) / 40); }
-
-    canvas.addEventListener("pointerdown", (e) => {
-      canvas.setPointerCapture(e.pointerId);
-      const p = pos(e);
-      if (mode.type === "stamp") {
-        const s = size() * 4;
-        ctx.font = `${s}px serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(mode.value, p.x, p.y);
-        sounds.pop();
-        return;
+    const DL = DessinLogic;
+    function start(round) {
+      const el = Kit.ui.el;
+      const paint = el("div", "paint"), canvas = document.createElement("canvas"), tools = el("div", "tools");
+      paint.append(canvas, tools);
+      round.stage.appendChild(paint);
+      const ctx = canvas.getContext("2d");
+      let mode = { type: "color", value: DL.COLORS[0][0] }, rainbow = 0;
+      function resize() {
+        const dpr = devicePixelRatio || 1, r = canvas.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        const old = document.createElement("canvas"); old.width = canvas.width; old.height = canvas.height;
+        if (canvas.width) old.getContext("2d").drawImage(canvas, 0, 0);
+        canvas.width = r.width * dpr; canvas.height = r.height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        if (old.width) ctx.drawImage(old, 0, 0, old.width / dpr, old.height / dpr);
       }
-      pointers.set(e.pointerId, p);
-      dot(p);
+      function addTool(html, m, bg, name) {
+        const b = el("button", "tool");
+        b.innerHTML = html; b.setAttribute("aria-label", name);
+        if (bg) b.style.background = bg;
+        b.onclick = () => {
+          Jeux.sounds.click();
+          if (m.type === "clear") { ctx.clearRect(0, 0, canvas.width, canvas.height); round.say("Tout propre !"); return; }
+          mode = m;
+          tools.querySelectorAll(".tool").forEach((t) => t.classList.remove("active"));
+          b.classList.add("active");
+          round.say(name);
+        };
+        tools.appendChild(b);
+        return b;
+      }
+      DL.COLORS.forEach(([c, n], i) => { const b = addTool("", { type: "color", value: c }, c, n); if (!i) b.classList.add("active"); });
+      addTool("🌈", { type: "rainbow" }, null, "arc-en-ciel");
+      DL.STAMPS.forEach(([s, n]) => addTool(s, { type: "stamp", value: s }, null, n));
+      addTool("🧽", { type: "eraser" }, null, "la gomme");
+      addTool("🗑️", { type: "clear" }, null, "tout effacer");
+      const pointers = new Map();
+      const pos = (e) => { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+      const size = () => Math.max(10, Math.min(canvas.clientWidth, canvas.clientHeight) / 40);
+      function style() {
+        ctx.globalCompositeOperation = mode.type === "eraser" ? "destination-out" : "source-over";
+        let c = mode.value;
+        if (mode.type === "rainbow") { rainbow = (rainbow + 4) % 360; c = `hsl(${rainbow},90%,55%)`; }
+        ctx.strokeStyle = ctx.fillStyle = c || "#000";
+        ctx.lineWidth = mode.type === "eraser" ? size() * 3 : size();
+        ctx.lineCap = ctx.lineJoin = "round";
+      }
+      canvas.addEventListener("pointerdown", (e) => {
+        try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+        const p = pos(e);
+        if (mode.type === "stamp") { ctx.globalCompositeOperation = "source-over"; ctx.font = `${size() * 4}px serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(mode.value, p.x, p.y); Jeux.sounds.pop(); return; }
+        pointers.set(e.pointerId, p);
+        style(); ctx.beginPath(); ctx.arc(p.x, p.y, ctx.lineWidth / 2, 0, Math.PI * 2); ctx.fill();
+      });
+      canvas.addEventListener("pointermove", (e) => {
+        const last = pointers.get(e.pointerId);
+        if (!last) return;
+        const p = pos(e);
+        style(); ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+        pointers.set(e.pointerId, p);
+      });
+      const end = (e) => pointers.delete(e.pointerId);
+      canvas.addEventListener("pointerup", end); canvas.addEventListener("pointercancel", end);
+      const ro = new ResizeObserver(resize); ro.observe(canvas); round.onCleanup(() => ro.disconnect());
+      requestAnimationFrame(resize);
+    }
+    Kit.game({
+      id: "dessin", title: "Le Dessin", icon: "🎨", mode: "free",
+      bg: "#fff7fb",
+      instruction: () => "Choisis une couleur ou un autocollant, puis dessine avec ton doigt ! Quand tu as fini, appuie sur le bouton vert.",
+      doneText: "Quel beau dessin ! Bravo, artiste !",
+      start,
     });
-    canvas.addEventListener("pointermove", (e) => {
-      const last = pointers.get(e.pointerId);
-      if (!last) return;
-      const p = pos(e);
-      stroke(last, p);
-      pointers.set(e.pointerId, p);
-    });
-    const end = (e) => pointers.delete(e.pointerId);
-    canvas.addEventListener("pointerup", end);
-    canvas.addEventListener("pointercancel", end);
-
-    function style() {
-      ctx.globalCompositeOperation = mode.type === "eraser" ? "destination-out" : "source-over";
-      let c = mode.value;
-      if (mode.type === "rainbow") { rainbow = (rainbow + 4) % 360; c = `hsl(${rainbow},90%,55%)`; }
-      ctx.strokeStyle = ctx.fillStyle = c || "#000";
-      ctx.lineWidth = mode.type === "eraser" ? size() * 3 : size();
-      ctx.lineCap = ctx.lineJoin = "round";
-    }
-    function dot(p) {
-      style();
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, ctx.lineWidth / 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    function stroke(a, b) {
-      style();
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-    }
-
-    addEventListener("resize", resize);
-    resize();
-    setTimeout(() => say("Choisis une couleur ou un autocollant, puis dessine avec ton doigt !"), 500);
   </script>
 </body>
 </html>

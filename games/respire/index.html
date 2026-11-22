@@ -2,146 +2,100 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Respire avec moi</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    html, body { height: 100%; overflow: hidden; }
-    body { background: linear-gradient(180deg, #a5d8ff, #e7f5ff); transition: background 4s; }
-    body.out { background: linear-gradient(180deg, #d0bfff, #f3f0ff); }
-    .brain { height: 100%; }
-    #modes { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 6px; }
-    #modes .big-btn { font-size: clamp(16px, 3.8vmin, 24px); padding: 10px 16px; }
-    #modes .big-btn.sel { background: #ffd166; }
-    #stage { flex: 1; min-height: 0; width: 100%; display: grid; place-items: center; position: relative; }
-    /* ballon */
-    #balloon {
-      width: 34vmin; height: 40vmin; max-width: 220px; max-height: 260px;
-      border-radius: 50% 50% 46% 46% / 55% 55% 45% 45%;
-      background: radial-gradient(circle at 35% 30%, #ffc9c9, #ff6b6b 60%, #e03131);
-      box-shadow: inset -14px -18px 0 rgba(0,0,0,0.12);
-      transform: scale(0.55); transition: transform 4s ease-in-out;
-      position: relative;
-    }
-    #breathFriend { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(54px, 14vmin, 90px); filter: drop-shadow(0 4px 3px #0002); }
-    #balloon::after { content: ""; position: absolute; left: 50%; bottom: -60px; width: 2px; height: 60px; background: #868e96; }
-    /* fleur et bougie */
-    #flowerCandle { display: none; gap: 12vmin; align-items: flex-end; }
-    .flower, .candle { font-size: clamp(80px, 22vmin, 150px); line-height: 1; transition: transform 1s, opacity 1s, filter 1s; text-align: center; }
+    .k-stage { transition: background 4s; }
+    .wrap { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; border-radius: 0; transition: background 4s; }
+    .wrap.out { background: rgba(208, 191, 255, 0.5); }
+    .choose { display: flex; gap: 14px; }
+    .choose button { width: clamp(72px, 15vmin, 96px); height: clamp(72px, 15vmin, 96px); border-radius: 50%; background: #fff; box-shadow: var(--sh-2); font-size: clamp(36px, 8vmin, 50px); }
+    .choose button.sel { background: #ffd166; transform: scale(1.1); }
+    .scene { flex: 1; min-height: 0; width: 100%; display: grid; place-items: center; }
+    .balloon { width: 34vmin; height: 40vmin; max-width: 220px; max-height: 260px; border-radius: 50% 50% 46% 46% / 55% 55% 45% 45%; background: radial-gradient(circle at 35% 30%, #ffc9c9, #ff6b6b 60%, #e03131); box-shadow: inset -14px -18px 0 rgba(0,0,0,0.12); transform: scale(0.55); transition: transform 4s ease-in-out; position: relative; display: grid; place-items: center; font-size: clamp(54px, 14vmin, 90px); }
+    .balloon::after { content: ""; position: absolute; left: 50%; bottom: -60px; width: 2px; height: 60px; background: #868e96; }
+    .fc { display: flex; gap: 12vmin; align-items: flex-end; }
+    .flower, .candle { font-size: clamp(80px, 22vmin, 150px); line-height: 1; transition: transform 1s, opacity 1s, filter 1s; position: relative; }
     .flower.active { transform: scale(1.3); filter: drop-shadow(0 0 20px #fff); }
-    .candle { position: relative; }
     .flame { position: absolute; left: 50%; top: -0.38em; transform: translateX(-50%); font-size: 0.45em; transition: transform 5s ease-in, opacity 5s; animation: flicker 0.25s infinite alternate; }
     .flame.out { transform: translateX(-50%) scale(0.15) rotate(25deg); opacity: 0.1; }
     @keyframes flicker { to { margin-top: -3px; } }
-    .mode-fleur #balloon { display: none; }
-    .mode-fleur #flowerCandle { display: flex; }
-    #cue { font-size: clamp(26px, 6.5vmin, 46px); font-weight: bold; text-align: center; min-height: 1.4em; margin: 8px 0; color: #364fc7; }
-    #dots { display: flex; gap: 10px; margin-bottom: 12px; }
-    #dots i { width: 18px; height: 18px; border-radius: 50%; background: rgba(0,0,0,0.12); transition: background 0.4s; }
-    #dots i.on { background: #4dabf7; }
-    #start { margin-bottom: max(16px, env(safe-area-inset-bottom)); }
-    #after { display: none; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: max(16px, env(safe-area-inset-bottom)); }
-    #after a, #after button { text-decoration: none; }
+    .cue { font-size: clamp(40px, 10vmin, 64px); min-height: 1.3em; }
+    .dots { display: flex; gap: 10px; }
+    .dots i { width: 20px; height: 20px; border-radius: 50%; background: rgba(0,0,0,0.12); transition: background 0.4s; }
+    .dots i.on { background: #4dabf7; }
+    .go { margin-bottom: max(14px, env(safe-area-inset-bottom)); }
   </style>
 </head>
 <body>
-  <div class="brain">
-    <h1 class="game-title">Respire avec moi</h1>
-    <div id="modes">
-      <button class="big-btn sel" data-mode="ballon">🎈 Le ballon</button>
-      <button class="big-btn" data-mode="fleur">🌸 Fleur et bougie 🕯️</button>
-    </div>
-    <div id="stage">
-      <div id="balloon"><span id="breathFriend">🐻</span></div>
-      <div id="flowerCandle"><div class="flower">🌸</div><div class="candle">🕯️<span class="flame">🔥</span></div></div>
-    </div>
-    <div id="cue">Installe-toi bien, puis appuie sur Commencer</div>
-    <div id="dots"></div>
-    <button class="big-btn" id="start">▶️ Commencer</button>
-    <div id="after">
-      <button class="big-btn" id="again">🔁 Encore</button>
-      <a class="big-btn" href="../meteo/index.html">🌤️ Comment je me sens ?</a>
-    </div>
-  </div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { say, sounds, confetti } = Jeux;
-    const CYCLES = 5, IN = 4000, HOLD = 1000, OUT = 5000; // inspirer 4 s, expirer 5 s : plus long pour se calmer
-    let mode = "ballon", running = false, timers = [];
-    const balloon = document.getElementById("balloon");
-    const flower = document.querySelector(".flower");
-    const flame = document.querySelector(".flame");
-    const cue = document.getElementById("cue");
-    const dots = document.getElementById("dots");
-    const startBtn = document.getElementById("start");
-    const after = document.getElementById("after");
-
-    document.querySelectorAll("#modes button").forEach((b) => {
-      b.onclick = () => {
+    const RL = RespireLogic;
+    function start(round) {
+      const el = Kit.ui.el;
+      let kind = localStorage.getItem("jeux.respire.mode") === "fleur" ? "fleur" : "ballon", running = false;
+      const wrap = el("div", "wrap"), choose = el("div", "choose"), scene = el("div", "scene"), cue = el("div", "cue"), dots = el("div", "dots"), go = el("button", "k-btn primary go", "▶️");
+      go.setAttribute("aria-label", "Commencer");
+      wrap.append(choose, scene, cue, dots, go);
+      round.stage.appendChild(wrap);
+      const balloon = el("div", "balloon", "🐻");
+      const fc = el("div", "fc"); const flower = el("div", "flower", "🌸"); const candle = el("div", "candle", "🕯️"); const flame = el("span", "flame", "🔥");
+      candle.appendChild(flame); fc.append(flower, candle);
+      const btns = {};
+      for (const [id, e, name] of [["ballon", "🎈", "Le ballon"], ["fleur", "🌸", "La fleur et la bougie"]]) {
+        const b = el("button", "", e); b.setAttribute("aria-label", name);
+        b.onclick = () => { if (running) return; kind = id; localStorage.setItem("jeux.respire.mode", id); Jeux.sounds.click(); show(); round.say(name); };
+        choose.appendChild(b); btns[id] = b;
+      }
+      function show() { scene.innerHTML = ""; scene.appendChild(kind === "ballon" ? balloon : fc); Object.entries(btns).forEach(([k, b]) => b.classList.toggle("sel", k === kind)); }
+      show();
+      dots.innerHTML = "<i></i>".repeat(RL.CYCLES);
+      function breathIn(i) {
+        wrap.classList.remove("out");
+        cue.textContent = "👃";
+        round.say(kind === "ballon" ? "Inspire" : "Sens la fleur", { rate: 0.8 });
+        balloon.style.transition = `transform ${RL.IN}ms ease-in-out`; balloon.style.transform = "scale(1)";
+        flower.classList.add("active"); flame.classList.remove("out");
+        Jeux.sounds.noise(RL.IN / 1000, { from: 300, to: 700, q: 0.6, volume: 0.05 });
+        round.timeout(() => (cue.textContent = "🤫"), RL.IN);
+        round.timeout(() => breathOut(i), RL.IN + RL.HOLD);
+      }
+      function breathOut(i) {
+        wrap.classList.add("out");
+        cue.textContent = "🌬️";
+        round.say(kind === "ballon" ? "Souffle doucement" : "Souffle la bougie", { rate: 0.8 });
+        balloon.style.transition = `transform ${RL.OUT}ms ease-in-out`; balloon.style.transform = "scale(0.55)";
+        flower.classList.remove("active"); flame.classList.add("out");
+        Jeux.sounds.noise(RL.OUT / 1000, { from: 700, to: 250, q: 0.6, volume: 0.05 });
+        dots.children[i].classList.add("on");
+        round.timeout(() => (i + 1 < RL.CYCLES ? breathIn(i + 1) : done()), RL.OUT + RL.PAUSE);
+      }
+      function done() {
+        wrap.classList.remove("out"); flame.classList.remove("out"); cue.textContent = "💛";
+        Jeux.sounds.bell(784, 0, 0.2, 1.5);
+        round.timeout(() => round.end({ text: "Bravo ! Tu as très bien respiré. Tu te sens plus calme ?" }), 1500);
+      }
+      go.onclick = () => {
         if (running) return;
-        mode = b.dataset.mode;
-        document.querySelectorAll("#modes button").forEach((x) => x.classList.toggle("sel", x === b));
-        document.body.classList.toggle("mode-fleur", mode === "fleur");
-        sounds.click();
+        running = true; go.style.visibility = "hidden"; choose.style.visibility = "hidden";
+        round.say("On respire ensemble, cinq fois. Installe-toi bien.", { rate: 0.85 });
+        round.timeout(() => breathIn(0), 3500);
       };
+      round.setHintTarget(() => (running ? null : go));
+    }
+    Kit.game({
+      id: "respire", title: "Respire avec moi", icon: "🎈", mode: "free", doneButton: false,
+      bg: "linear-gradient(180deg, #a5d8ff, #e7f5ff)",
+      instruction: () => "Choisis le ballon ou la fleur, puis appuie sur le bouton vert. On va respirer ensemble.",
+      start,
     });
-
-    function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
-
-    function breathIn(i) {
-      document.body.classList.remove("out");
-      cue.textContent = mode === "ballon" ? "Inspire par le nez… le ballon se gonfle" : "Sens la fleur… inspire par le nez";
-      say(mode === "ballon" ? "Inspire" : "Sens la fleur", { rate: 0.8 });
-      balloon.style.transition = `transform ${IN}ms ease-in-out`;
-      balloon.style.transform = "scale(1)";
-      flower.classList.add("active");
-      flame.classList.remove("out");
-      sounds.noise(IN / 1000, { from: 300, to: 700, q: 0.6, volume: 0.05 });
-      later(() => { cue.textContent = "Garde l'air un petit peu…"; }, IN);
-      later(() => breathOut(i), IN + HOLD);
-    }
-
-    function breathOut(i) {
-      document.body.classList.add("out");
-      cue.textContent = mode === "ballon" ? "Souffle doucement par la bouche…" : "Souffle tout doucement sur la bougie…";
-      say(mode === "ballon" ? "Souffle doucement" : "Souffle la bougie", { rate: 0.8 });
-      balloon.style.transition = `transform ${OUT}ms ease-in-out`;
-      balloon.style.transform = "scale(0.55)";
-      flower.classList.remove("active");
-      flame.classList.add("out");
-      sounds.noise(OUT / 1000, { from: 700, to: 250, q: 0.6, volume: 0.05 });
-      dots.children[i].classList.add("on");
-      later(() => (i + 1 < CYCLES ? breathIn(i + 1) : finish()), OUT + 600);
-    }
-
-    function start() {
-      running = true;
-      startBtn.style.display = "none";
-      after.style.display = "none";
-      dots.innerHTML = "<i></i>".repeat(CYCLES);
-      cue.textContent = "On respire ensemble, 5 fois.";
-      say("On respire ensemble, cinq fois. Installe-toi bien.", { rate: 0.85 });
-      later(() => breathIn(0), 3500);
-    }
-
-    function finish() {
-      running = false;
-      document.body.classList.remove("out");
-      flame.classList.remove("out");
-      cue.textContent = "Bravo ! Tu as respiré 5 fois. 💛";
-      say(`Bravo ${Jeux.NAME} ! Tu as très bien respiré. Comment tu te sens maintenant ?`);
-      sounds.bell(784, 0, 0.2, 1.5);
-      confetti(20, ["💛", "🫧", "✨"]);
-      Jeux.addStars(1);
-      after.style.display = "flex";
-    }
-
-    startBtn.onclick = start;
-    document.getElementById("again").onclick = start;
-    setTimeout(() => say("Choisis ton ballon ou ta fleur, puis respire avec moi."), 500);
   </script>
 </body>
 </html>

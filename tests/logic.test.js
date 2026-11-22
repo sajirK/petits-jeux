@@ -177,7 +177,7 @@ test("Robot : chaque niveau est faisable et la solution fonctionne", () => {
     const rng = rngFrom(level * 4242);
     for (let i = 0; i < 400; i++) {
       const g = Robot.generate(level, rng);
-      const cfg = Robot.LEVELS[level];
+      const cfg = Robot.GRIDS[level];
       assert.equal(g.walls.length, cfg.walls);
       assert.notDeepEqual(g.start, g.goal);
       const keys = g.walls.map(([x, y]) => x + "," + y);

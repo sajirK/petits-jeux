@@ -8,7 +8,7 @@
   const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 
   // taille, obstacles, longueur du plus court chemin [min, max], nb max d'instructions
-  const LEVELS = {
+  const GRIDS = {
     1: { w: 4, h: 4, walls: 0, path: [2, 3] },
     2: { w: 4, h: 4, walls: 2, path: [3, 4] },
     3: { w: 5, h: 5, walls: 4, path: [4, 6] },
@@ -17,6 +17,19 @@
     6: { w: 6, h: 6, walls: 11, path: [8, 11] },
   };
   const MAX_LEVEL = 6;
+  // V2 : 3 niveaux, 4 manches chacun. Chaque niveau couvre 2 tailles de grille (la 2e à partir de la 3e manche).
+  const LEVELS = {
+    1: { rounds: 4, grids: [1, 2] },
+    2: { rounds: 4, grids: [3, 4] },
+    3: { rounds: 4, grids: [5, 6] },
+  };
+  const gridFor = (level, index) => LEVELS[level].grids[index < LEVELS[level].rounds / 2 ? 0 : 1];
+  // L'aide : ce qu'il faut toucher maintenant ("undo" si une flèche est fausse, "go" si tout est prêt, sinon la flèche suivante)
+  function nextMove(grid, program) {
+    for (let i = 0; i < program.length; i++) if (program[i] !== grid.solution[i]) return "undo";
+    if (program.length >= grid.solution.length) return "go";
+    return grid.solution[program.length];
+  }
 
   const key = (x, y) => x + "," + y;
 
@@ -45,7 +58,7 @@
   }
 
   function generate(level, rng = Math.random) {
-    const cfg = LEVELS[Math.min(MAX_LEVEL, Math.max(1, level))];
+    const cfg = GRIDS[Math.min(MAX_LEVEL, Math.max(1, level))];
     for (let attempt = 0; attempt < 2000; attempt++) {
       const cells = [];
       for (let y = 0; y < cfg.h; y++) for (let x = 0; x < cfg.w; x++) cells.push([x, y]);
@@ -82,5 +95,5 @@
     return { trace, result: "short", at: program.length };
   }
 
-  return { DIRS, LEVELS, MAX_LEVEL, generate, run, shortestPath };
+  return { DIRS, GRIDS, LEVELS, MAX_LEVEL, gridFor, nextMove, generate, run, shortestPath };
 });

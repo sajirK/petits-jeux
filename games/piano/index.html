@@ -2,240 +2,82 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Le Piano rigolo</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      background: linear-gradient(160deg, #ffc6ff, #bdb2ff);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    #modes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 8px 10px; }
-    @media (max-width: 600px) { #modes { margin-top: 18px; } }
-    #modes .big-btn { font-size: clamp(18px, 4vw, 26px); padding: 8px 16px; }
-    #modes .big-btn.active { background: #ffd166; }
-    #keys {
-      flex: 1;
-      display: flex;
-      gap: clamp(4px, 1vw, 10px);
-      width: min(98vw, 1100px);
-      padding-bottom: max(16px, env(safe-area-inset-bottom));
-      touch-action: none;
-    }
-    #replay { margin: 0 0 10px; font-size: clamp(18px, 4vw, 26px); }
-    #pianoStatus { min-height: 1.3em; font-size: clamp(18px, 4vw, 26px); font-weight: bold; color: #4c1d95; }
-    .key {
-      flex: 1;
-      border-radius: 0 0 22px 22px;
-      box-shadow: 0 8px 0 rgba(0,0,0,0.2);
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      align-items: center;
-      padding-bottom: 16px;
-      font-size: clamp(26px, 6vw, 54px);
-      transition: transform 0.08s, filter 0.08s;
-      position: relative;
-    }
-    .key.down { transform: translateY(8px); box-shadow: 0 0 0 rgba(0,0,0,0.2); filter: brightness(1.2); }
-    .note {
-      position: fixed;
-      pointer-events: none;
-      font-size: 40px;
-      animation: fly 1.2s ease-out forwards;
-    }
-    @keyframes fly {
-      to { transform: translateY(-40vh) rotate(30deg); opacity: 0; }
-    }
+    .wrap { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .instr { display: flex; gap: 10px; }
+    .instr button { width: var(--tap-min); height: var(--tap-min); border-radius: 50%; background: rgba(255,255,255,0.8); box-shadow: var(--sh-1); font-size: 34px; }
+    .instr button.active { background: #ffd166; transform: scale(1.12); }
+    .keys { flex: 1; min-height: 0; display: flex; gap: clamp(4px, 1vw, 10px); width: min(98vw, 1100px); padding-bottom: max(14px, env(safe-area-inset-bottom)); touch-action: none; }
+    .key { flex: 1; border-radius: 0 0 22px 22px; box-shadow: 0 8px 0 rgba(0,0,0,0.2); display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 16px; font-size: clamp(26px, 6vw, 54px); transition: transform 0.08s, filter 0.08s; min-width: 0; }
+    .key.down { transform: translateY(8px); box-shadow: none; filter: brightness(1.2); }
+    .note { position: fixed; pointer-events: none; font-size: 40px; animation: fly 1.2s ease-out forwards; z-index: 5; }
+    @keyframes fly { to { transform: translateY(-40vh) rotate(30deg); opacity: 0; } }
   </style>
 </head>
 <body>
-  <h1 class="game-title">Le Piano rigolo</h1>
-  <div id="modes"></div>
-  <button id="replay" class="big-btn" aria-label="Rejouer la mélodie">🎶</button>
-  <div id="pianoStatus" aria-live="polite"></div>
-  <div id="keys"></div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, pick, say, confetti } = Jeux;
-    const NOTES = [
-      { f: 262, n: "do", c: "#ef476f", a: "🐶" },
-      { f: 294, n: "ré", c: "#ff9f1c", a: "🐱" },
-      { f: 330, n: "mi", c: "#ffd166", a: "🐥" },
-      { f: 349, n: "fa", c: "#06d6a0", a: "🐸" },
-      { f: 392, n: "sol", c: "#118ab2", a: "🐮" },
-      { f: 440, n: "la", c: "#7b2cbf", a: "🐷" },
-      { f: 494, n: "si", c: "#f15bb5", a: "🦁" },
-      { f: 523, n: "do", c: "#00bbf9", a: "🐵" },
-    ];
-    // Différents "instruments" synthétisés
-    const MODES = [
-      { label: "🎹 Piano", type: "triangle", vibrato: 0 },
-      { label: "🤖 Robot", type: "square", vibrato: 0 },
-      { label: "👻 Fantôme", type: "sine", vibrato: 12 },
-      { label: "🐝 Abeille", type: "sawtooth", vibrato: 30 },
-    ];
-    let mode = MODES[0];
-    let replayMode = false, replaySeq = [], replayPos = 0, listening = false, replayRun = 0;
-    const modesEl = document.getElementById("modes");
-    MODES.forEach((m, i) => {
-      const b = document.createElement("button");
-      b.className = "big-btn" + (i === 0 ? " active" : "");
-      b.textContent = m.label;
-      b.onclick = () => {
-        mode = m;
-        [...modesEl.children].forEach((x) => x.classList.remove("active"));
-        b.classList.add("active");
-        play(NOTES[4]);
-      };
-      modesEl.appendChild(b);
-    });
-
-    function play(note) {
-      if (Jeux.isMuted()) return;
-      const ac = Jeux.audio();
-      if (!ac) return;
-      const out = Jeux.output();
-      const t = ac.currentTime;
-      const g = ac.createGain();
-      const filter = ac.createBiquadFilter();
-      filter.type = "lowpass";
-      filter.frequency.value = mode.type === "sine" || mode.type === "triangle" ? 5000 : 1400;
-      filter.connect(g).connect(out);
-      // note principale + une harmonique douce (son de "boîte à musique" pour le piano)
-      const partials = mode.type === "triangle" ? [[1, 1], [2, 0.3], [3, 0.1]] : [[1, 1]];
-      for (const [mult, amp] of partials) {
-        const o = ac.createOscillator();
-        o.type = mode.type === "triangle" ? "sine" : mode.type;
-        o.frequency.value = note.f * mult;
-        if (mode.vibrato) {
-          const lfo = ac.createOscillator();
-          const lg = ac.createGain();
-          lfo.frequency.value = 6;
-          lg.gain.value = mode.vibrato;
-          lfo.connect(lg).connect(o.frequency);
-          lfo.start(t); lfo.stop(t + 1.3);
+    const PL = PianoLogic;
+    function start(round) {
+      const el = Kit.ui.el;
+      let instr = PL.INSTRUMENTS[0];
+      const wrap = el("div", "wrap"), bar = el("div", "instr"), keys = el("div", "keys");
+      wrap.append(bar, keys);
+      round.stage.appendChild(wrap);
+      PL.INSTRUMENTS.forEach((m, i) => {
+        const b = el("button", i ? "" : "active", m.e);
+        b.setAttribute("aria-label", m.name);
+        b.onclick = () => { instr = m; bar.querySelectorAll("button").forEach((x) => x.classList.toggle("active", x === b)); play(PL.NOTES[4]); };
+        bar.appendChild(b);
+      });
+      function play(note) {
+        if (Jeux.isMuted()) return;
+        const ac = Jeux.audio(); if (!ac) return;
+        const out = Jeux.output(), t = ac.currentTime, g = ac.createGain(), filter = ac.createBiquadFilter();
+        filter.type = "lowpass"; filter.frequency.value = instr.type === "sine" || instr.type === "triangle" ? 5000 : 1400;
+        filter.connect(g).connect(out);
+        const partials = instr.type === "triangle" ? [[1, 1], [2, 0.3], [3, 0.1]] : [[1, 1]];
+        for (const [mult, amp] of partials) {
+          const o = ac.createOscillator();
+          o.type = instr.type === "triangle" ? "sine" : instr.type;
+          o.frequency.value = note.f * mult;
+          if (instr.vibrato) { const lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = 6; lg.gain.value = instr.vibrato; lfo.connect(lg).connect(o.frequency); lfo.start(t); lfo.stop(t + 1.3); }
+          const og = ac.createGain(); og.gain.value = amp; o.connect(og).connect(filter); o.start(t); o.stop(t + 1.3);
         }
-        const og = ac.createGain();
-        og.gain.value = amp;
-        o.connect(og).connect(filter);
-        o.start(t); o.stop(t + 1.3);
+        const vol = instr.type === "triangle" || instr.type === "sine" ? 0.32 : 0.14;
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.015); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
       }
-      const vol = mode.type === "triangle" || mode.type === "sine" ? 0.32 : 0.14;
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(vol, t + 0.015);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+      PL.NOTES.forEach((note) => { const k = el("div", "key"); k.style.background = note.c; k.innerHTML = `<span>${note.a}</span>`; k._note = note; keys.appendChild(k); });
+      const active = new Map();
+      const keyAt = (e) => { const t = document.elementFromPoint(e.clientX, e.clientY); return t && t.closest(".key"); };
+      function press(k, e) {
+        play(k._note);
+        k.classList.add("down"); round.timeout(() => k.classList.remove("down"), 150);
+        const n = el("div", "note", ["🎵", "🎶", k._note.a][Math.floor(Math.random() * 3)]);
+        n.style.left = e.clientX - 20 + "px"; n.style.top = e.clientY - 40 + "px";
+        document.body.appendChild(n); setTimeout(() => n.remove(), 1200);
+      }
+      keys.addEventListener("pointerdown", (e) => { e.preventDefault(); const k = keyAt(e); active.set(e.pointerId, k); if (k) press(k, e); });
+      keys.addEventListener("pointermove", (e) => { if (!active.has(e.pointerId)) return; const k = keyAt(e); if (k && k !== active.get(e.pointerId)) press(k, e); active.set(e.pointerId, k); });
+      const stop = (e) => active.delete(e.pointerId);
+      keys.addEventListener("pointerup", stop); keys.addEventListener("pointercancel", stop);
     }
-
-    const keysEl = document.getElementById("keys");
-    NOTES.forEach((note) => {
-      const k = document.createElement("div");
-      k.className = "key";
-      k.style.background = note.c;
-      k.innerHTML = `<span>${note.a}</span>`;
-      k._note = note;
-      keysEl.appendChild(k);
+    Kit.game({
+      id: "piano", title: "Le Piano rigolo", icon: "🎹", mode: "free",
+      bg: "linear-gradient(160deg, #ffc6ff, #bdb2ff)",
+      instruction: () => "Touche les grandes touches pour jouer de la musique ! Choisis ton instrument en haut.",
+      doneText: "Quel joli concert ! Bravo, musicien !",
+      start,
     });
-
-    // Gestion multi-doigts + glisser sur les touches pour jouer plusieurs notes
-    const active = new Map(); // pointerId -> touche courante
-    function keyAt(e) {
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      return el && el.closest(".key");
-    }
-    keysEl.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      const k = keyAt(e);
-      active.set(e.pointerId, k);
-      if (k) press(k, k._note, e);
-    });
-    keysEl.addEventListener("pointermove", (e) => {
-      if (!active.has(e.pointerId)) return;
-      const k = keyAt(e);
-      if (k && k !== active.get(e.pointerId)) press(k, k._note, e);
-      active.set(e.pointerId, k);
-    });
-    const stop = (e) => active.delete(e.pointerId);
-    keysEl.addEventListener("pointerup", stop);
-    keysEl.addEventListener("pointercancel", stop);
-
-    function press(k, note, e) {
-      if (replayMode && !listening) return;
-      play(note);
-      k.classList.add("down");
-      setTimeout(() => k.classList.remove("down"), 150);
-      const n = document.createElement("div");
-      n.className = "note";
-      n.textContent = pick(["🎵", "🎶", note.a]);
-      n.style.left = e.clientX - 20 + "px";
-      n.style.top = e.clientY - 40 + "px";
-      document.body.appendChild(n);
-      setTimeout(() => n.remove(), 1200);
-      if (replayMode) {
-        const i = NOTES.indexOf(note);
-        if (i !== replaySeq[replayPos]) {
-          listening = false;
-          sounds.wrong();
-          document.getElementById("pianoStatus").textContent = "🎵 On réessaie !";
-          say("Écoute encore la mélodie !");
-          replayPos = 0;
-          setTimeout(() => playReplaySequence(replayRun), 900);
-          return;
-        }
-        replayPos++;
-        k.classList.add("down"); setTimeout(() => k.classList.remove("down"), 150);
-        if (replayPos === replaySeq.length) {
-          listening = false;
-          sounds.win(); confetti(24, ["🎵", "⭐", "✨"]);
-          document.getElementById("pianoStatus").textContent = "🌟 Bravo ! Encore une note !";
-          say("Bravo ! Tu as rejoué la mélodie !");
-          replaySeq.push(Math.floor(Math.random() * NOTES.length));
-          replayPos = 0;
-          setTimeout(() => playReplaySequence(replayRun), 1400);
-        }
-      }
-    }
-
-    async function playReplaySequence(run = replayRun) {
-      listening = false;
-      document.getElementById("pianoStatus").textContent = "👂 Écoute...";
-      await new Promise((r) => setTimeout(r, 450));
-      if (run !== replayRun || !replayMode) return;
-      for (const i of replaySeq) {
-        padsLight(i);
-        await new Promise((r) => setTimeout(r, 550));
-        if (run !== replayRun || !replayMode) return;
-      }
-      replayPos = 0; listening = true;
-      document.getElementById("pianoStatus").textContent = "👉 À toi !";
-      say("À toi de jouer !");
-    }
-    function padsLight(i) {
-      const k = keysEl.children[i];
-      k.classList.add("down"); play(NOTES[i]);
-      setTimeout(() => k.classList.remove("down"), 330);
-    }
-    document.getElementById("replay").onclick = () => {
-      if (replayMode) {
-        replayMode = false; listening = false; replayRun++;
-        document.getElementById("pianoStatus").textContent = "";
-        document.getElementById("replay").textContent = "🎶";
-        document.getElementById("replay").setAttribute("aria-label", "Rejouer la mélodie");
-        say("Choisis un son et joue du piano !");
-        return;
-      }
-      replayMode = true; replayRun++; replaySeq = [Math.floor(Math.random() * NOTES.length), Math.floor(Math.random() * NOTES.length), Math.floor(Math.random() * NOTES.length)];
-      document.getElementById("replay").textContent = "🎹";
-      document.getElementById("replay").setAttribute("aria-label", "Retour au piano libre");
-      replayPos = 0; sounds.click(); playReplaySequence(replayRun);
-    };
-    setTimeout(() => say("Touche les grandes touches pour jouer de la musique !"), 500);
   </script>
 </body>
 </html>
