@@ -83,5 +83,14 @@
     return ok[price];
   }
 
-  return { PASTRIES, CLIENTS, NUM, COINS, MAX_LEVEL, generate, decompose, feedback, payFeedback, sum, canPay, count };
+  // V2 : 3 niveaux (compter jusqu'à 10 → de 11 à 20 avec des boîtes de 10 → payer)
+  const LEVELS = {
+    1: { rounds: 5, internal: [1, 2] },
+    2: { rounds: 5, internal: [3] },
+    3: { rounds: 5, internal: [4, 5] },
+  };
+  // la pièce la plus utile à donner (pour l'aide) : la plus grosse qui ne dépasse pas
+  function bestCoin(remaining, coins) { return coins.filter((c) => c <= remaining).sort((a, b) => b - a)[0] || null; }
+
+  return { LEVELS, bestCoin, PASTRIES, CLIENTS, NUM, COINS, MAX_LEVEL, generate, decompose, feedback, payFeedback, sum, canPay, count };
 });

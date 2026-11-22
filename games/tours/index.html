@@ -2,360 +2,107 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>La Tour des Nombres</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      background: linear-gradient(180deg, #bde0fe 0%, #e0f2ff 70%, #c7f0bd 70%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    #stars { font-size: clamp(20px, 4.5vw, 30px); min-height: 1.3em; }
-    #game {
-      flex: 1;
-      min-height: 0;
-      width: min(100%, 1000px);
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      align-items: center;
-      justify-items: center;
-      gap: 8px;
-      padding: 0 12px max(14px, env(safe-area-inset-bottom));
-    }
-    @media (orientation: landscape) {
-      #game { grid-template-rows: 1fr; grid-template-columns: 1fr 1fr 1fr; }
-    }
-
-    /* Carte du nombre à construire */
-    #target {
-      background: #fff;
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 10px 26px;
-      text-align: center;
-      cursor: pointer;
-    }
-    #digit { font-size: clamp(54px, 13vmin, 110px); font-weight: bold; line-height: 1; }
-    #dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 220px; margin-top: 6px; }
-    .dot { width: clamp(14px, 3vmin, 22px); height: clamp(14px, 3vmin, 22px); border-radius: 50%; background: #3b2a4d; opacity: 0.2; transition: opacity 0.2s, background 0.2s; }
-    .dot.on { opacity: 1; background: #ef476f; }
-    #say { font-size: clamp(16px, 3.5vmin, 22px); opacity: 0.6; }
-    #visualMode { border: 0; border-radius: 50%; width: 48px; height: 48px; background: #fff; box-shadow: var(--shadow); font-size: 25px; }
-
-    /* La tour */
-    #towerZone {
-      height: 100%;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      align-items: center;
-      min-height: 0;
-    }
-    #tower {
-      display: flex;
-      flex-direction: column-reverse;
-      align-items: center;
-    }
-    #base {
-      width: calc(var(--b) * 2.2);
-      height: 14px;
-      border-radius: 8px;
-      background: #8d5524;
-      box-shadow: 0 4px 0 rgba(0,0,0,0.15);
-    }
-    .block {
-      width: var(--b);
-      height: var(--b);
-      border-radius: 10px;
-      position: relative;
-      box-shadow: inset -5px -6px 0 rgba(0,0,0,0.18), inset 4px 4px 0 rgba(255,255,255,0.35);
-      display: grid;
-      place-items: center;
-      font-size: calc(var(--b) * 0.42);
-      font-weight: bold;
-      color: rgba(255,255,255,0.9);
-      text-shadow: 0 2px 0 rgba(0,0,0,0.25);
-    }
-    #tower .block { animation: drop 0.25s ease-out; }
-    #tower .block.fixed::after {
-      content: "🔒";
-      position: absolute; right: -2px; top: -6px;
-      font-size: calc(var(--b) * 0.28);
-    }
-    @keyframes drop { from { transform: translateY(-40px); opacity: 0.3; } }
-    #tower.happy { animation: wiggle 0.5s ease-in-out 3; }
-    @keyframes wiggle {
-      0%, 100% { transform: rotate(0); }
-      25% { transform: rotate(-4deg); }
-      75% { transform: rotate(4deg); }
-    }
-    #tower.too-high { animation: shake 0.4s; }
-    /* Petit visage sur le bloc du haut quand la tour est finie */
-    .face {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      font-size: calc(var(--b) * 0.7);
-      animation: bounce-in 0.4s;
-    }
-
-    /* Le tas de blocs à prendre */
-    #pile {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      background: rgba(255,255,255,0.55);
-      border-radius: var(--radius);
-      padding: 12px;
-      max-width: 340px;
-    }
-    #pile .block { cursor: pointer; transition: transform 0.1s; }
-    #pile .block { touch-action: none; }
-    #pile .block:active { transform: scale(0.88); }
-    #towerZone.drop-ready { background: radial-gradient(ellipse, #ffffff66, transparent 68%); }
-    .flying {
-      position: fixed;
-      z-index: 100;
-      pointer-events: none;
-      transition: left 0.35s ease-in, top 0.35s ease-in;
-    }
-    .hint { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .layout { display: flex; align-items: flex-end; justify-content: center; gap: clamp(16px, 5vmin, 56px); width: 100%; flex: 1; min-height: 0; }
+    @media (orientation: portrait) { .layout { flex-direction: column; align-items: center; justify-content: space-between; } }
+    .goal { display: flex; flex-direction: column; align-items: center; background: #fff; border-radius: var(--r-lg); padding: 10px 22px; box-shadow: var(--sh-2); cursor: pointer; align-self: center; }
+    .goal b { font-size: clamp(54px, 13vmin, 104px); line-height: 1; }
+    .dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 200px; margin-top: 6px; }
+    .dot { width: 18px; height: 18px; border-radius: 50%; background: #3b2a4d; opacity: 0.18; transition: all var(--t-med); }
+    .dot.on { opacity: 1; background: #ef476f; transform: scale(1.15); }
+    .towerZone { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: calc(var(--b) * 2.6); min-height: calc(var(--b) * 3); padding: 8px; border-radius: var(--r-lg); transition: background var(--t-med); }
+    .towerZone.k-zone-hot { background: rgba(81, 207, 102, 0.15); }
+    .tower { display: flex; flex-direction: column-reverse; align-items: center; }
+    .base { width: calc(var(--b) * 2.2); height: 14px; border-radius: 8px; background: #8d5524; box-shadow: 0 4px 0 rgba(0,0,0,0.15); }
+    .block { width: var(--b); height: var(--b); border-radius: 12px; position: relative; display: grid; place-items: center; font-size: calc(var(--b) * 0.5); box-shadow: inset -5px -6px 0 rgba(0,0,0,0.18), inset 4px 4px 0 rgba(255,255,255,0.35); }
+    .tower .block { animation: drop 0.28s var(--ease-bounce); cursor: pointer; }
+    .tower .block.fixed { cursor: default; }
+    .tower .block.fixed::after { content: "🔒"; position: absolute; right: -6px; top: -8px; font-size: calc(var(--b) * 0.3); }
+    @keyframes drop { from { transform: translateY(-50px); } }
+    .tower.wobble { animation: wobble 0.45s ease-in-out 3; }
+    @keyframes wobble { 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+    .pile { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; background: rgba(255,255,255,0.6); border-radius: var(--r-lg); padding: 14px; max-width: 320px; align-self: center; }
+    .pile .block { cursor: grab; width: clamp(64px, 13vmin, 84px); height: clamp(64px, 13vmin, 84px); }
   </style>
 </head>
 <body>
-  <h1 class="game-title">La Tour des Nombres</h1>
-  <div id="stars"></div>
-  <div id="game">
-    <div id="target" title="Écouter">
-      <div id="digit">3</div>
-      <div id="dots"></div>
-      <div id="say">🔊</div>
-      <button id="visualMode" type="button" aria-label="Mode sans chiffres">👀</button>
-    </div>
-    <div id="towerZone">
-      <div id="tower"></div>
-      <div id="base"></div>
-    </div>
-    <div>
-      <div id="pile"></div>
-      <div class="hint">Glisse un cube sur la tour.</div>
-    </div>
-  </div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, confetti, bravo, pick, shuffle } = Jeux;
-    const NUMBERS = ["zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix"];
+    const TL = ToursLogic;
     const COLORS = ["#ef476f", "#ff9f1c", "#ffd166", "#06d6a0", "#118ab2", "#7b2cbf", "#f15bb5", "#00bbf9"];
-    const FACES = ["😄", "😎", "🤩", "😁", "🥳", "😺"];
+    let last = null;
+    Kit.game({
+      id: "tours", title: "La Tour des Nombres", icon: "🧱",
+      bg: "linear-gradient(180deg, #bde0fe 0%, #e0f2ff 70%, #c7f0bd 70%)",
+      instruction: (cfg) => cfg.add ? "Une partie de la tour est déjà construite. Ajoute des blocs pour faire le calcul !" : "Glisse des blocs sur la tour pour faire le bon nombre !",
+      levels: TL.LEVELS,
+      start(round) {
+        const q = TL.question(round.level, Math.random, last);
+        last = q.target;
+        const stage = round.stage;
+        const layout = Kit.ui.el("div", "layout");
+        // l'objectif : le chiffre + des points (pour ceux qui ne connaissent pas encore les chiffres)
+        const goal = Kit.ui.el("button", "goal");
+        goal.innerHTML = `<b>${q.fixed ? `${q.fixed} + ${q.toAdd}` : q.target}</b><div class="dots"></div>`;
+        const dots = goal.querySelector(".dots");
+        for (let i = 0; i < q.target; i++) dots.appendChild(Kit.ui.el("span", "dot"));
+        goal.onclick = () => round.say(TL.say(q));
+        const zone = Kit.ui.el("div", "towerZone");
+        const tower = Kit.ui.el("div", "tower");
+        zone.append(tower, Kit.ui.el("div", "base"));
+        const pile = Kit.ui.el("div", "pile");
+        layout.append(goal, zone, pile);
+        stage.appendChild(layout);
+        // taille des blocs : 10 blocs doivent tenir en hauteur
+        const fit = () => { const h = stage.getBoundingClientRect().height; stage.style.setProperty("--b", Math.round(Math.max(26, Math.min(64, (h - 60) / 11))) + "px"); };
+        fit(); window.addEventListener("resize", fit); round.onCleanup(() => window.removeEventListener("resize", fit));
 
-    const towerEl = document.getElementById("tower");
-    const pileEl = document.getElementById("pile");
-    const digitEl = document.getElementById("digit");
-    const dotsEl = document.getElementById("dots");
-    const starsEl = document.getElementById("stars");
+        const fixedColor = COLORS[0];
+        for (let i = 0; i < q.fixed; i++) tower.appendChild(block(fixedColor, true));
+        const count = () => tower.children.length;
+        const update = () => [...dots.children].forEach((d, i) => d.classList.toggle("on", i < count()));
+        update();
 
-    let target = 3;        // nombre à atteindre
-    let fixedCount = 0;    // blocs déjà posés (mode addition)
-    let addColor;          // couleur des blocs à ajouter
-    let wins = 0, busy = false, visualOnly = false, dragging = null, dragGhost = null;
-
-    // Taille des blocs : 10 blocs doivent tenir dans la hauteur dispo
-    // Taille calculée une fois par image, et seulement si elle change vraiment
-    // (évite une boucle avec l'observateur de taille)
-    let lastB = 0, pending = false;
-    function sizeBlocks() {
-      const zone = document.getElementById("towerZone").getBoundingClientRect();
-      const b = Math.round(Math.max(26, Math.min(72, (zone.height - 30) / 10.5, zone.width / 2.6)));
-      if (Math.abs(b - lastB) < 2) return;
-      lastB = b;
-      document.documentElement.style.setProperty("--b", b + "px");
-    }
-    new ResizeObserver(() => {
-      if (pending) return;
-      pending = true;
-      requestAnimationFrame(() => { pending = false; sizeBlocks(); });
-    }).observe(document.getElementById("towerZone"));
-
-    const count = () => towerEl.children.length;
-
-    function makeBlock(color, fixed = false) {
-      const d = document.createElement("div");
-      d.className = "block" + (fixed ? " fixed" : "");
-      d.style.background = color;
-      return d;
-    }
-
-    function question() {
-      if (fixedCount) say(`${NUMBERS[fixedCount]} plus ${NUMBERS[target - fixedCount]}, ça fait combien ? Glisse les cubes pour compléter la tour !`);
-      else say(`Glisse les cubes pour construire une tour de ${NUMBERS[target]} !`);
-    }
-    document.getElementById("target").onclick = question;
-    document.getElementById("visualMode").onclick = (e) => {
-      e.stopPropagation();
-      visualOnly = !visualOnly;
-      document.getElementById("visualMode").setAttribute("aria-pressed", String(visualOnly));
-      digitEl.style.display = visualOnly ? "none" : "block";
-      say(visualOnly ? "Mode images ! Construis la tour en regardant les cubes." : "Mode chiffres ! Regarde le nombre et construis la tour.");
-    };
-
-    function round() {
-      busy = false;
-      towerEl.innerHTML = "";
-      towerEl.classList.remove("happy");
-      // On progresse : 1 à 5, puis jusqu'à 10, puis des additions
-      const max = wins < 4 ? 5 : 10;
-      const addition = wins >= 8 && Math.random() < 0.5;
-      if (addition) {
-        target = 3 + Math.floor(Math.random() * 6);           // 3..8
-        fixedCount = 1 + Math.floor(Math.random() * (target - 1));
-        const fixedColor = pick(COLORS);
-        addColor = pick(COLORS.filter((c) => c !== fixedColor));
-        for (let i = 0; i < fixedCount; i++) towerEl.appendChild(makeBlock(fixedColor, true));
-        digitEl.textContent = `${fixedCount} + ${target - fixedCount}`;
-      } else {
-        let n;
-        do { n = 1 + Math.floor(Math.random() * max); } while (n === target && max > 1);
-        target = n;
-        fixedCount = 0;
-        addColor = null;
-        digitEl.textContent = target;
-      }
-      dotsEl.innerHTML = "";
-      for (let i = 0; i < target; i++) {
-        const d = document.createElement("div");
-        d.className = "dot";
-        dotsEl.appendChild(d);
-      }
-      buildPile();
-      updateDots();
-      setTimeout(question, 400);
-    }
-
-    function buildPile() {
-      pileEl.innerHTML = "";
-      const pileSize = Math.max(6, target - count() + 2);
-      const palette = shuffle(COLORS);
-      const colors = addColor ? Array(pileSize).fill(addColor) : Array.from({ length: pileSize }, (_, i) => palette[i % palette.length]);
-      colors.forEach((c) => {
-        const b = makeBlock(c);
-        b.addEventListener("click", () => addBlock(b, c));
-        b.addEventListener("pointerdown", (e) => {
-          if (busy || e.button > 0) return;
-          dragging = { source: b, color: c, pointerId: e.pointerId };
-          dragGhost = makeBlock(c);
-          dragGhost.className = "block flying";
-          const r = b.getBoundingClientRect();
-          dragGhost.style.left = r.left + "px"; dragGhost.style.top = r.top + "px";
-          document.body.appendChild(dragGhost);
-          e.preventDefault();
+        function block(color, fixed = false) {
+          const b = Kit.ui.el("div", "block" + (fixed ? " fixed" : ""));
+          b.style.background = color;
+          if (!fixed) b.onclick = () => { if (b === tower.lastElementChild) { b.remove(); Jeux.sounds.pop(); update(); if (count()) round.say(TL.NUMBERS[count()]); } };
+          return b;
+        }
+        function add(color) {
+          if (count() >= 10) { round.say("La tour est trop haute !"); return; }
+          tower.appendChild(block(color));
+          Jeux.sounds.step(count() - 1);
+          round.say(TL.NUMBERS[count()]);
+          update();
+          if (count() === q.target) { tower.classList.add("wobble"); round.win(tower, TL.done(q), { praise: false, delay: 2600 }); }
+          else if (count() > q.target) round.miss(tower, `Oups, trop haut ! Il en faut ${TL.NUMBERS[q.target]}. Touche le bloc du haut pour l'enlever.`);
+        }
+        const pileColors = q.fixed ? [COLORS[3], COLORS[3], COLORS[3], COLORS[3]] : COLORS.slice(1, 7);
+        pileColors.forEach((c) => {
+          const b = block(c);
+          b.onclick = null;
+          pile.appendChild(b);
+          Kit.drag(b, {
+            ghost: () => { const g = Kit.ui.el("div", "block"); g.style.background = c; g.style.width = g.style.height = "var(--b)"; return g; },
+            onMove: (pt) => zone.classList.toggle("k-zone-hot", Kit.over(zone, pt, 30)),
+            onDrop: (pt) => { zone.classList.remove("k-zone-hot"); if (!Kit.over(zone, pt, 30)) return false; add(c); return true; },
+            onTap: () => add(c),
+          });
         });
-        pileEl.appendChild(b);
-      });
-    }
-
-    document.addEventListener("pointermove", (e) => {
-      if (!dragging || e.pointerId !== dragging.pointerId) return;
-      dragGhost.style.left = e.clientX - dragGhost.offsetWidth / 2 + "px";
-      dragGhost.style.top = e.clientY - dragGhost.offsetHeight / 2 + "px";
-      const r = document.getElementById("towerZone").getBoundingClientRect();
-      document.getElementById("towerZone").classList.toggle("drop-ready", e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
+        round.setHintTarget(() => (count() > q.target ? tower.lastElementChild : pile.firstElementChild));
+        round.timeout(() => round.say(TL.say(q)), round.index === 0 ? 3000 : 350);
+      },
     });
-    document.addEventListener("pointerup", (e) => {
-      if (!dragging || e.pointerId !== dragging.pointerId) return;
-      const d = dragging; dragging = null;
-      dragGhost?.remove(); dragGhost = null;
-      const zone = document.getElementById("towerZone");
-      zone.classList.remove("drop-ready");
-      const r = zone.getBoundingClientRect();
-      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) addBlock(d.source, d.color);
-    });
-
-    function updateDots() {
-      [...dotsEl.children].forEach((d, i) => d.classList.toggle("on", i < count()));
-    }
-
-    function addBlock(fromEl, color) {
-      if (busy) return;
-      if (count() >= 10) {
-        sounds.wrong();
-        say("La tour est trop haute !");
-        return;
-      }
-      busy = true;
-      // le bloc "vole" du tas vers le haut de la tour
-      const from = fromEl.getBoundingClientRect();
-      const towerRect = towerEl.getBoundingClientRect();
-      const baseRect = document.getElementById("base").getBoundingClientRect();
-      const fly = makeBlock(color);
-      fly.classList.add("flying");
-      fly.style.left = from.left + "px";
-      fly.style.top = from.top + "px";
-      document.body.appendChild(fly);
-      requestAnimationFrame(() => {
-        fly.style.left = baseRect.left + baseRect.width / 2 - from.width / 2 + "px";
-        fly.style.top = (count() ? towerRect.top : baseRect.top) - from.height + "px";
-      });
-      setTimeout(() => {
-        fly.remove();
-        towerEl.appendChild(makeBlock(color));
-        const n = count();
-        sounds.step(n - 1);
-        say(NUMBERS[n]);
-        updateDots();
-        busy = false;
-        check();
-      }, 360);
-    }
-
-    // Toucher la tour enlève le bloc du haut (sauf les blocs déjà posés en mode addition)
-    towerEl.addEventListener("click", () => {
-      if (busy || count() <= fixedCount) return;
-      towerEl.lastElementChild.remove();
-      sounds.pop();
-      const n = count();
-      if (n) say(NUMBERS[n]);
-      updateDots();
-      towerEl.classList.remove("too-high");
-    });
-
-    function check() {
-      const n = count();
-      if (n === target) {
-        busy = true;
-        setTimeout(() => {
-          const top = towerEl.lastElementChild;
-          const face = document.createElement("div");
-          face.className = "face";
-          face.textContent = pick(FACES);
-          top.appendChild(face);
-          towerEl.classList.add("happy");
-          sounds.win();
-          confetti(40, ["⭐", "🎉", "🧱", "✨"]);
-          wins++;
-          Jeux.addStars(1);
-          starsEl.textContent = "⭐".repeat(wins % 10 || 10);
-          if (fixedCount) bravo(`${NUMBERS[fixedCount]} plus ${NUMBERS[target - fixedCount]}, égale ${NUMBERS[target]} !`);
-          else bravo(`Une tour de ${NUMBERS[target]} !`);
-          setTimeout(round, 3600);
-        }, 500);
-      } else if (n > target) {
-        towerEl.classList.remove("too-high"); void towerEl.offsetWidth; towerEl.classList.add("too-high");
-        sounds.wrong();
-        setTimeout(() => say(`Oups, trop haut ! Il en faut ${NUMBERS[target]}. Touche la tour pour enlever un bloc.`), 500);
-      }
-    }
-
-    sizeBlocks();
-    round();
   </script>
 </body>
 </html>

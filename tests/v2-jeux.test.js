@@ -78,3 +78,103 @@ test("Les Couleurs : la couleur demandée est toujours parmi les ballons", () =>
 test("Toutes les configurations de niveaux V2 sont valides", () => {
   for (const L of [CO.LEVELS, LT.LEVELS, QF.LEVELS, CL.LEVELS]) assert.ok(KL.validateConfig(L));
 });
+
+const TO = require("../games/tours/logic.js");
+test("La Tour des Nombres : nombres du niveau, additions justes", () => {
+  for (const lv of [1, 2, 3]) {
+    const rng = rngFrom(lv * 5);
+    for (let i = 0; i < 2000; i++) {
+      const q = TO.question(lv, rng);
+      assert.ok(q.target >= TO.LEVELS[lv].min && q.target <= TO.LEVELS[lv].max);
+      assert.equal(q.fixed + q.toAdd, q.target);
+      if (lv === 3) assert.ok(q.fixed >= 1 && q.toAdd >= 1); else assert.equal(q.fixed, 0);
+    }
+  }
+  assert.equal(TO.say({ fixed: 2, toAdd: 3, target: 5 }), "deux plus trois, ça fait combien ? Construis la tour !");
+});
+
+const BO = require("../games/boulangerie/logic.js");
+const FO = require("../games/formes/logic.js");
+const ME = require("../games/memoire/logic.js");
+test("Boulangerie V2 : niveaux, et l'aide propose la bonne pièce", () => {
+  assert.ok(KL.validateConfig(BO.LEVELS));
+  assert.equal(BO.bestCoin(7, [1, 2, 5]), 5);
+  assert.equal(BO.bestCoin(1, [1, 2]), 1);
+  assert.equal(BO.bestCoin(3, [2, 5]), 2);
+});
+test("Les Formes : chaque forme a son ombre, et le niveau 3 a des formes qui se ressemblent", () => {
+  for (const lv of [1, 2, 3]) {
+    const rng = rngFrom(lv * 9);
+    for (let i = 0; i < 1000; i++) {
+      const b = FO.board(lv, rng);
+      assert.equal(b.pieces.length, FO.LEVELS[lv].pieces);
+      assert.deepEqual([...b.pieces].sort(), [...b.shadows].sort());
+      assert.equal(new Set(b.pieces).size, b.pieces.length);
+      for (const n of b.pieces) { assert.ok(FO.SHAPES[n]); assert.ok(FO.ARTICLE[n]); }
+      if (lv === 3) assert.ok((b.pieces.includes("rond") && b.pieces.includes("ovale")) || (b.pieces.includes("carré") && b.pieces.includes("rectangle")));
+    }
+  }
+});
+test("Memory : paires complètes, et une erreur ne compte que si on avait déjà vu la bonne carte", () => {
+  for (const lv of [1, 2, 3]) {
+    const d = ME.deck(lv, rngFrom(lv));
+    assert.equal(d.length, ME.LEVELS[lv].pairs * 2);
+    for (const c of d) assert.equal(d.filter((x) => x.e === c.e).length, 2);
+  }
+  const cards = [{ id: 0, e: "🐶" }, { id: 1, e: "🐱" }, { id: 2, e: "🐶" }, { id: 3, e: "🐱" }];
+  assert.equal(ME.isMemoryMistake(cards, new Set(), cards[0], cards[1]), false, "au début, on ne pouvait pas savoir");
+  assert.equal(ME.isMemoryMistake(cards, new Set([2]), cards[0], cards[1]), true, "on avait vu l'autre chien");
+  assert.equal(ME.isMemoryMistake(cards, new Set([2]), cards[0], cards[2]), false, "c'est une paire");
+});
+test("Les Formes : « l'ombre du / de la / de l' » pour chaque forme", () => {
+  for (const n of Object.keys(FO.SHAPES)) assert.match(FO.DE[n], /^(du |de la |de l')/, n);
+  assert.equal(FO.DE["étoile"], "de l'étoile");
+  assert.equal(FO.DE.lune, "de la lune");
+});
+
+const PZ = require("../games/pizzeria/logic.js");
+const GL = require("../games/glacier/logic.js");
+test("Pizzeria : commandes du niveau, avis juste, aide cohérente", () => {
+  for (const lv of [1, 2, 3]) {
+    const rng = rngFrom(lv * 13);
+    for (let i = 0; i < 1000; i++) {
+      const o = PZ.order(lv, rng);
+      const cfg = PZ.LEVELS[lv];
+      const types = Object.keys(o.tops);
+      assert.ok(types.length >= cfg.types[0] && types.length <= cfg.types[1]);
+      for (const t of types) { assert.ok(o.tray.includes(t), "la garniture demandée est sur le plateau"); assert.ok(o.tops[t] >= 1 && o.tops[t] <= cfg.maxCount); }
+      if (lv < 3) assert.ok(o.cheese);
+      // une pizza parfaite
+      const perfect = { sauce: 1, cheese: o.cheese ? 1 : 0, tops: { ...o.tops } };
+      assert.ok(PZ.judge(o, perfect).perfect);
+      assert.equal(PZ.nextNeed(o, perfect), "four");
+      assert.doesNotMatch(PZ.sentence(o, "Léa"), /undefined/);
+      // il manque une garniture
+      const t = types[0];
+      const missing = { ...perfect, tops: { ...o.tops, [t]: o.tops[t] - 1 } };
+      assert.ok(!PZ.judge(o, missing).perfect);
+      assert.deepEqual(PZ.nextNeed(o, missing), { add: t });
+    }
+  }
+  assert.equal(PZ.nextNeed({ cheese: true, tops: {} }, { sauce: 0, cheese: 0, tops: {} }), "sauce");
+  assert.match(PZ.judge({ cheese: false, tops: {} }, { sauce: 1, cheese: 0.5, tops: {} }).notes[0], /sans fromage/);
+  assert.equal(PZ.named("🫒", 1), "une olive");
+  assert.equal(PZ.named("🍄", 3), "trois champignons");
+});
+test("Glacier : commandes du niveau, parfums disponibles, avis juste", () => {
+  for (const lv of [1, 2, 3]) {
+    const rng = rngFrom(lv * 17);
+    for (let i = 0; i < 1000; i++) {
+      const o = GL.order(lv, rng);
+      const cfg = GL.LEVELS[lv];
+      assert.ok(o.scoops.length >= cfg.scoops[0] && o.scoops.length <= cfg.scoops[1]);
+      for (const f of o.scoops) assert.ok(o.tubs.includes(f), "le parfum demandé est dans les bacs");
+      assert.equal(new Set(o.tubs).size, o.tubs.length);
+      assert.ok(o.decos.length >= cfg.decos[0] && o.decos.length <= cfg.decos[1]);
+      if (lv === 1) assert.equal(o.sauce, null);
+      assert.ok(GL.judge(o, { holder: o.holder, scoops: [...o.scoops], sauce: o.sauce, decos: [...o.decos] }).perfect);
+      assert.ok(!GL.judge(o, { holder: o.holder === "pot" ? "cornet" : "pot", scoops: [...o.scoops], sauce: o.sauce, decos: [...o.decos] }).perfect);
+      assert.doesNotMatch(GL.sentence(o, "Léa"), /undefined|du la|de le/);
+    }
+  }
+});

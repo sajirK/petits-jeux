@@ -2,149 +2,83 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Memory des animaux</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    html, body { height: 100%; }
-    body {
-      background: linear-gradient(160deg, #d8f3dc, #b5e48c);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding-bottom: 20px;
-    }
-    .levels { display: flex; gap: 12px; margin: 6px 0 14px; }
-    .levels .big-btn { font-size: clamp(18px, 4vw, 26px); padding: 10px 18px; }
-    .levels .big-btn.active { background: #ffd166; }
-    #board {
-      display: grid;
-      gap: clamp(8px, 2vw, 16px);
-      width: min(96vw, 760px);
-      perspective: 900px;
-    }
-    .card {
-      aspect-ratio: 1;
-      position: relative;
-      transform-style: preserve-3d;
-      transition: transform 0.4s;
-      cursor: pointer;
-    }
+    .board { display: grid; gap: clamp(8px, 2vmin, 14px); perspective: 900px; }
+    .card { aspect-ratio: 1; position: relative; transform-style: preserve-3d; transition: transform 0.4s var(--ease-out); cursor: pointer; }
     .card.flipped, .card.found { transform: rotateY(180deg); }
-    .face {
-      position: absolute;
-      inset: 0;
-      border-radius: 20px;
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      display: grid;
-      place-items: center;
-      box-shadow: var(--shadow);
-    }
-    .back {
-      background: repeating-linear-gradient(45deg, #52b788 0 14px, #74c69d 14px 28px);
-      font-size: clamp(28px, 7vw, 54px);
-      color: #fff;
-    }
-    .front {
-      background: #fff;
-      transform: rotateY(180deg);
-      font-size: clamp(48px, 13vw, 104px);
-    }
-    .card.found .front { background: #fff3b0; animation: bounce-in 0.5s; }
+    .face { position: absolute; inset: 0; border-radius: var(--r-md); backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-items: center; box-shadow: var(--sh-1); }
+    .back { background: repeating-linear-gradient(45deg, #52b788 0 14px, #74c69d 14px 28px); font-size: clamp(28px, 6vmin, 48px); color: #fff; }
+    .front { background: #fff; transform: rotateY(180deg); font-size: clamp(36px, 9vmin, 72px); }
+    .card.found .front { background: #fff3b0; }
   </style>
 </head>
 <body>
-  <h1 class="game-title">Memory des animaux</h1>
-  <div class="levels" id="levels"></div>
-  <div id="board"></div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, confetti, shuffle } = Jeux;
-    const animals = [
-      ["🐶", "le chien"], ["🐱", "le chat"], ["🐰", "le lapin"], ["🦁", "le lion"],
-      ["🐸", "la grenouille"], ["🐷", "le cochon"], ["🐮", "la vache"], ["🐵", "le singe"],
-      ["🐔", "la poule"], ["🐘", "l'éléphant"], ["🦒", "la girafe"], ["🐧", "le pingouin"],
-    ];
-    const CALLS = { "le chien": "Wouf wouf !", "le chat": "Miaou !", "le lapin": "Couic !", "le lion": "Roaar !", "la grenouille": "Coâ coâ !", "le cochon": "Groin groin !", "la vache": "Meuh !", "le singe": "Ouh ouh !", "la poule": "Cot cot !", "l'éléphant": "Trompette !", "la girafe": "Miam !", "le pingouin": "Coin coin !" };
-    const LEVELS = [
-      { label: "😊 Facile", pairs: 3, cols: 3 },
-      { label: "😃 Moyen", pairs: 6, cols: 4 },
-      { label: "🤩 Difficile", pairs: 8, cols: 4 },
-    ];
-    let level = 0;
-    const board = document.getElementById("board");
-    const levelsEl = document.getElementById("levels");
-
-    LEVELS.forEach((l, i) => {
-      const b = document.createElement("button");
-      b.className = "big-btn";
-      b.textContent = l.label;
-      b.onclick = () => { sounds.click(); level = i; start(); };
-      levelsEl.appendChild(b);
+    const ML = MemoireLogic;
+    Kit.game({
+      id: "memoire", title: "Memory des animaux", icon: "🐶",
+      bg: "linear-gradient(160deg, #d8f3dc, #b5e48c)",
+      instruction: () => "Retourne les cartes et trouve les paires d'animaux !",
+      levels: ML.LEVELS,
+      start(round) {
+        const cfg = round.cfg;
+        const cards = ML.deck(round.level);
+        const board = Kit.ui.el("div", "board");
+        const rows = Math.ceil(cards.length / cfg.cols);
+        board.style.gridTemplateColumns = `repeat(${cfg.cols}, 1fr)`;
+        const fit = () => { const r = round.stage.getBoundingClientRect(); board.style.width = Math.min(r.width - 20, 720, ((r.height - 20) * cfg.cols) / rows) + "px"; };
+        round.stage.appendChild(board);
+        fit(); window.addEventListener("resize", fit); round.onCleanup(() => window.removeEventListener("resize", fit));
+        const seen = new Set();
+        let first = null, lock = false, found = 0;
+        const els = cards.map((c) => {
+          const el = Kit.ui.el("div", "card");
+          el.innerHTML = `<div class="face back">?</div><div class="face front">${c.e}</div>`;
+          el.onclick = () => {
+            if (lock || el.classList.contains("flipped") || el.classList.contains("found")) return;
+            Jeux.sounds.click();
+            el.classList.add("flipped");
+            round.say(c.name);
+            if (!first) { first = c; return; }
+            const a = first; first = null;
+            lock = true;
+            if (a.e === c.e) {
+              round.timeout(() => {
+                els[a.id].classList.add("found"); el.classList.add("found");
+                Jeux.sounds.success(); round.burst(el, { count: 14 });
+                found++; lock = false;
+                if (found === cfg.pairs) round.win(null, "Tu as trouvé toutes les paires !", { delay: 1600 });
+              }, 450);
+            } else {
+              if (ML.isMemoryMistake(cards, seen, a, c)) round.oops(); // on avait déjà vu la bonne carte
+              round.timeout(() => { els[a.id].classList.remove("flipped"); el.classList.remove("flipped"); lock = false; }, 1100);
+            }
+            seen.add(a.id); seen.add(c.id);
+          };
+          board.appendChild(el);
+          return el;
+        });
+        // aide : la prochaine carte utile (la paire d'une carte déjà vue, sinon une carte jamais vue)
+        round.setHintTarget(() => {
+          const open = first;
+          const hidden = cards.filter((c) => !els[c.id].classList.contains("found") && !els[c.id].classList.contains("flipped"));
+          if (open) { const p = hidden.find((c) => c.e === open.e); return p ? els[p.id] : null; }
+          const known = hidden.find((c) => seen.has(c.id) && hidden.some((d) => d.id !== c.id && d.e === c.e && seen.has(d.id)));
+          return els[(known || hidden.find((c) => !seen.has(c.id)) || hidden[0] || {}).id];
+        });
+        if (round.index > 0) round.say("Encore une partie ! Trouve les paires !");
+      },
     });
-
-    let first = null, lock = false, found = 0;
-
-    function start() {
-      [...levelsEl.children].forEach((b, i) => b.classList.toggle("active", i === level));
-      const { pairs, cols } = LEVELS[level];
-      board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-      // Sur écran large et bas (paysage), on limite la largeur pour que tout tienne
-      const rows = Math.ceil((pairs * 2) / cols);
-      board.style.width = `min(96vw, 760px, ${(innerHeight - 190) * cols / rows}px)`;
-      board.innerHTML = "";
-      first = null; lock = false; found = 0;
-      const chosen = shuffle(animals).slice(0, pairs);
-      shuffle([...chosen, ...chosen]).forEach(([emoji, name]) => {
-        const c = document.createElement("div");
-        c.className = "card";
-        c.innerHTML = `<div class="face back">?</div><div class="face front">${emoji}</div>`;
-        c.dataset.emoji = emoji;
-        c.dataset.name = name;
-        c.addEventListener("click", () => flip(c));
-        board.appendChild(c);
-      });
-    }
-
-    function flip(c) {
-      if (lock || c === first || c.classList.contains("found")) return;
-      sounds.click();
-      c.classList.add("flipped");
-      say(CALLS[c.dataset.name] || c.dataset.name);
-      if (!first) { first = c; return; }
-      lock = true;
-      if (first.dataset.emoji === c.dataset.emoji) {
-        setTimeout(() => {
-          first.classList.add("found");
-          c.classList.add("found");
-          sounds.success();
-          found++;
-          first = null; lock = false;
-          if (found === LEVELS[level].pairs) {
-            setTimeout(() => {
-              sounds.win();
-              confetti(60);
-              Jeux.addStars(1);
-              Jeux.bravo("Tu as tout trouvé !");
-              setTimeout(start, 3500);
-            }, 400);
-          }
-        }, 500);
-      } else {
-        setTimeout(() => {
-          first.classList.remove("flipped");
-          c.classList.remove("flipped");
-          first = null; lock = false;
-        }, 1100);
-      }
-    }
-
-    start();
-    setTimeout(() => say("Retourne deux cartes et retrouve les animaux pareils !"), 500);
   </script>
 </body>
 </html>

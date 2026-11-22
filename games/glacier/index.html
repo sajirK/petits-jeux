@@ -2,557 +2,211 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Le Glacier</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      background:
-        linear-gradient(180deg, #d0f4ff 0 64%, #ffc8dd 64% 66%, #ffafcc 66%);
-      display: grid;
-      grid-template-areas: "top" "client" "stack" "tray";
-      grid-template-rows: auto auto minmax(0, 1fr) auto;
-      justify-items: center;
-      align-items: center;
-    }
-    /* store à rayures roses en haut */
-    body::before {
-      content: ""; position: fixed; left: 0; right: 0; top: 0; height: 22px;
-      background: repeating-linear-gradient(90deg, #ff8fab 0 26px, #fff 26px 52px);
-      border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;
-    }
-    #top { grid-area: top; display: flex; align-items: center; gap: 10px; margin-top: max(30px, env(safe-area-inset-top)); }
-    #top h1 { margin: 0; font-size: clamp(22px, 5vw, 38px); }
-    .pill { background: #fff; border-radius: 999px; padding: 4px 16px; font-size: clamp(18px, 4vw, 28px); box-shadow: var(--shadow); }
-
-    #client { grid-area: client; display: flex; align-items: center; gap: 12px; padding: 6px 12px; max-width: 100%; }
-    #face { font-size: clamp(52px, 13vmin, 96px); line-height: 1; }
-    #face.arrive { animation: arrive 0.7s ease-out; }
-    @keyframes arrive { from { transform: translateX(-60vw) rotate(-20deg); } }
-    #face.eat { animation: lick 0.3s ease-in-out 6; }
+    .shop { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    @media (orientation: landscape) { .shop { flex-direction: row; justify-content: center; } }
+    .client { display: flex; align-items: center; gap: 10px; }
+    @media (orientation: landscape) { .client { flex-direction: column; max-width: 28vw; } }
+    .face { font-size: clamp(50px, 12vmin, 86px); line-height: 1; }
+    .face.eat { animation: lick 0.3s ease-in-out 6; }
     @keyframes lick { 50% { transform: translateY(-6px) rotate(6deg); } }
-    #bubble {
-      position: relative; background: #fff; border-radius: 22px; padding: 8px 12px;
-      box-shadow: var(--shadow);
-      display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
-      max-width: min(70vw, 480px);
-      cursor: pointer;
-    }
-    .chip {
-      display: flex; align-items: center; gap: 4px;
-      background: #fff0f6; border-radius: 14px; padding: 3px 8px;
-      font-size: clamp(16px, 3.8vmin, 26px);
-      border: 3px solid transparent;
-    }
-    .chip.ok { border-color: #06d6a0; background: #e9fff7; }
-    .ball { width: 1.1em; height: 1.1em; border-radius: 50%; display: inline-block; box-shadow: inset -3px -3px 0 rgba(0,0,0,0.12); border: 1px solid rgba(0,0,0,0.1); }
-    #message { font-size: clamp(15px, 3.5vmin, 21px); width: 100%; }
-
-    /* La glace */
-    #stackZone { grid-area: stack; width: 100%; height: 100%; min-height: 0; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; }
-    #stack { display: flex; flex-direction: column-reverse; align-items: center; transform-origin: 50% 100%; transition: transform 0.4s, opacity 0.4s; }
-    #stack.wobble { animation: wobble 2.2s ease-in-out infinite; }
-    @keyframes wobble { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
-    #holder { width: calc(var(--s) * 1.3); display: grid; place-items: end center; }
-    #holder svg { display: block; overflow: visible; }
-    .scoop {
-      width: var(--s); height: var(--s);
-      margin-bottom: calc(var(--s) * -0.28);
-      border-radius: 50% 50% 46% 46%;
-      position: relative;
-      box-shadow: inset calc(var(--s) * -0.1) calc(var(--s) * -0.1) 0 rgba(0,0,0,0.1), inset calc(var(--s) * 0.06) calc(var(--s) * 0.06) 0 rgba(255,255,255,0.45);
-      animation: drop 0.45s cubic-bezier(.3, 1.6, .6, 1);
-    }
-    /* bord ondulé en bas de la boule */
-    .scoop::after {
-      content: ""; position: absolute; left: -4%; right: -4%; bottom: 2%; height: 22%;
-      background: radial-gradient(circle at 50% 0, var(--c) 58%, transparent 60%) 0 0 / 25% 100% repeat-x;
-    }
-    .scoop .chips { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; }
-    .scoop .chips i { position: absolute; width: 8%; height: 8%; border-radius: 30%; background: #4a2511; }
-    @keyframes drop { from { transform: translateY(-50vh); } }
+    .bubble { background: #fff; border-radius: var(--r-md); padding: 8px 10px; box-shadow: var(--sh-1); display: flex; flex-wrap: wrap; gap: 6px; cursor: pointer; max-width: 70vw; }
+    .chip { display: flex; align-items: center; gap: 4px; background: #fff0f6; border-radius: 14px; padding: 3px 8px; font-size: clamp(16px, 3.8vmin, 24px); border: 3px solid transparent; }
+    .chip.ok { border-color: var(--c-success); background: var(--c-success-soft); }
+    .ball { width: 1.1em; height: 1.1em; border-radius: 50%; display: inline-block; border: 1px solid rgba(0,0,0,0.1); }
+    .stackZone { flex: 1; min-height: 0; align-self: stretch; display: flex; align-items: flex-end; justify-content: center; border-radius: var(--r-lg); transition: background var(--t-med); }
+    .stackZone.k-zone-hot { background: rgba(81, 207, 102, 0.15); }
+    .stack { display: flex; flex-direction: column-reverse; align-items: center; transform-origin: 50% 100%; transition: transform 0.4s, opacity 0.4s; }
+    .stack.wobble { animation: wob 2.2s ease-in-out infinite; }
+    @keyframes wob { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+    .scoop { width: var(--s); height: var(--s); margin-bottom: calc(var(--s) * -0.28); border-radius: 50% 50% 46% 46%; position: relative; box-shadow: inset calc(var(--s) * -0.1) calc(var(--s) * -0.1) 0 rgba(0,0,0,0.1), inset calc(var(--s) * 0.06) calc(var(--s) * 0.06) 0 rgba(255,255,255,0.45); animation: drop 0.45s cubic-bezier(.3,1.6,.6,1); cursor: pointer; }
+    @keyframes drop { from { transform: translateY(-40vh); } }
+    .scoop i { position: absolute; width: 8%; height: 8%; border-radius: 30%; background: #4a2511; }
     .sauce { position: absolute; left: -2%; right: -2%; top: -2%; height: 75%; pointer-events: none; }
+    .deco { position: absolute; left: 50%; top: calc(var(--s) * -0.32); font-size: calc(var(--s) * 0.5); line-height: 1; transform: translateX(-50%); pointer-events: none; animation: k-in 0.35s var(--ease-bounce); }
     .sprinkles { position: absolute; inset: 0; pointer-events: none; }
     .sprinkles i { position: absolute; width: 9%; height: 3%; border-radius: 3px; }
-    .deco { position: absolute; left: 50%; font-size: calc(var(--s) * 0.5); line-height: 1; transform: translateX(-50%); pointer-events: none; animation: bounce-in 0.35s; }
-
-    /* Plateau par étapes */
-    #tray {
-      grid-area: tray;
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
-      padding: 6px 10px max(12px, env(safe-area-inset-bottom));
-      width: 100%; max-width: 780px;
-    }
-    #stepTitle { font-size: clamp(18px, 4vmin, 26px); font-weight: bold; display: flex; gap: 10px; align-items: center; }
-    #dots { display: flex; gap: 6px; }
-    #dots i { width: 12px; height: 12px; border-radius: 50%; background: rgba(0,0,0,0.15); }
-    #dots i.on { background: #ff4d8d; }
-    #choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-    .opt {
-      min-width: clamp(58px, 13vmin, 88px); height: clamp(58px, 13vmin, 88px);
-      border-radius: 18px; background: #fff; box-shadow: 0 5px 0 rgba(0,0,0,0.15);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      font-size: clamp(26px, 6vmin, 42px); line-height: 1.05; padding: 0 6px;
-      transition: transform 0.1s;
-    }
-    .opt small { font-size: clamp(10px, 2.3vmin, 14px); }
-    .opt:active { transform: scale(0.9); }
-    .opt { touch-action: none; }
-    #stackZone.drop-ready { filter: drop-shadow(0 0 18px #ff4d8d); }
-    .ice-ghost { position: fixed; z-index: 100; pointer-events: none; transform: translate(-50%, -50%) scale(1.12); font-size: 54px; }
+    .side { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 520px; }
+    .opt { min-width: clamp(64px, 13vmin, 88px); height: clamp(64px, 13vmin, 88px); border-radius: 18px; background: #fff; box-shadow: var(--sh-2); font-size: clamp(30px, 6.5vmin, 44px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 6px; }
+    .opt small { font-size: 11px; }
     .opt.sel { background: #ffe5ec; outline: 4px solid #ff4d8d; }
-    .tub {
-      width: 0.95em; height: 0.8em; border-radius: 0 0 0.25em 0.25em;
-      background: #e9ecef; position: relative; margin-top: 0.15em;
-    }
-    .tub::before { content: ""; position: absolute; left: -6%; right: -6%; top: -32%; height: 60%; border-radius: 50%; background: var(--c); box-shadow: inset 0 -3px 0 rgba(0,0,0,0.1); }
-    .nav { display: flex; gap: 10px; }
-    .action {
-      height: clamp(52px, 11vmin, 72px); padding: 0 20px; border-radius: 18px;
-      font-size: clamp(18px, 4.2vmin, 28px); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,0.2);
-      box-shadow: 0 5px 0 rgba(0,0,0,0.2);
-    }
-    .action:active { transform: scale(0.94) translateY(3px); }
-    .back { background: #adb5bd; }
-    .next { background: #4cc9f0; }
-    .serve { background: #06d6a0; }
-
-    @media (max-width: 600px) { #top { margin-bottom: 6px; } }
-    @media (orientation: landscape) {
-      body {
-        grid-template-areas: "top top top" "client stack tray";
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1.2fr);
-        grid-template-rows: auto minmax(0, 1fr);
-        background: linear-gradient(180deg, #d0f4ff 0 74%, #ffc8dd 74% 76%, #ffafcc 76%);
-      }
-      #client { flex-direction: column; }
-      #bubble { max-width: 30vw; }
-      #tray { align-self: center; }
-    }
-    @media (orientation: landscape) and (max-height: 500px) {
-      #top h1 { display: none; }
-      #top { margin-top: 22px; }
-      .opt { min-width: 46px; height: 46px; font-size: 24px; border-radius: 12px; }
-      .opt small { display: none; }
-      .action { height: 44px; font-size: 18px; padding: 0 14px; }
-      #face { font-size: 46px; }
-    }
+    .tub { width: 0.95em; height: 0.8em; border-radius: 0 0 0.25em 0.25em; background: #e9ecef; position: relative; margin-top: 0.15em; }
+    .tub::before { content: ""; position: absolute; left: -6%; right: -6%; top: -32%; height: 60%; border-radius: 50%; background: var(--c); }
+    .steps { display: flex; gap: 6px; }
+    .steps i { width: 14px; height: 14px; border-radius: 50%; background: rgba(0,0,0,0.15); }
+    .steps i.on { background: #ff4d8d; }
+    .nav { display: flex; gap: 8px; }
   </style>
 </head>
 <body>
-  <div id="top"><h1>🍦 Le Glacier</h1><div class="pill" id="coins">🪙 0</div></div>
-  <div id="client">
-    <div id="face">🐻</div>
-    <div id="bubble" title="Écouter la commande"></div>
-  </div>
-  <div id="stackZone"><div id="stack"><div id="holder"></div></div></div>
-  <div id="tray">
-    <div id="stepTitle"><span id="stepName"></span><div id="dots"></div></div>
-    <div id="choices"></div>
-    <div class="nav" id="nav"></div>
-  </div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, confetti, pick, shuffle, NAME } = Jeux;
+    const GL = GlacierLogic;
+    const STEPS = ["holder", "scoops", "sauce", "decos"];
+    const STEP_SAY = { holder: "Un cornet ou un pot ?", scoops: "Glisse les boules de glace !", sauce: "Un peu de nappage ?", decos: "Et la décoration !" };
 
-    // ---------- Données ----------
-    const FLAVORS = {
-      vanille: { c: "#fff3c4", name: "vanille" },
-      chocolat: { c: "#8b5a3c", name: "chocolat" },
-      fraise: { c: "#ff9ebb", name: "fraise" },
-      pistache: { c: "#b8e08f", name: "pistache" },
-      menthe: { c: "#a8f0dc", name: "menthe chocolat", chips: true },
-      citron: { c: "#fff27a", name: "citron" },
-      myrtille: { c: "#a99cf5", name: "myrtille" },
-      mangue: { c: "#ffbb5c", name: "mangue" },
-    };
-    const SAUCES = {
-      chocolat: { c: "#4a2511", name: "sauce chocolat" },
-      caramel: { c: "#d98e04", name: "caramel" },
-      fraise: { c: "#d62839", name: "coulis de fraise" },
-    };
-    const DECOS = {
-      "🍒": { name: "une cerise", label: "cerise" },
-      "🌈": { name: "des vermicelles", label: "vermicelles" },
-      "🍫": { name: "un bâton de chocolat", label: "chocolat" },
-      "🍪": { name: "un biscuit", label: "biscuit" },
-      "🍓": { name: "une fraise", label: "fraise" },
-    };
-    const CLIENTS = [["🐻", "Ours"], ["🐱", "Chat"], ["🐸", "Grenouille"], ["🦊", "Renard"], ["🐼", "Panda"], ["🐷", "Cochon"],
-      ["🐵", "Singe"], ["🦁", "Lion"], ["🐰", "Lapin"], ["👽", "Martien"], ["🐧", "Pingouin"], ["🐨", "Koala"], ["🦄", "Licorne"]];
-    const NUM_F = ["zéro", "une", "deux", "trois", "quatre", "cinq"];
-    const STEPS = ["Cornet ou pot ?", "Les boules", "Le nappage", "La décoration"];
+    function start(round) {
+      const el = Kit.ui.el, lv = round.level;
+      const o = GL.order(lv);
+      const client = GL.CLIENTS[Math.floor(Math.random() * GL.CLIENTS.length)];
+      const ice = { holder: null, scoops: [], sauce: null, decos: [] };
+      let step = 0, served = false;
+      const shop = el("div", "shop");
+      const cl = el("div", "client");
+      const face = el("div", "face", client);
+      const bubble = el("button", "bubble");
+      bubble.onclick = () => round.say(GL.sentence(o, Jeux.NAME));
+      cl.append(face, bubble);
+      const zone = el("div", "stackZone");
+      const stack = el("div", "stack");
+      const holder = el("div", "holderEl");
+      stack.appendChild(holder); zone.appendChild(stack);
+      const side = el("div", "side");
+      const dots = el("div", "steps");
+      const choices = el("div", "choices");
+      const nav = el("div", "nav");
+      side.append(dots, choices, nav);
+      shop.append(cl, zone, side);
+      round.stage.appendChild(shop);
+      const fit = () => { const r = zone.getBoundingClientRect(); round.stage.style.setProperty("--s", Math.max(44, Math.min(110, r.width / 2.2, r.height / 5.5)) + "px"); drawHolder(); };
 
-    // ---------- État ----------
-    let made = parseInt(localStorage.getItem("jeux.glaces") || "0", 10);
-    let coins = parseInt(localStorage.getItem("jeux.coins") || "0", 10);
-    let order, client, step = 0, busy = false;
-    let ice = { holder: null, scoops: [], sauce: null, decos: [] };
-    let flavorChoices = [];
-
-    const stackEl = document.getElementById("stack");
-    const holderEl = document.getElementById("holder");
-    const bubble = document.getElementById("bubble");
-    const faceEl = document.getElementById("face");
-    const choicesEl = document.getElementById("choices");
-    const navEl = document.getElementById("nav");
-
-    // ---------- Taille des boules ----------
-    function resize() {
-      const z = document.getElementById("stackZone").getBoundingClientRect();
-      const s = Math.max(44, Math.min(120, z.width / 2.2, z.height / (0.72 * 5 + 1.9)));
-      document.documentElement.style.setProperty("--s", s + "px");
-      drawHolder();
-    }
-    new ResizeObserver(resize).observe(document.getElementById("stackZone"));
-
-    // ---------- Dessin cornet / pot (SVG) ----------
-    function drawHolder() {
-      const s = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--s")) || 80;
-      if (!ice.holder) {
-        // assiette vide en attendant le choix
-        holderEl.innerHTML = `<svg width="${s * 1.6}" height="${s * 0.3}" viewBox="0 0 160 30"><ellipse cx="80" cy="15" rx="78" ry="12" fill="#fff" stroke="#e5e5e5" stroke-width="3"/></svg>`;
-        return;
-      }
-      if (ice.holder === "cornet") {
-        const w = s * 0.95, h = s * 1.55;
-        let lines = "";
-        for (let i = -6; i <= 12; i++) {
-          lines += `<line x1="${i * 14}" y1="0" x2="${i * 14 + 120}" y2="160" stroke="#c98b4a" stroke-width="3"/>`;
-          lines += `<line x1="${i * 14 + 120}" y1="0" x2="${i * 14}" y2="160" stroke="#c98b4a" stroke-width="3"/>`;
+      function drawHolder() {
+        const s = parseFloat(getComputedStyle(round.stage).getPropertyValue("--s")) || 80;
+        if (!ice.holder) { holder.innerHTML = `<svg width="${s * 1.5}" height="${s * 0.3}" viewBox="0 0 160 30"><ellipse cx="80" cy="15" rx="78" ry="12" fill="#fff" stroke="#e5e5e5" stroke-width="3"/></svg>`; return; }
+        if (ice.holder === "cornet") {
+          let lines = ""; for (let i = -6; i <= 12; i++) lines += `<line x1="${i * 14}" y1="0" x2="${i * 14 + 120}" y2="160" stroke="#c98b4a" stroke-width="3"/><line x1="${i * 14 + 120}" y1="0" x2="${i * 14}" y2="160" stroke="#c98b4a" stroke-width="3"/>`;
+          holder.innerHTML = `<svg width="${s * 0.95}" height="${s * 1.55}" viewBox="0 0 100 160"><defs><clipPath id="cone"><polygon points="2,4 98,4 50,158"/></clipPath></defs><polygon points="2,4 98,4 50,158" fill="#f2c27b" stroke="#c98b4a" stroke-width="4" stroke-linejoin="round"/><g clip-path="url(#cone)">${lines}</g><rect x="-2" y="0" width="104" height="14" rx="7" fill="#e9a95b"/></svg>`;
+        } else {
+          holder.innerHTML = `<svg width="${s * 1.25}" height="${s * 0.85}" viewBox="0 0 125 85"><polygon points="4,4 121,4 105,82 20,82" fill="#fff" stroke="#ffafcc" stroke-width="4" stroke-linejoin="round"/><polygon points="30,4 45,4 40,82 30,82" fill="#ff8fab" opacity="0.6"/><polygon points="62,4 77,4 75,82 64,82" fill="#ff8fab" opacity="0.6"/><polygon points="94,4 109,4 98,82 88,82" fill="#ff8fab" opacity="0.6"/><rect x="0" y="0" width="125" height="12" rx="6" fill="#ff8fab"/></svg>`;
         }
-        holderEl.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 100 160">
-          <defs><clipPath id="cone"><polygon points="2,4 98,4 50,158"/></clipPath></defs>
-          <polygon points="2,4 98,4 50,158" fill="#f2c27b" stroke="#c98b4a" stroke-width="4" stroke-linejoin="round"/>
-          <g clip-path="url(#cone)">${lines}</g>
-          <rect x="-2" y="0" width="104" height="14" rx="7" fill="#e9a95b"/>
-        </svg>`;
-      } else {
-        const w = s * 1.25, h = s * 0.85;
-        holderEl.innerHTML = `<svg width="${w}" height="${h}" viewBox="0 0 125 85">
-          <polygon points="4,4 121,4 105,82 20,82" fill="#fff" stroke="#ffafcc" stroke-width="4" stroke-linejoin="round"/>
-          <polygon points="30,4 45,4 40,82 30,82" fill="#ff8fab" opacity="0.6"/>
-          <polygon points="62,4 77,4 75,82 64,82" fill="#ff8fab" opacity="0.6"/>
-          <polygon points="94,4 109,4 98,82 88,82" fill="#ff8fab" opacity="0.6"/>
-          <rect x="0" y="0" width="125" height="12" rx="6" fill="#ff8fab"/>
-        </svg>`;
       }
-    }
-
-    // ---------- Boules ----------
-    function scoopEl(flavor, animate = true) {
-      const f = FLAVORS[flavor];
-      const d = document.createElement("div");
-      d.className = "scoop";
-      d.style.background = f.c;
-      d.style.setProperty("--c", f.c);
-      if (!animate) d.style.animation = "none";
-      if (f.chips) {
-        const chips = document.createElement("div");
-        chips.className = "chips";
-        for (let i = 0; i < 9; i++) {
-          const c = document.createElement("i");
-          c.style.left = 12 + Math.random() * 70 + "%";
-          c.style.top = 12 + Math.random() * 60 + "%";
-          chips.appendChild(c);
+      const topScoop = () => (stack.children.length > 1 ? stack.lastElementChild : null);
+      function drawTop() {
+        stack.querySelectorAll(".sauce, .deco, .sprinkles").forEach((x) => x.remove());
+        const top = topScoop();
+        if (!top) return;
+        if (ice.sauce) {
+          let d = "M 4 38 Q 50 -8 96 38 ";
+          for (const [x, y] of [[88, 62], [74, 50], [60, 70], [44, 48], [28, 66], [14, 52]]) d += `L ${x + 5} 44 Q ${x + 4} ${y + 6} ${x} ${y + 6} Q ${x - 4} ${y + 6} ${x - 4} 44 `;
+          const s = document.createElementNS("http://www.w3.org/2000/svg", "svg"); s.setAttribute("viewBox", "0 0 100 80"); s.setAttribute("class", "sauce");
+          s.innerHTML = `<path d="${d}Z" fill="${GL.SAUCES[ice.sauce].c}"/>`; top.appendChild(s);
         }
-        d.appendChild(chips);
+        if (ice.decos.includes("🌈")) {
+          const sp = el("div", "sprinkles"); const cols = ["#ef476f", "#ffd166", "#06d6a0", "#118ab2", "#f15bb5", "#fff"];
+          for (let i = 0; i < 14; i++) { const x = el("i"); x.style.left = 10 + Math.random() * 75 + "%"; x.style.top = 5 + Math.random() * 50 + "%"; x.style.background = cols[i % 6]; x.style.transform = `rotate(${Math.random() * 180}deg)`; sp.appendChild(x); }
+          top.appendChild(sp);
+        }
+        ice.decos.filter((e) => e !== "🌈").forEach((e, i, arr) => { const d = el("div", "deco", e); d.style.transform = `translateX(calc(-50% + ${(i - (arr.length - 1) / 2) * 34}%))`; top.appendChild(d); });
       }
-      // toucher la boule du haut l'enlève (seulement à l'étape des boules)
-      d.addEventListener("click", () => {
-        if (busy || step !== 1 || d !== stackEl.lastElementChild) return;
-        ice.scoops.pop();
-        d.remove();
-        sounds.pop();
-        updateStack();
-        updateBubble();
+      function addScoop(f) {
+        if (ice.scoops.length >= 4) { round.say("Attention, ça va tomber !"); return; }
+        ice.scoops.push(f);
+        const sc = el("div", "scoop");
+        sc.style.background = GL.FLAVORS[f].c;
+        if (GL.FLAVORS[f].chips) for (let i = 0; i < 8; i++) { const c = el("i"); c.style.left = 12 + Math.random() * 70 + "%"; c.style.top = 12 + Math.random() * 60 + "%"; sc.appendChild(c); }
+        sc.onclick = () => { if (served || step !== 1 || sc !== stack.lastElementChild) return; ice.scoops.pop(); sc.remove(); Jeux.sounds.pop(); afterChange(); };
+        stack.appendChild(sc);
+        round.timeout(() => Jeux.sounds.slide(500, 200, 0.12, 0.3), 280);
+        round.say(GL.FLAVORS[f].name);
+        afterChange();
+      }
+      function afterChange() { stack.classList.toggle("wobble", ice.scoops.length >= 3); drawTop(); updateBubble(); }
+      function updateBubble() {
+        let h = `<span class="chip ${ice.holder === o.holder ? "ok" : ""}">${o.holder === "cornet" ? "🍦" : "🥣"}</span>`;
+        const want = GL.countBy(o.scoops), have = GL.countBy(ice.scoops);
+        for (const [f, n] of Object.entries(want)) h += `<span class="chip ${have[f] === n ? "ok" : ""}"><span class="ball" style="background:${GL.FLAVORS[f].c}"></span>${have[f] || 0}/${n}</span>`;
+        if (o.sauce) h += `<span class="chip ${ice.sauce === o.sauce ? "ok" : ""}"><span class="ball" style="background:${GL.SAUCES[o.sauce].c}"></span>💧</span>`;
+        for (const d of o.decos) h += `<span class="chip ${ice.decos.includes(d) ? "ok" : ""}">${d}</span>`;
+        bubble.innerHTML = h;
+      }
+      function opt(html, onClick, sel = false) { const b = el("button", "opt" + (sel ? " sel" : "")); b.innerHTML = html; b.onclick = () => onClick(b); choices.appendChild(b); return b; }
+      let optEls = {}, nextBtn = null;
+      function showStep(n) {
+        step = n;
+        dots.innerHTML = STEPS.map((_, i) => `<i class="${i <= n ? "on" : ""}"></i>`).join("");
+        choices.innerHTML = ""; nav.innerHTML = ""; optEls = {}; nextBtn = null;
+        const name = STEPS[n];
+        if (n > 0) { const back = el("button", "k-btn", "⬅️"); back.setAttribute("aria-label", "Retour"); back.onclick = () => { Jeux.sounds.click(); showStep(n - 1); }; nav.appendChild(back); }
+        if (name === "holder") {
+          for (const [id, e] of [["cornet", "🍦"], ["pot", "🥣"]]) optEls[id] = opt(`${e}<small>${id}</small>`, () => { ice.holder = id; drawHolder(); Jeux.sounds.success(); updateBubble(); round.timeout(() => showStep(1), 400); }, ice.holder === id);
+        } else if (name === "scoops") {
+          o.tubs.forEach((f) => {
+            const b = opt(`<span class="tub" style="--c:${GL.FLAVORS[f].c}"></span><small>${f}</small>`, () => {});
+            b.onclick = null;
+            Kit.drag(b, { ghost: () => { const g = el("div", "scoop"); g.style.background = GL.FLAVORS[f].c; g.style.animation = "none"; return g; },
+              onMove: (pt) => zone.classList.toggle("k-zone-hot", Kit.over(zone, pt)),
+              onDrop: (pt) => { zone.classList.remove("k-zone-hot"); if (!Kit.over(zone, pt)) return false; addScoop(f); return true; },
+              onTap: () => addScoop(f) });
+            optEls[f] = b;
+          });
+          nextBtn = el("button", "k-btn primary", "➡️"); nextBtn.setAttribute("aria-label", "Suivant");
+          nextBtn.onclick = () => { if (!ice.scoops.length) { round.say("Il faut au moins une boule !"); return; } Jeux.sounds.click(); showStep(2); };
+          nav.appendChild(nextBtn);
+        } else if (name === "sauce") {
+          optEls.none = opt(`🚫<small>sans</small>`, (b) => pickSauce(null, b), !ice.sauce);
+          for (const [id, s] of Object.entries(GL.SAUCES)) optEls[id] = opt(`<span class="ball" style="background:${s.c}"></span><small>${id}</small>`, (b) => pickSauce(id, b), ice.sauce === id);
+          nextBtn = el("button", "k-btn primary", "➡️"); nextBtn.setAttribute("aria-label", "Suivant");
+          nextBtn.onclick = () => { Jeux.sounds.click(); showStep(3); };
+          nav.appendChild(nextBtn);
+        } else {
+          for (const e of Object.keys(GL.DECOS)) optEls[e] = opt(e, (b) => { const i = ice.decos.indexOf(e); if (i >= 0) { ice.decos.splice(i, 1); b.classList.remove("sel"); Jeux.sounds.pop(); } else { ice.decos.push(e); b.classList.add("sel"); Jeux.sounds.coin(); } drawTop(); updateBubble(); }, ice.decos.includes(e));
+          nextBtn = el("button", "k-btn primary", "🍽️"); nextBtn.setAttribute("aria-label", "Servir");
+          nextBtn.onclick = serve;
+          nav.appendChild(nextBtn);
+        }
+        if (round.index + n > 0) round.say(STEP_SAY[name]);
+      }
+      function pickSauce(id, b) { ice.sauce = id; [...choices.children].forEach((x) => x.classList.remove("sel")); b.classList.add("sel"); Jeux.sounds.noise(0.35, { from: 500, to: 300, q: 2, volume: 0.15 }); drawTop(); updateBubble(); }
+      function serve() {
+        if (served) return;
+        served = true;
+        const { perfect, notes } = GL.judge(o, ice);
+        face.classList.add("eat");
+        let lick = 0;
+        const t = round.interval(() => { lick++; Jeux.sounds.yum(); stack.style.transform = `scale(${1 - lick * 0.2})`; if (lick >= 4) { clearInterval(t); stack.style.opacity = 0; face.classList.remove("eat");
+          if (perfect) { face.textContent = client + "😋"; round.win(face, "Elle est parfaite ! Miam ! Merci !", { praise: false, delay: 3200 }); }
+          else { face.textContent = client + "🙂"; round.oops(); round.win(face, `Merci, c'était bon ! Mais ${notes[0]}.`, { praise: false, delay: 4200 }); } } }, 420);
+      }
+      // aide : ce qu'il faut faire maintenant
+      round.setHintTarget(() => {
+        const name = STEPS[step];
+        if (name === "holder") return optEls[o.holder];
+        if (name === "scoops") {
+          const want = GL.countBy(o.scoops), have = GL.countBy(ice.scoops);
+          const extra = ice.scoops.find((f) => (have[f] || 0) > (want[f] || 0));
+          if (extra && ice.scoops[ice.scoops.length - 1] === extra) return stack.lastElementChild;
+          if (extra) return stack.lastElementChild;
+          const miss = Object.keys(want).find((f) => (have[f] || 0) < want[f]);
+          return miss ? { from: optEls[miss], to: zone } : nextBtn;
+        }
+        if (name === "sauce") return ice.sauce !== o.sauce ? optEls[o.sauce || "none"] : nextBtn;
+        const missing = o.decos.find((d) => !ice.decos.includes(d)), extraD = ice.decos.find((d) => !o.decos.includes(d));
+        return missing ? optEls[missing] : extraD ? optEls[extraD] : nextBtn;
       });
-      return d;
-    }
-    function addScoop(flavor) {
-      if (ice.scoops.length >= 5) { say("Attention, ça va tomber !"); sounds.wrong(); return; }
-      ice.scoops.push(flavor);
-      stackEl.appendChild(scoopEl(flavor));
-      setTimeout(() => sounds.slide(500, 200, 0.12, 0.3), 280); // "ploc"
-      say(`${NUM_F[ice.scoops.length]} ! ${FLAVORS[flavor].name}`);
-      updateStack();
-      updateBubble();
-    }
-    function updateStack() {
-      stackEl.classList.toggle("wobble", ice.scoops.length >= 4);
-      drawSauce();
-      drawDecos();
-    }
-
-    // ---------- Nappage + déco (sur la boule du haut) ----------
-    function topScoop() { return stackEl.children.length > 1 ? stackEl.lastElementChild : null; }
-    function drawSauce() {
-      stackEl.querySelectorAll(".sauce").forEach((x) => x.remove());
-      const top = topScoop();
-      if (!ice.sauce || !top) return;
-      const c = SAUCES[ice.sauce].c;
-      // coulures irrégulières
-      let d = "M 4 38 Q 50 -8 96 38 ";
-      const drips = [[88, 62], [74, 50], [60, 70], [44, 48], [28, 66], [14, 52]];
-      for (const [x, y] of drips) d += `L ${x + 5} 44 Q ${x + 4} ${y + 6} ${x} ${y + 6} Q ${x - 4} ${y + 6} ${x - 4} 44 `;
-      d += "Z";
-      const s = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      s.setAttribute("viewBox", "0 0 100 80");
-      s.setAttribute("class", "sauce");
-      s.innerHTML = `<path d="${d}" fill="${c}"/><ellipse cx="34" cy="20" rx="10" ry="4" fill="rgba(255,255,255,0.35)"/>`;
-      top.appendChild(s);
-    }
-    function drawDecos() {
-      stackEl.querySelectorAll(".deco, .sprinkles").forEach((x) => x.remove());
-      const top = topScoop();
-      if (!top) return;
-      const others = ice.decos.filter((e) => e !== "🌈");
-      if (ice.decos.includes("🌈")) {
-        const sp = document.createElement("div");
-        sp.className = "sprinkles";
-        const cols = ["#ef476f", "#ffd166", "#06d6a0", "#118ab2", "#f15bb5", "#fff"];
-        for (let i = 0; i < 16; i++) {
-          const x = document.createElement("i");
-          x.style.left = 10 + Math.random() * 75 + "%";
-          x.style.top = 5 + Math.random() * 50 + "%";
-          x.style.background = cols[i % cols.length];
-          x.style.transform = `rotate(${Math.random() * 180}deg)`;
-          sp.appendChild(x);
-        }
-        top.appendChild(sp);
-      }
-      others.forEach((e, i) => {
-        const el = document.createElement("div");
-        el.className = "deco";
-        el.textContent = e;
-        const spread = (i - (others.length - 1) / 2) * 34;
-        el.style.top = `calc(var(--s) * -0.32)`;
-        el.style.transform = `translateX(calc(-50% + ${spread}%)) rotate(${e === "🍫" ? 25 : spread / 3}deg)`;
-        top.appendChild(el);
-      });
-    }
-
-    // ---------- Commande ----------
-    function newOrder() {
-      const level = made;
-      const n = level < 2 ? 1 : level < 5 ? 2 : 1 + Math.floor(Math.random() * (level < 9 ? 3 : 4));
-      const pool = Object.keys(FLAVORS);
-      const scoops = Array.from({ length: n }, () => pick(pool));
-      order = {
-        holder: Math.random() < 0.6 ? "cornet" : "pot",
-        scoops,
-        sauce: level < 1 ? null : Math.random() < 0.65 ? pick(Object.keys(SAUCES)) : null,
-        decos: level < 1 ? ["🍒"] : shuffle(Object.keys(DECOS)).slice(0, Math.random() < 0.3 ? 0 : level < 4 ? 1 : 1 + Math.floor(Math.random() * 2)),
-      };
-      // parfums proposés : ceux de la commande + d'autres
-      const wanted = [...new Set(scoops)];
-      flavorChoices = shuffle([...wanted, ...shuffle(pool.filter((f) => !wanted.includes(f))).slice(0, 6 - wanted.length)]);
-      client = pick(CLIENTS.filter((c) => c !== client));
-    }
-
-    function countBy(list) { const m = {}; list.forEach((x) => (m[x] = (m[x] || 0) + 1)); return m; }
-
-    function orderSentence() {
-      const counts = countBy(order.scoops);
-      const parts = Object.entries(counts).map(([f, n]) => `${NUM_F[n]} boule${n > 1 ? "s" : ""} ${FLAVORS[f].name}`);
-      let s = `Bonjour ${NAME} ! Je voudrais ${order.holder === "cornet" ? "un cornet" : "un pot"} avec ${parts.length > 1 ? parts.slice(0, -1).join(", ") + " et " + parts[parts.length - 1] : parts[0]}`;
-      const extras = [];
-      if (order.sauce) extras.push(`du ${SAUCES[order.sauce].name}`.replace("du coulis", "du coulis").replace("du sauce", "de la sauce"));
-      order.decos.forEach((d) => extras.push(DECOS[d].name));
-      if (extras.length) s += `, avec ${extras.length > 1 ? extras.slice(0, -1).join(", ") + " et " + extras[extras.length - 1] : extras[0]}`;
-      return s + ", s'il te plaît !";
-    }
-
-    function updateBubble(msg) {
-      let html = `<span class="chip ${ice.holder === order.holder ? "ok" : ""}">${order.holder === "cornet" ? "🍦" : "🥣"}<small>${order.holder}</small></span>`;
-      const want = countBy(order.scoops), have = countBy(ice.scoops);
-      for (const [f, n] of Object.entries(want)) {
-        html += `<span class="chip ${have[f] === n ? "ok" : ""}"><span class="ball" style="background:${FLAVORS[f].c}"></span>${have[f] || 0}/${n}</span>`;
-      }
-      if (order.sauce) html += `<span class="chip ${ice.sauce === order.sauce ? "ok" : ""}"><span class="ball" style="background:${SAUCES[order.sauce].c}"></span>💧</span>`;
-      for (const d of order.decos) html += `<span class="chip ${ice.decos.includes(d) ? "ok" : ""}">${d}</span>`;
-      if (msg) html += `<div id="message">${msg}</div>`;
-      bubble.innerHTML = html;
-    }
-    bubble.addEventListener("click", () => say(orderSentence()));
-
-    // ---------- Étapes ----------
-    function opt(html, label, onClick, selected = false) {
-      const b = document.createElement("button");
-      b.className = "opt" + (selected ? " sel" : "");
-      b.innerHTML = `${html}<small>${label}</small>`;
-      b.onclick = () => { if (!busy) onClick(b); };
-      b.addEventListener("pointerdown", (e) => {
-        if (busy || e.button > 0) return;
-        iceDrag = { pointerId: e.pointerId, action: () => { if (!busy) onClick(b); } };
-        iceGhost = document.createElement("div"); iceGhost.className = "ice-ghost"; iceGhost.textContent = b.innerText.trim().split("\n")[0];
-        document.body.appendChild(iceGhost); moveIce(e); e.preventDefault();
-      });
-      choicesEl.appendChild(b);
-      return b;
-    }
-    let iceDrag = null, iceGhost = null;
-    function moveIce(e) {
-      if (!iceDrag || e.pointerId !== iceDrag.pointerId) return;
-      iceGhost.style.left = e.clientX + "px"; iceGhost.style.top = e.clientY + "px";
-      const r = document.getElementById("stackZone").getBoundingClientRect();
-      document.getElementById("stackZone").classList.toggle("drop-ready", e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
-    }
-    document.addEventListener("pointermove", moveIce);
-    document.addEventListener("pointerup", (e) => {
-      if (!iceDrag || e.pointerId !== iceDrag.pointerId) return;
-      const d = iceDrag; iceDrag = null; iceGhost?.remove(); iceGhost = null;
-      const zone = document.getElementById("stackZone"), r = zone.getBoundingClientRect(); zone.classList.remove("drop-ready");
-      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) d.action();
-    });
-    function navButton(cls, text, fn) {
-      const b = document.createElement("button");
-      b.className = "action " + cls;
-      b.textContent = text;
-      b.onclick = () => { if (!busy) { sounds.click(); fn(); } };
-      navEl.appendChild(b);
-    }
-
-    function showStep(n) {
-      step = n;
-      document.getElementById("stepName").textContent = STEPS[n];
-      document.getElementById("dots").innerHTML = STEPS.map((_, i) => `<i class="${i <= n ? "on" : ""}"></i>`).join("");
-      choicesEl.innerHTML = "";
-      navEl.innerHTML = "";
-      if (n > 0) navButton("back", "⬅️", () => showStep(n - 1));
-
-      if (n === 0) {
-        for (const [id, emoji] of [["cornet", "🍦"], ["pot", "🥣"]]) {
-          opt(emoji, id, () => {
-            ice.holder = id;
-            drawHolder();
-            sounds.success();
-            say(id === "cornet" ? "Un cornet !" : "Un pot !");
-            updateBubble();
-            setTimeout(() => showStep(1), 500);
-          }, ice.holder === id);
-        }
-      } else if (n === 1) {
-        for (const f of flavorChoices) {
-          opt(`<span class="tub" style="--c:${FLAVORS[f].c}"></span>`, f, () => addScoop(f));
-        }
-        navButton("next", "Suivant ➡️", () => {
-          if (!ice.scoops.length) { say("Il faut au moins une boule !"); sounds.wrong(); return; }
-          showStep(2);
-        });
-        say("Choisis les boules !");
-      } else if (n === 2) {
-        const choose = (id) => {
-          ice.sauce = id;
-          drawSauce();
-          drawDecos();
-          [...choicesEl.children].forEach((x) => x.classList.remove("sel"));
-          sounds.noise(0.35, { from: 500, to: 300, q: 2, volume: 0.15 });
-          updateBubble();
-        };
-        opt("🚫", "sans", (b) => { choose(null); b.classList.add("sel"); }, !ice.sauce);
-        for (const [id, s] of Object.entries(SAUCES)) {
-          opt(`<span class="ball" style="background:${s.c}"></span>`, id, (b) => { choose(id); b.classList.add("sel"); say(s.name); }, ice.sauce === id);
-        }
-        navButton("next", "Suivant ➡️", () => showStep(3));
-        say("Un peu de nappage ?");
-      } else {
-        for (const [e, d] of Object.entries(DECOS)) {
-          opt(e, d.label, (b) => {
-            const i = ice.decos.indexOf(e);
-            if (i >= 0) { ice.decos.splice(i, 1); b.classList.remove("sel"); sounds.pop(); }
-            else { ice.decos.push(e); b.classList.add("sel"); sounds.coin(); say(d.label); }
-            drawDecos();
-            updateBubble();
-          }, ice.decos.includes(e));
-        }
-        navButton("serve", "🍽️ Servir !", serve);
-        say("Et la décoration !");
-      }
-    }
-
-    // ---------- Servir ----------
-    function judge() {
-      const notes = [];
-      if (ice.holder !== order.holder) notes.push(`je voulais ${order.holder === "cornet" ? "un cornet" : "un pot"}`);
-      const want = countBy(order.scoops), have = countBy(ice.scoops);
-      for (const [f, n] of Object.entries(want)) {
-        const h = have[f] || 0;
-        if (h !== n) notes.push(`je voulais ${NUM_F[n]} boule${n > 1 ? "s" : ""} ${FLAVORS[f].name}, et il y en a ${NUM_F[h] || h}`);
-      }
-      const extra = Object.keys(have).find((f) => !(f in want));
-      if (extra) notes.push(`il y a une boule ${FLAVORS[extra].name} en plus, rigolo`);
-      if (order.sauce !== ice.sauce) notes.push(order.sauce ? `je voulais du ${SAUCES[order.sauce].name}`.replace("du sauce", "de la sauce") : "je ne voulais pas de nappage");
-      for (const d of order.decos) if (!ice.decos.includes(d)) notes.push(`il manque ${DECOS[d].name}`);
-      return notes;
-    }
-
-    function serve() {
-      busy = true;
-      const notes = judge();
-      const perfect = notes.length === 0;
-      faceEl.classList.add("eat");
-      let lick = 0;
-      const t = setInterval(() => {
-        lick++;
-        sounds.yum();
-        stackEl.style.transform = `scale(${1 - lick * 0.2})`;
-        if (lick >= 4) {
-          clearInterval(t);
-          stackEl.style.opacity = 0;
-          faceEl.classList.remove("eat");
-          react(perfect, notes);
-        }
-      }, 450);
-    }
-
-    function react(perfect, notes) {
-      coins += perfect ? 3 : 1;
-      made++;
-      localStorage.setItem("jeux.coins", coins);
-      localStorage.setItem("jeux.glaces", made);
-      document.getElementById("coins").textContent = "🪙 " + coins;
-      if (perfect) {
-        faceEl.textContent = client[0] + "😋";
-        Jeux.addStars(1);
-        sounds.win();
-        confetti(50, ["🍦", "🍒", "⭐", "🪙", "🍨"]);
-        const s = pick(["Elle est parfaite ! Miam !", "Trop bonne ! Merci !", "La meilleure glace du monde !"]);
-        updateBubble(`😋 ${s} +3 🪙`);
-        say(`${s} Bravo ${NAME} !`);
-      } else {
-        faceEl.textContent = client[0] + "🙂";
-        sounds.success();
-        const s = `Merci, c'était bon ! Mais ${notes[0]}.`;
-        updateBubble(`🙂 ${s} +1 🪙`);
-        say(s);
-      }
-      setTimeout(nextClient, perfect ? 4500 : 5500);
-    }
-
-    function nextClient() {
-      busy = false;
-      ice = { holder: null, scoops: [], sauce: null, decos: [] };
-      [...stackEl.querySelectorAll(".scoop")].forEach((s) => s.remove());
-      stackEl.style.transform = "";
-      stackEl.style.opacity = 1;
-      stackEl.classList.remove("wobble");
-      newOrder();
-      faceEl.textContent = client[0];
-      faceEl.classList.remove("arrive"); void faceEl.offsetWidth; faceEl.classList.add("arrive");
-      drawHolder();
+      fit();
+      const ro = new ResizeObserver(fit); ro.observe(zone); round.onCleanup(() => ro.disconnect());
       updateBubble();
       showStep(0);
-      setTimeout(() => say(orderSentence()), 700);
+      round.timeout(() => round.say(GL.sentence(o, Jeux.NAME)), round.index === 0 ? 3600 : 600);
     }
 
-    document.getElementById("coins").textContent = "🪙 " + coins;
-    resize();
-    nextClient();
+    Kit.game({
+      id: "glacier", title: "Le Glacier", icon: "🍦",
+      bg: "linear-gradient(180deg, #d0f4ff 0 64%, #ffc8dd 64% 66%, #ffafcc 66%)",
+      instruction: () => "Écoute la commande du client, et prépare sa glace !",
+      levels: GL.LEVELS,
+      start,
+    });
   </script>
 </body>
 </html>

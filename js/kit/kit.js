@@ -120,17 +120,27 @@
   // ======================================================================
   // Main qui montre (aide quand l'enfant hésite)
   // ======================================================================
+  // el : un élément (la main tapote dessus) ou { from, to } (la main fait le geste de glisser)
   function showHand(el) {
     if (!el) return;
     document.querySelectorAll(".k-hand").forEach((h) => h.remove());
-    const r = el.getBoundingClientRect();
+    const isDrag = el.from && el.to;
+    const a = (isDrag ? el.from : el).getBoundingClientRect();
     const h = document.createElement("div");
-    h.className = "k-hand";
+    h.className = "k-hand" + (isDrag ? " k-hand-drag" : "");
     h.textContent = "👆";
-    h.style.left = r.left + r.width / 2 + "px";
-    h.style.top = r.top + r.height / 2 + "px";
+    h.style.left = a.left + a.width / 2 + "px";
+    h.style.top = a.top + a.height / 2 + "px";
     document.body.appendChild(h);
-    setTimeout(() => h.remove(), 2900);
+    if (isDrag) {
+      const b = el.to.getBoundingClientRect();
+      const go = () => { h.style.left = b.left + b.width / 2 + "px"; h.style.top = b.top + b.height / 2 + "px"; };
+      const back = () => { h.style.transition = "none"; h.style.left = a.left + a.width / 2 + "px"; h.style.top = a.top + a.height / 2 + "px"; void h.offsetWidth; h.style.transition = ""; };
+      setTimeout(go, 350);
+      setTimeout(back, 1500);
+      setTimeout(go, 1800);
+    }
+    setTimeout(() => h.remove(), isDrag ? 3000 : 2900);
   }
 
   // ======================================================================
@@ -432,5 +442,66 @@
     },
   };
 
-  window.Kit = { game, Voice, Particles, showHand, lockViewport, levels: L, ui: UI };
+  // ======================================================================
+  // Glisser-déposer standard
+  //   Kit.drag(source, {
+  //     ghost: "🍓" | (el) => contenu,       // ce qui suit le doigt
+  //     onMove(pt, e)                        // pendant le geste (pt = {x, y} écran)
+  //     onDrop(pt, e) → true si déposé        // sinon l'objet revient à sa place
+  //     onTap()                               // simple toucher sans glisser (optionnel)
+  //   })
+  //   Kit.over(el, pt, marge) → le point est-il sur l'élément ?
+  // ======================================================================
+  function over(el, pt, margin = 0) {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    return pt.x >= r.left - margin && pt.x <= r.right + margin && pt.y >= r.top - margin && pt.y <= r.bottom + margin;
+  }
+  function drag(source, opts = {}) {
+    source.style.touchAction = "none";
+    source.addEventListener("pointerdown", (e) => {
+      if (opts.enabled && !opts.enabled()) return;
+      e.preventDefault();
+      try { source.setPointerCapture(e.pointerId); } catch (err) {}
+      const start = { x: e.clientX, y: e.clientY };
+      let ghost = null, moved = false;
+      const makeGhost = () => {
+        ghost = document.createElement("div");
+        ghost.className = "k-ghost";
+        const g = typeof opts.ghost === "function" ? opts.ghost(source) : opts.ghost;
+        if (g instanceof Node) ghost.appendChild(g); else ghost.textContent = g || source.textContent;
+        document.body.appendChild(ghost);
+        source.classList.add("k-lifted");
+        J.sounds.click();
+      };
+      const move = (ev) => {
+        const pt = { x: ev.clientX, y: ev.clientY };
+        if (!moved && Math.hypot(pt.x - start.x, pt.y - start.y) > 8) { moved = true; makeGhost(); }
+        if (!moved) return;
+        ghost.style.left = pt.x + "px"; ghost.style.top = pt.y + "px";
+        if (opts.onMove) opts.onMove(pt, ev);
+      };
+      const up = (ev) => {
+        source.removeEventListener("pointermove", move);
+        source.removeEventListener("pointerup", up);
+        source.removeEventListener("pointercancel", up);
+        source.classList.remove("k-lifted");
+        const pt = { x: ev.clientX, y: ev.clientY };
+        if (!moved) { if (opts.onTap) opts.onTap(); return; }
+        const ok = ev.type === "pointerup" && opts.onDrop ? opts.onDrop(pt, ev) : false;
+        if (ok) { ghost.classList.add("k-drop"); setTimeout(() => ghost.remove(), 220); }
+        else {
+          const r = source.getBoundingClientRect();
+          ghost.classList.add("k-back");
+          ghost.style.left = r.left + r.width / 2 + "px"; ghost.style.top = r.top + r.height / 2 + "px";
+          setTimeout(() => ghost.remove(), 320);
+        }
+      };
+      source.addEventListener("pointermove", move);
+      source.addEventListener("pointerup", up);
+      source.addEventListener("pointercancel", up);
+    });
+  }
+
+  window.Kit = { game, Voice, Particles, showHand, lockViewport, levels: L, ui: UI, drag, over };
 })();
