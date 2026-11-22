@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Tranche les Fruits</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -96,14 +96,16 @@
       const n = 1 + Math.floor(Math.random() * (mode === "rapide" ? 4 : 3));
       for (let i = 0; i < n; i++) {
         const sock = Math.random() < (mode === "rapide" ? 0.12 : 0.07);
-        const golden = !sock && Math.random() < 0.05;
-        const [emoji, juice] = sock ? ["🧦", "#9aa"] : golden ? ["⭐", "#ffd60a"] : pick(FRUITS);
+        const bomb = !sock && Math.random() < 0.035;
+        const rainbow = !sock && !bomb && Math.random() < 0.045;
+        const golden = !sock && !bomb && !rainbow && Math.random() < 0.05;
+        const [emoji, juice] = sock ? ["🧦", "#9aa"] : bomb ? ["💣", "#343a40"] : rainbow ? ["🌈", "#ff70a6"] : golden ? ["⭐", "#ffd60a"] : pick(FRUITS);
         const x = W * (0.15 + Math.random() * 0.7);
         // vitesse calculée pour monter entre 45% et 80% de l'écran
         const apex = H * (0.45 + Math.random() * 0.35);
         const vy = -Math.sqrt(2 * gravity * apex);
         const vx = (W / 2 - x) * (0.3 + Math.random() * 0.5) / (Math.abs(vy) / gravity);
-        objects.push({ emoji, juice, sock, golden, x, y: H + R, vx, vy, rot: 0, vr: (Math.random() - 0.5) * 4, delay: i * 0.25 });
+        objects.push({ emoji, juice, sock, bomb, rainbow, golden, x, y: H + R, vx, vy, rot: 0, vr: (Math.random() - 0.5) * 4, delay: i * 0.25 });
       }
     }
 
@@ -170,15 +172,21 @@
       if (!o.sock) stains.push({ x: o.x, y: o.y, r: R * (0.9 + Math.random() * 0.5), c: o.juice, life: 3, seed: Math.random() * 10 });
       sounds.splat();
 
-      if (o.sock) {
+      if (o.bomb) {
+        score = Math.max(0, score - 5);
+        texts.push({ x: o.x, y: o.y, s: "BOUM ! -5", c: "#343a40", life: 1.2, big: true });
+        sounds.wrong();
+        say("Oups, la bombe ! Évite-la !");
+      } else if (o.sock) {
         score = Math.max(0, score - 3);
         texts.push({ x: o.x, y: o.y, s: "Beurk ! -3", c: "#555", life: 1.2 });
         say(pick(["Beurk ! Une chaussette !", "Oh non, pas la chaussette !", "Pouah, ça pue !"]));
         sounds.wrong();
       } else {
-        const pts = o.golden ? 5 : 1;
+        const pts = o.rainbow ? 10 : o.golden ? 5 : 1;
         score += pts;
         swipeCuts++;
+        if (o.rainbow) { texts.push({ x: o.x, y: o.y, s: "+10 🌈", c: "#ff70a6", life: 1.4, big: true }); confetti(22, ["🌈", "⭐", "✨"]); sounds.win(); say("Arc-en-ciel ! Dix points !"); }
         if (o.golden) { texts.push({ x: o.x, y: o.y, s: "+5 ⭐", c: "#ffd60a", life: 1.2 }); sounds.coin(); }
         if (score > 0 && score % 25 < pts) { Jeux.addStars(1); sounds.win(); confetti(25, ["🍉", "🍓", "🍌", "⭐"]); }
       }

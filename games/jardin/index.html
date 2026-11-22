@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Mon jardin</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    body { background: linear-gradient(180deg, #a5d8ff 0 55%, #8ce99a 55%); }
+    #basket { background: #fff; border-radius: 999px; padding: 6px 16px; box-shadow: var(--shadow); font-size: clamp(16px, 3.8vmin, 22px); margin-bottom: 8px; min-height: 1.4em; }
+    #tip { font-size: clamp(16px, 3.8vmin, 22px); background: rgba(255,255,255,0.85); border-radius: 18px; padding: 8px 14px; text-align: center; max-width: 720px; min-height: 2.4em; margin-bottom: 10px; }
+    #pots { display: flex; gap: clamp(10px, 3vmin, 26px); justify-content: center; align-items: flex-end; flex-wrap: wrap; }
+    .pot { display: flex; flex-direction: column; align-items: center; cursor: pointer; padding: 8px; border-radius: 22px; transition: background 0.2s; position: relative; }
+    .pot.sel { background: rgba(255,255,255,0.55); outline: 4px solid #fab005; }
+    .sky { height: clamp(34px, 8vmin, 50px); font-size: clamp(28px, 7vmin, 44px); }
+    .plant { font-size: clamp(56px, 14vmin, 96px); line-height: 1; height: clamp(70px, 17vmin, 110px); display: flex; align-items: flex-end; }
+    .plant.grow { animation: grow 0.8s cubic-bezier(.3,1.6,.6,1); }
+    @keyframes grow { from { transform: scale(0.4); } }
+    .plant.droop { animation: droop 0.6s; }
+    @keyframes droop { 50% { transform: rotate(-12deg) translateY(6px); } }
+    .soil { width: clamp(90px, 22vmin, 140px); height: clamp(46px, 11vmin, 70px); border-radius: 0 0 26px 26px; background: linear-gradient(#8d5524 0 22%, #c06c3e 22%); position: relative; display: grid; place-items: center; }
+    .soil .under { font-size: clamp(26px, 6vmin, 40px); opacity: 0.9; }
+    .status { font-size: clamp(14px, 3.2vmin, 18px); margin-top: 4px; background: #fff; border-radius: 999px; padding: 2px 10px; }
+    .drop { position: absolute; top: 30px; font-size: 26px; animation: fall 0.7s ease-in forwards; pointer-events: none; }
+    @keyframes fall { to { transform: translateY(70px); opacity: 0; } }
+    #tools { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; justify-content: center; }
+    .tool { background: #fff; border-radius: 22px; padding: 10px 16px; font-size: clamp(18px, 4.2vmin, 26px); box-shadow: 0 6px 0 rgba(0,0,0,0.12); }
+    .tool:active { transform: scale(0.94) translateY(3px); }
+    #seeds { display: none; gap: 10px; margin-top: 12px; flex-wrap: wrap; justify-content: center; }
+    #seeds.show { display: flex; }
+    #seeds button { background: #fff; border-radius: 18px; padding: 8px 14px; font-size: clamp(16px, 3.8vmin, 22px); box-shadow: 0 5px 0 rgba(0,0,0,0.1); }
+    #lesson { margin-top: 14px; font-size: clamp(14px, 3.3vmin, 18px); background: rgba(255,255,255,0.8); border-radius: 16px; padding: 6px 12px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="brain">
+    <h1 class="game-title">Mon jardin</h1>
+    <div id="basket"></div>
+    <div id="tip"></div>
+    <div id="pots"></div>
+    <div id="tools">
+      <button class="tool" id="water">💧 Arroser</button>
+      <button class="tool" id="sun">☀️ Soleil</button>
+      <button class="tool" id="pick">🧺 Cueillir</button>
+    </div>
+    <div id="seeds"></div>
+    <div id="lesson">🌱 Une plante a besoin de <b>terre</b>, d'<b>eau</b> (pas trop !) et de <b>lumière</b> pour grandir.</div>
+  </div>
+
+  <script src="../../js/common.js"></script>
+  <script src="logic.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, confetti } = Jeux;
+    const JL = JardinLogic;
+    const TYPES = Object.keys(JL.PLANTS);
+    // le jardin est gardé sur l'appareil
+    const saved = (() => { try { return JSON.parse(localStorage.getItem("jeux.jardin") || "null"); } catch (e) { return null; } })();
+    let pots = saved && saved.pots && saved.pots.length === 3 ? saved.pots : ["tournesol", "tomate", "carotte"].map((t) => JL.newPot(t));
+    let basket = (saved && saved.basket) || {};
+    let sel = 0, harvests = 0;
+    const save = () => localStorage.setItem("jeux.jardin", JSON.stringify({ pots, basket }));
+    const potsEl = document.getElementById("pots");
+    const tip = document.getElementById("tip");
+
+    function needText(p) {
+      const n = JL.needs(p);
+      const plant = JL.PLANTS[p.type];
+      if (n === "récolter") return `Ta plante est prête ! Cueille-la avec le panier 🧺`;
+      if (n === "eau et soleil") return `${cap(plant.name)} a besoin d'eau et de soleil.`;
+      if (n === "eau") return `${cap(plant.name)} a eu du soleil. Maintenant, un peu d'eau !`;
+      if (n === "soleil") return `${cap(plant.name)} a bu. Maintenant, il lui faut du soleil !`;
+      return "";
+    }
+    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+    function render(grewIndex = -1, droopIndex = -1) {
+      potsEl.innerHTML = "";
+      pots.forEach((p, i) => {
+        const plant = JL.PLANTS[p.type];
+        const d = document.createElement("div");
+        d.className = "pot" + (i === sel ? " sel" : "");
+        const above = plant.underground && p.stage === 4 ? "🌿" : plant.stages[p.stage];
+        d.innerHTML = `
+          <div class="sky">${p.sun ? "☀️" : p.stage < 4 ? "☁️" : ""}</div>
+          <div class="plant${i === grewIndex ? " grow" : ""}${i === droopIndex ? " droop" : ""}">${p.stage === 0 ? "" : above}</div>
+          <div class="soil"><span class="under">${p.stage === 0 ? "🟤" : plant.underground && p.stage >= 3 ? "🥕" : ""}</span></div>
+          <div class="status">${plant.seed} ${"💧".repeat(p.water) || "·"} ${JL.stageName(p)}</div>`;
+        d.onclick = () => { sel = i; sounds.click(); render(); tip.textContent = needText(pots[sel]); say(needText(pots[sel])); };
+        potsEl.appendChild(d);
+      });
+      const items = Object.entries(basket).map(([e, n]) => `${e} ${n}`).join("   ");
+      document.getElementById("basket").textContent = items ? `🧺 Mon panier : ${items}` : "🧺 Mon panier est vide";
+    }
+
+    function drops() {
+      const pot = potsEl.children[sel];
+      for (let i = 0; i < 3; i++) {
+        const d = document.createElement("div");
+        d.className = "drop"; d.textContent = "💧";
+        d.style.left = 30 + i * 22 + "%"; d.style.animationDelay = i * 0.1 + "s";
+        pot.appendChild(d);
+        setTimeout(() => d.remove(), 900);
+      }
+    }
+
+    function afterAction(res) {
+      const p = pots[sel];
+      save();
+      if (!res.ok) { sounds.wrong(); tip.textContent = res.msg; say(res.msg); render(-1, /eau/.test(res.msg) ? sel : -1); return; }
+      if (res.grew) {
+        sounds.success();
+        render(sel);
+        const txt = p.stage === 4 ? "Bravo ! Ta plante est prête à cueillir !" : `Elle grandit ! C'est maintenant une ${JL.stageName(p)}. ${needText(p)}`;
+        tip.textContent = txt;
+        say(txt);
+      } else {
+        render();
+        tip.textContent = `${res.msg} ${needText(p)}`;
+        say(tip.textContent);
+      }
+    }
+
+    document.getElementById("water").onclick = () => { const r = JL.water(pots[sel]); if (r.ok) { sounds.noise(0.5, { from: 2000, to: 1200, q: 1, volume: 0.1 }); } render(); if (r.ok) drops(); setTimeout(() => afterAction(r), r.ok ? 500 : 0); };
+    document.getElementById("sun").onclick = () => { const r = JL.sun(pots[sel]); if (r.ok) sounds.bell(880, 0, 0.12, 0.8); afterAction(r); };
+    document.getElementById("pick").onclick = () => {
+      const p = pots[sel];
+      const plant = JL.PLANTS[p.type];
+      if (p.stage < 4) { sounds.wrong(); tip.textContent = `Pas encore ! ${needText(p)}`; say(tip.textContent); return; }
+      const h = JL.harvest(p);
+      basket[h.e] = (basket[h.e] || 0) + h.count;
+      harvests++;
+      Jeux.addStars(1);
+      sounds.win();
+      confetti(30, [h.e, "✨", "🌱"]);
+      tip.textContent = `${h.count} ${h.e} cueilli${h.count > 1 ? "s" : ""} ! ${plant.fact}`;
+      say(`Bravo ! ${plant.fact}`);
+      save();
+      render();
+      showSeeds();
+    };
+
+    // Après une récolte, on choisit quoi replanter
+    function showSeeds() {
+      const box = document.getElementById("seeds");
+      box.innerHTML = "<span style='align-self:center'>Que veux-tu planter ?</span>";
+      TYPES.forEach((t) => {
+        const b = document.createElement("button");
+        b.textContent = `${JL.PLANTS[t].seed} ${JL.PLANTS[t].name.replace(/^(le |la |l')/, "")}`;
+        b.onclick = () => {
+          pots[sel] = JL.newPot(t);
+          box.classList.remove("show");
+          sounds.pop();
+          save();
+          render();
+          tip.textContent = `On a planté une graine de ${JL.PLANTS[t].name.replace(/^(le |la |l')/, "")}. ${needText(pots[sel])}`;
+          say(tip.textContent);
+        };
+        box.appendChild(b);
+      });
+      box.classList.add("show");
+    }
+
+    render();
+    tip.textContent = "Touche un pot, puis aide la plante à grandir avec l'eau et le soleil !";
+    setTimeout(() => say("Bienvenue dans ton jardin ! Touche un pot, puis aide la plante à grandir avec l'eau et le soleil."), 500);
+  </script>
+</body>
+</html>

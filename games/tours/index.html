@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>La Tour des Nombres</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -44,6 +44,7 @@
     .dot { width: clamp(14px, 3vmin, 22px); height: clamp(14px, 3vmin, 22px); border-radius: 50%; background: #3b2a4d; opacity: 0.2; transition: opacity 0.2s, background 0.2s; }
     .dot.on { opacity: 1; background: #ef476f; }
     #say { font-size: clamp(16px, 3.5vmin, 22px); opacity: 0.6; }
+    #visualMode { border: 0; border-radius: 50%; width: 48px; height: 48px; background: #fff; box-shadow: var(--shadow); font-size: 25px; }
 
     /* La tour */
     #towerZone {
@@ -116,14 +117,16 @@
       max-width: 340px;
     }
     #pile .block { cursor: pointer; transition: transform 0.1s; }
+    #pile .block { touch-action: none; }
     #pile .block:active { transform: scale(0.88); }
+    #towerZone.drop-ready { background: radial-gradient(ellipse, #ffffff66, transparent 68%); }
     .flying {
       position: fixed;
       z-index: 100;
       pointer-events: none;
       transition: left 0.35s ease-in, top 0.35s ease-in;
     }
-    .hint { font-size: clamp(15px, 3.4vmin, 20px); text-align: center; margin-top: 6px; opacity: 0.7; width: 100%; }
+    .hint { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -134,6 +137,7 @@
       <div id="digit">3</div>
       <div id="dots"></div>
       <div id="say">🔊</div>
+      <button id="visualMode" type="button" aria-label="Mode sans chiffres">👀</button>
     </div>
     <div id="towerZone">
       <div id="tower"></div>
@@ -141,7 +145,7 @@
     </div>
     <div>
       <div id="pile"></div>
-      <div class="hint">Touche un bloc pour l'ajouter.<br />Touche la tour pour en enlever un.</div>
+      <div class="hint">Glisse un cube sur la tour.</div>
     </div>
   </div>
 
@@ -162,7 +166,7 @@
     let target = 3;        // nombre à atteindre
     let fixedCount = 0;    // blocs déjà posés (mode addition)
     let addColor;          // couleur des blocs à ajouter
-    let wins = 0, busy = false;
+    let wins = 0, busy = false, visualOnly = false, dragging = null, dragGhost = null;
 
     // Taille des blocs : 10 blocs doivent tenir dans la hauteur dispo
     // Taille calculée une fois par image, et seulement si elle change vraiment
@@ -191,10 +195,17 @@
     }
 
     function question() {
-      if (fixedCount) say(`${NUMBERS[fixedCount]} plus ${NUMBERS[target - fixedCount]}, ça fait combien ? Construis la tour !`);
-      else say(`Construis une tour de ${NUMBERS[target]} !`);
+      if (fixedCount) say(`${NUMBERS[fixedCount]} plus ${NUMBERS[target - fixedCount]}, ça fait combien ? Glisse les cubes pour compléter la tour !`);
+      else say(`Glisse les cubes pour construire une tour de ${NUMBERS[target]} !`);
     }
     document.getElementById("target").onclick = question;
+    document.getElementById("visualMode").onclick = (e) => {
+      e.stopPropagation();
+      visualOnly = !visualOnly;
+      document.getElementById("visualMode").setAttribute("aria-pressed", String(visualOnly));
+      digitEl.style.display = visualOnly ? "none" : "block";
+      say(visualOnly ? "Mode images ! Construis la tour en regardant les cubes." : "Mode chiffres ! Regarde le nombre et construis la tour.");
+    };
 
     function round() {
       busy = false;
@@ -231,13 +242,42 @@
 
     function buildPile() {
       pileEl.innerHTML = "";
-      const colors = addColor ? Array(6).fill(addColor) : shuffle(COLORS).slice(0, 6);
+      const pileSize = Math.max(6, target - count() + 2);
+      const palette = shuffle(COLORS);
+      const colors = addColor ? Array(pileSize).fill(addColor) : Array.from({ length: pileSize }, (_, i) => palette[i % palette.length]);
       colors.forEach((c) => {
         const b = makeBlock(c);
         b.addEventListener("click", () => addBlock(b, c));
+        b.addEventListener("pointerdown", (e) => {
+          if (busy || e.button > 0) return;
+          dragging = { source: b, color: c, pointerId: e.pointerId };
+          dragGhost = makeBlock(c);
+          dragGhost.className = "block flying";
+          const r = b.getBoundingClientRect();
+          dragGhost.style.left = r.left + "px"; dragGhost.style.top = r.top + "px";
+          document.body.appendChild(dragGhost);
+          e.preventDefault();
+        });
         pileEl.appendChild(b);
       });
     }
+
+    document.addEventListener("pointermove", (e) => {
+      if (!dragging || e.pointerId !== dragging.pointerId) return;
+      dragGhost.style.left = e.clientX - dragGhost.offsetWidth / 2 + "px";
+      dragGhost.style.top = e.clientY - dragGhost.offsetHeight / 2 + "px";
+      const r = document.getElementById("towerZone").getBoundingClientRect();
+      document.getElementById("towerZone").classList.toggle("drop-ready", e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
+    });
+    document.addEventListener("pointerup", (e) => {
+      if (!dragging || e.pointerId !== dragging.pointerId) return;
+      const d = dragging; dragging = null;
+      dragGhost?.remove(); dragGhost = null;
+      const zone = document.getElementById("towerZone");
+      zone.classList.remove("drop-ready");
+      const r = zone.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) addBlock(d.source, d.color);
+    });
 
     function updateDots() {
       [...dotsEl.children].forEach((d, i) => d.classList.toggle("on", i < count()));

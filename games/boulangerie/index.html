@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>La Boulangerie des nombres</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -15,8 +15,8 @@
     #face.arrive { animation: arrive 0.6s ease-out; }
     @keyframes arrive { from { transform: translateX(-50vw); } }
     #bubble { background: #fff; border-radius: 22px; padding: 8px 16px; box-shadow: var(--shadow); cursor: pointer; text-align: center; }
-    #want { font-size: clamp(38px, 10vmin, 64px); font-weight: bold; line-height: 1.1; }
-    #wantText { font-size: clamp(14px, 3.4vmin, 19px); opacity: 0.75; }
+    #want { font-size: clamp(28px, 7vmin, 48px); font-weight: bold; line-height: 1.1; display: flex; flex-wrap: wrap; justify-content: center; max-width: min(68vw, 400px); }
+    #wantText { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     #boxes { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
     .box {
       background: #a0522d; border-radius: 16px; padding: 8px; box-shadow: 0 6px 0 rgba(0,0,0,0.18);
@@ -27,11 +27,16 @@
       display: grid; place-items: center; font-size: clamp(24px, 6.4vmin, 40px);
     }
     .cell.full { cursor: pointer; animation: bounce-in 0.25s; }
+    #boxes.drop-ready { outline: 6px dashed #40c057; outline-offset: 5px; }
     #count { font-size: clamp(17px, 4vmin, 24px); min-height: 1.4em; margin-bottom: 8px; text-align: center; }
+    #count { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    #want > span { margin: 1px 3px; }
     #count b { font-size: 1.5em; }
     #controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
     .act { border-radius: 20px; padding: 10px 18px; font-size: clamp(20px, 4.6vmin, 28px); box-shadow: 0 6px 0 rgba(0,0,0,0.15); background: #fff; }
     .act:active { transform: scale(0.94) translateY(3px); }
+    #addOne { touch-action: none; }
+    .pastry-drag { position: fixed; z-index: 100; pointer-events: none; transform: translate(-50%, -50%) scale(1.25); font-size: 56px; }
     #addTen { background: #ffd8a8; }
     #give { background: #40c057; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,0.2); }
     /* argent */
@@ -68,8 +73,8 @@
     <div id="boxes"></div>
     <div id="controls">
       <button class="act" id="addOne"></button>
-      <button class="act" id="addTen">📦 + 10</button>
-      <button class="act" id="give">🛍️ Donner</button>
+      <button class="act" id="addTen" aria-label="Ajouter une boîte de dix" title="Ajouter une boîte de dix">📦</button>
+      <button class="act" id="give" aria-label="Donner la commande" title="Donner la commande">🛍️</button>
     </div>
     <div id="pay">
       <div>Touche les pièces pour payer 👇</div>
@@ -109,7 +114,7 @@
         buildWallet();
         renderPay();
       } else {
-        document.getElementById("want").textContent = `${q.n} ${q.pastry.e}`;
+        document.getElementById("want").innerHTML = Array.from({ length: q.n }, () => `<span>${q.pastry.e}</span>`).join("");
         document.getElementById("wantText").textContent = BL.count(q.n, q.pastry);
         document.getElementById("addOne").textContent = `➕ ${q.pastry.e}`;
         document.getElementById("addTen").style.display = q.tens ? "" : "none";
@@ -161,6 +166,31 @@
       renderBoxes();
     }
     document.getElementById("addOne").onclick = () => add(1);
+    let pastryDrag = null, pastryGhost = null;
+    document.getElementById("addOne").addEventListener("pointerdown", (e) => {
+      if (busy || q.mode === "pay" || e.button > 0) return;
+      pastryDrag = e.pointerId;
+      pastryGhost = document.createElement("div");
+      pastryGhost.className = "pastry-drag";
+      pastryGhost.textContent = q.pastry.e;
+      document.body.appendChild(pastryGhost);
+      movePastry(e);
+      e.preventDefault();
+    });
+    function movePastry(e) {
+      if (pastryDrag !== e.pointerId) return;
+      pastryGhost.style.left = e.clientX + "px"; pastryGhost.style.top = e.clientY + "px";
+      const r = boxesEl.getBoundingClientRect();
+      boxesEl.classList.toggle("drop-ready", e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
+    }
+    document.addEventListener("pointermove", movePastry);
+    document.addEventListener("pointerup", (e) => {
+      if (pastryDrag !== e.pointerId) return;
+      pastryDrag = null; pastryGhost?.remove(); pastryGhost = null;
+      boxesEl.classList.remove("drop-ready");
+      const r = boxesEl.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) add(1);
+    });
     document.getElementById("addTen").onclick = () => add(10);
     document.getElementById("give").onclick = () => {
       if (busy) return;

@@ -16,15 +16,15 @@
 
 html,
 body {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior: none;
   margin: 0;
   padding: 0;
   min-height: 100%;
   font-family: var(--font);
   color: var(--ink);
-  /* Évite le zoom au double-tap et la sélection de texte pendant le jeu */
-  touch-action: manipulation;
-  -webkit-user-select: none;
-  user-select: none;
   -webkit-touch-callout: none;
 }
 
@@ -60,6 +60,23 @@ button {
 .home-btn:active {
   transform: scale(0.9) translateY(3px);
 }
+.game-help-btn {
+  position: fixed;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 999;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: #fff3bf;
+  box-shadow: var(--shadow);
+  font-size: 30px;
+}
+@supports selector(body:has(.ctrl)) {
+  body:has(.ctrl) .game-help-btn { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 128px); }
+}
+.help-flash { animation: helpPulse .45s ease-in-out 3 !important; outline: 4px solid #ffd43b !important; }
+@keyframes helpPulse { 50% { transform: scale(1.08); filter: brightness(1.1); } }
 
 /* Bouton son / muet : en haut à gauche, sous la maison dans les jeux */
 .mute-btn {

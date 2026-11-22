@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Le Piano rigolo</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -26,6 +26,8 @@
       padding-bottom: max(16px, env(safe-area-inset-bottom));
       touch-action: none;
     }
+    #replay { margin: 0 0 10px; font-size: clamp(18px, 4vw, 26px); }
+    #pianoStatus { min-height: 1.3em; font-size: clamp(18px, 4vw, 26px); font-weight: bold; color: #4c1d95; }
     .key {
       flex: 1;
       border-radius: 0 0 22px 22px;
@@ -54,12 +56,14 @@
 <body>
   <h1 class="game-title">Le Piano rigolo</h1>
   <div id="modes"></div>
+  <button id="replay" class="big-btn" aria-label="Rejouer la mélodie">🎶</button>
+  <div id="pianoStatus" aria-live="polite"></div>
   <div id="keys"></div>
 
   <script src="../../js/common.js"></script>
   <script>
     Jeux.addHomeButton();
-    const { sounds, pick } = Jeux;
+    const { sounds, pick, say, confetti } = Jeux;
     const NOTES = [
       { f: 262, n: "do", c: "#ef476f", a: "🐶" },
       { f: 294, n: "ré", c: "#ff9f1c", a: "🐱" },
@@ -78,6 +82,7 @@
       { label: "🐝 Abeille", type: "sawtooth", vibrato: 30 },
     ];
     let mode = MODES[0];
+    let replayMode = false, replaySeq = [], replayPos = 0, listening = false, replayRun = 0;
     const modesEl = document.getElementById("modes");
     MODES.forEach((m, i) => {
       const b = document.createElement("button");
@@ -161,6 +166,7 @@
     keysEl.addEventListener("pointercancel", stop);
 
     function press(k, note, e) {
+      if (replayMode && !listening) return;
       play(note);
       k.classList.add("down");
       setTimeout(() => k.classList.remove("down"), 150);
@@ -171,7 +177,65 @@
       n.style.top = e.clientY - 40 + "px";
       document.body.appendChild(n);
       setTimeout(() => n.remove(), 1200);
+      if (replayMode) {
+        const i = NOTES.indexOf(note);
+        if (i !== replaySeq[replayPos]) {
+          listening = false;
+          sounds.wrong();
+          document.getElementById("pianoStatus").textContent = "🎵 On réessaie !";
+          say("Écoute encore la mélodie !");
+          replayPos = 0;
+          setTimeout(() => playReplaySequence(replayRun), 900);
+          return;
+        }
+        replayPos++;
+        k.classList.add("down"); setTimeout(() => k.classList.remove("down"), 150);
+        if (replayPos === replaySeq.length) {
+          listening = false;
+          sounds.win(); confetti(24, ["🎵", "⭐", "✨"]);
+          document.getElementById("pianoStatus").textContent = "🌟 Bravo ! Encore une note !";
+          say("Bravo ! Tu as rejoué la mélodie !");
+          replaySeq.push(Math.floor(Math.random() * NOTES.length));
+          replayPos = 0;
+          setTimeout(() => playReplaySequence(replayRun), 1400);
+        }
+      }
     }
+
+    async function playReplaySequence(run = replayRun) {
+      listening = false;
+      document.getElementById("pianoStatus").textContent = "👂 Écoute...";
+      await new Promise((r) => setTimeout(r, 450));
+      if (run !== replayRun || !replayMode) return;
+      for (const i of replaySeq) {
+        padsLight(i);
+        await new Promise((r) => setTimeout(r, 550));
+        if (run !== replayRun || !replayMode) return;
+      }
+      replayPos = 0; listening = true;
+      document.getElementById("pianoStatus").textContent = "👉 À toi !";
+      say("À toi de jouer !");
+    }
+    function padsLight(i) {
+      const k = keysEl.children[i];
+      k.classList.add("down"); play(NOTES[i]);
+      setTimeout(() => k.classList.remove("down"), 330);
+    }
+    document.getElementById("replay").onclick = () => {
+      if (replayMode) {
+        replayMode = false; listening = false; replayRun++;
+        document.getElementById("pianoStatus").textContent = "";
+        document.getElementById("replay").textContent = "🎶";
+        document.getElementById("replay").setAttribute("aria-label", "Rejouer la mélodie");
+        say("Choisis un son et joue du piano !");
+        return;
+      }
+      replayMode = true; replayRun++; replaySeq = [Math.floor(Math.random() * NOTES.length), Math.floor(Math.random() * NOTES.length), Math.floor(Math.random() * NOTES.length)];
+      document.getElementById("replay").textContent = "🎹";
+      document.getElementById("replay").setAttribute("aria-label", "Retour au piano libre");
+      replayPos = 0; sounds.click(); playReplaySequence(replayRun);
+    };
+    setTimeout(() => say("Touche les grandes touches pour jouer de la musique !"), 500);
   </script>
 </body>
 </html>

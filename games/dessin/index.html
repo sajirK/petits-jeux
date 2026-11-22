@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Je dessine</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -148,6 +148,7 @@
 
     addEventListener("resize", resize);
     resize();
+    setTimeout(() => say("Choisis une couleur ou un autocollant, puis dessine avec ton doigt !"), 500);
   </script>
 </body>
 </html>

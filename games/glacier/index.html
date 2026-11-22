@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Le Glacier</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -99,6 +99,9 @@
     }
     .opt small { font-size: clamp(10px, 2.3vmin, 14px); }
     .opt:active { transform: scale(0.9); }
+    .opt { touch-action: none; }
+    #stackZone.drop-ready { filter: drop-shadow(0 0 18px #ff4d8d); }
+    .ice-ghost { position: fixed; z-index: 100; pointer-events: none; transform: translate(-50%, -50%) scale(1.12); font-size: 54px; }
     .opt.sel { background: #ffe5ec; outline: 4px solid #ff4d8d; }
     .tub {
       width: 0.95em; height: 0.8em; border-radius: 0 0 0.25em 0.25em;
@@ -383,9 +386,29 @@
       b.className = "opt" + (selected ? " sel" : "");
       b.innerHTML = `${html}<small>${label}</small>`;
       b.onclick = () => { if (!busy) onClick(b); };
+      b.addEventListener("pointerdown", (e) => {
+        if (busy || e.button > 0) return;
+        iceDrag = { pointerId: e.pointerId, action: () => { if (!busy) onClick(b); } };
+        iceGhost = document.createElement("div"); iceGhost.className = "ice-ghost"; iceGhost.textContent = b.innerText.trim().split("\n")[0];
+        document.body.appendChild(iceGhost); moveIce(e); e.preventDefault();
+      });
       choicesEl.appendChild(b);
       return b;
     }
+    let iceDrag = null, iceGhost = null;
+    function moveIce(e) {
+      if (!iceDrag || e.pointerId !== iceDrag.pointerId) return;
+      iceGhost.style.left = e.clientX + "px"; iceGhost.style.top = e.clientY + "px";
+      const r = document.getElementById("stackZone").getBoundingClientRect();
+      document.getElementById("stackZone").classList.toggle("drop-ready", e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
+    }
+    document.addEventListener("pointermove", moveIce);
+    document.addEventListener("pointerup", (e) => {
+      if (!iceDrag || e.pointerId !== iceDrag.pointerId) return;
+      const d = iceDrag; iceDrag = null; iceGhost?.remove(); iceGhost = null;
+      const zone = document.getElementById("stackZone"), r = zone.getBoundingClientRect(); zone.classList.remove("drop-ready");
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) d.action();
+    });
     function navButton(cls, text, fn) {
       const b = document.createElement("button");
       b.className = "action " + cls;

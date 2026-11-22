@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Quelle heure est-il ?</title>
+  <link rel="stylesheet" href="../../css/common.css" />
+  <style>
+    body { background: linear-gradient(160deg, #fff9db, #d3f9d8); }
+    #question { font-size: clamp(18px, 4.3vmin, 27px); text-align: center; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    #question button { background: #fff; border-radius: 50%; width: 44px; height: 44px; font-size: 22px; box-shadow: var(--shadow); }
+    #layout { display: flex; align-items: center; justify-content: center; gap: 20px; flex-wrap: wrap; }
+    #clock { width: clamp(210px, 52vmin, 340px); height: auto; filter: drop-shadow(0 8px 0 rgba(0,0,0,0.1)); }
+    .hand { transition: transform 0.6s cubic-bezier(.3,1.4,.6,1); transform-origin: 150px 150px; }
+    #options { display: flex; flex-direction: column; gap: 10px; }
+    .opt { background: #fff; border-radius: 20px; padding: 12px 18px; box-shadow: 0 6px 0 rgba(0,0,0,0.1); font-size: clamp(17px, 4vmin, 24px); min-width: 250px; text-align: left; }
+    .opt small { opacity: 0.55; margin-left: 8px; }
+    .opt.good { background: #b7efc5; animation: bounce-in 0.4s; }
+    .opt.bad { background: #ffe3e3; }
+    #setter { display: none; flex-direction: column; gap: 10px; align-items: center; }
+    .turn { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 20px; padding: 8px 12px; box-shadow: 0 5px 0 rgba(0,0,0,0.1); font-size: clamp(15px, 3.6vmin, 20px); }
+    .turn button { width: 54px; height: 54px; border-radius: 50%; font-size: 24px; background: #e7f5ff; }
+    .turn button:active { transform: scale(0.9); }
+    #check { background: #40c057; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,0.2); }
+    body.setmode #options { display: none; }
+    body.setmode #setter { display: flex; }
+    #digital { font-size: clamp(20px, 5vmin, 30px); font-weight: bold; min-height: 1.3em; margin-top: 8px; letter-spacing: 2px; }
+    #stars { font-size: clamp(20px, 4.5vmin, 28px); min-height: 1.3em; margin-top: 8px; }
+    #simpleMode { margin-bottom: 8px; background: #fff; border-radius: 999px; padding: 8px 16px; box-shadow: var(--shadow); font-size: clamp(16px, 3.5vmin, 22px); }
+    body.simple #minHand, body.simple #digital { display: none; }
+    body.simple #options .opt { min-width: 130px; min-height: 100px; font-size: 54px; text-align: center; }
+    body.simple #options .opt small { display: none; }
+    body.simple #qtext { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  </style>
+</head>
+<body>
+  <div class="brain">
+    <h1 class="game-title">Quelle heure est-il ?</h1>
+    <div class="brain-bar" id="bar"></div>
+    <button id="simpleMode" type="button" aria-pressed="true">🖼️ Mode images pour les petits</button>
+    <div id="question"><span id="qtext"></span><button id="speak" aria-label="Écouter">🔊</button></div>
+    <div id="layout">
+      <svg id="clock" viewBox="0 0 300 300" aria-label="Horloge">
+        <circle cx="150" cy="150" r="140" fill="#fff" stroke="#ff922b" stroke-width="12" />
+        <g id="ticks"></g>
+        <g id="nums"></g>
+        <rect class="hand" id="hourHand" x="144" y="78" width="12" height="80" rx="6" fill="#364fc7" />
+        <rect class="hand" id="minHand" x="147" y="38" width="6" height="120" rx="3" fill="#f03e3e" />
+        <circle cx="150" cy="150" r="10" fill="#343a40" />
+      </svg>
+      <div>
+        <div id="options"></div>
+        <div id="setter">
+          <div class="turn"><span>🔵 Petite aiguille (les heures)</span><button id="hMinus" aria-label="Reculer">↺</button><button id="hPlus" aria-label="Avancer">↻</button></div>
+          <div class="turn"><span>🔴 Grande aiguille (les minutes)</span><button id="mMinus" aria-label="Reculer">↺</button><button id="mPlus" aria-label="Avancer">↻</button></div>
+          <button class="big-btn" id="check">✅ C'est l'heure !</button>
+        </div>
+      </div>
+    </div>
+    <div id="digital"></div>
+    <div id="stars"></div>
+  </div>
+
+  <script src="../../js/common.js"></script>
+  <script src="logic.js"></script>
+  <script>
+    Jeux.addHomeButton();
+    const { sounds, say, bravo, confetti } = Jeux;
+    const HL = HorlogeLogic;
+    const prog = Jeux.progress("horloge", HL.MAX_LEVEL);
+    const badge = Jeux.levelBadge(prog, () => next());
+    document.getElementById("bar").appendChild(badge);
+    const NS = "http://www.w3.org/2000/svg";
+
+    // cadran : traits et nombres
+    for (let i = 0; i < 60; i++) {
+      const a = (i * 6 * Math.PI) / 180, big = i % 5 === 0;
+      const l = document.createElementNS(NS, "line");
+      l.setAttribute("x1", 150 + Math.sin(a) * (big ? 118 : 124)); l.setAttribute("y1", 150 - Math.cos(a) * (big ? 118 : 124));
+      l.setAttribute("x2", 150 + Math.sin(a) * 130); l.setAttribute("y2", 150 - Math.cos(a) * 130);
+      l.setAttribute("stroke", big ? "#495057" : "#ced4da"); l.setAttribute("stroke-width", big ? 4 : 2);
+      document.getElementById("ticks").appendChild(l);
+    }
+    for (let n = 1; n <= 12; n++) {
+      const a = (n * 30 * Math.PI) / 180;
+      const t = document.createElementNS(NS, "text");
+      t.setAttribute("x", 150 + Math.sin(a) * 98); t.setAttribute("y", 150 - Math.cos(a) * 98 + 10);
+      t.setAttribute("text-anchor", "middle"); t.setAttribute("font-size", "30"); t.setAttribute("font-weight", "bold");
+      t.setAttribute("fill", n % 3 === 0 ? "#f76707" : "#343a40");
+      t.textContent = n;
+      document.getElementById("nums").appendChild(t);
+    }
+
+    let q, busy = false, wrongs = 0, stars = 0, setH = 12, setM = 0, simpleMode = true;
+    // on garde un angle qui augmente toujours, pour que les aiguilles tournent dans le bon sens
+    let hourDeg = 0, minDeg = 0;
+    // dir = 1 : les aiguilles tournent dans le sens des aiguilles d'une montre ; -1 : à l'envers
+    function showTime(h, m, dir = 1) {
+      const targetMin = HL.minuteAngle(m), targetHour = HL.hourAngle(h, m);
+      minDeg = turnTo(minDeg, targetMin, dir);
+      hourDeg = turnTo(hourDeg, targetHour, dir);
+      document.getElementById("minHand").style.transform = `rotate(${minDeg}deg)`;
+      document.getElementById("hourHand").style.transform = `rotate(${hourDeg}deg)`;
+    }
+    function turnTo(current, target, dir) {
+      if (dir > 0) return current + ((((target - current) % 360) + 360) % 360);
+      return current - ((((current - target) % 360) + 360) % 360);
+    }
+
+    document.getElementById("speak").onclick = () => say(q.mode === "set" ? `Mets les aiguilles sur ${q.words}.` : "Quelle heure est-il ?");
+    document.getElementById("simpleMode").onclick = (e) => {
+      simpleMode = !simpleMode;
+      document.body.classList.toggle("simple", simpleMode);
+      e.currentTarget.setAttribute("aria-pressed", String(simpleMode));
+      e.currentTarget.textContent = simpleMode ? "🖼️ Mode images pour les petits" : "🔢 Mode des heures et minutes";
+      say(simpleMode ? "On joue avec les images et la petite aiguille !" : "On joue avec les heures et les minutes !");
+      next();
+    };
+
+    function next() {
+      busy = false; wrongs = 0;
+      q = HL.generate(simpleMode ? 1 : prog.level, Math.random, q);
+      document.body.classList.toggle("setmode", q.mode === "set");
+      document.getElementById("digital").textContent = "";
+      if (q.mode === "set") {
+        document.getElementById("qtext").textContent = `Mets les aiguilles sur ${q.words}`;
+        setH = 12; setM = 0;
+        showTime(setH, setM);
+        setTimeout(() => say(`Mets les aiguilles sur ${q.words}.`), 400);
+        return;
+      }
+      document.getElementById("qtext").textContent = "Quelle heure est-il ?";
+      showTime(q.h, q.m);
+      const opts = document.getElementById("options");
+      opts.innerHTML = "";
+      q.options.forEach((o) => {
+        const b = document.createElement("button");
+        b.className = "opt";
+        const picture = ["🌅", "🥣", "🏫", "🍎", "☀️", "🍽️", "⚽", "🌇", "🛁", "🌙", "⭐", "🌛"][o.h % 12];
+        b.innerHTML = simpleMode ? `${picture}<small>${o.words}</small>` : `${o.words}<small>${o.digits}</small>`;
+        b.onclick = () => answer(b, o);
+        opts.appendChild(b);
+      });
+      setTimeout(() => say("Quelle heure est-il ?"), 400);
+    }
+
+    document.body.classList.add("simple");
+
+    function answer(btn, o) {
+      if (busy) return;
+      if (o.h === q.h && o.m === q.m) {
+        btn.classList.add("good");
+        success();
+      } else {
+        wrongs++;
+        btn.classList.add("bad", "shake");
+        sounds.wrong();
+        if (prog.fail() === "down") badge.update();
+        say(q.m === 0 ? "Regarde la petite aiguille : elle montre les heures. La grande est sur le 12." : "La petite aiguille montre les heures, la grande montre les minutes. Regarde bien !");
+      }
+    }
+
+    // ---------- Niveau 4 : je règle l'horloge ----------
+    const tick = () => sounds.tone(1400, 0.03, "sine", 0.12);
+    document.getElementById("hPlus").onclick = () => { setH = setH % 12 + 1; tick(); showTime(setH, setM); };
+    document.getElementById("hMinus").onclick = () => { setH = setH === 1 ? 12 : setH - 1; tick(); showTime(setH, setM, -1); };
+    document.getElementById("mPlus").onclick = () => { setM = (setM + 15) % 60; tick(); showTime(setH, setM); };
+    document.getElementById("mMinus").onclick = () => { setM = (setM + 45) % 60; tick(); showTime(setH, setM, -1); };
+    document.getElementById("check").onclick = () => {
+      if (busy) return;
+      if (HL.isSet(q, setH, setM)) success();
+      else {
+        wrongs++;
+        sounds.wrong();
+        if (prog.fail() === "down") badge.update();
+        const minOk = setM === q.m;
+        say(!minOk ? "Regarde d'abord la grande aiguille, celle des minutes." : "La grande aiguille est bien placée ! Maintenant, la petite aiguille, celle des heures.");
+      }
+    };
+
+    function success() {
+      busy = true;
+      sounds.success();
+      document.getElementById("digital").textContent = `🕐 ${q.words} · ${HL.toDigits(q.h, q.m)}`;
+      if (wrongs === 0) {
+        stars++;
+        document.getElementById("stars").textContent = "⭐".repeat(stars % 10 || 10);
+        if (stars % 3 === 0) Jeux.addStars(1);
+      }
+      const lv = wrongs === 0 ? prog.success() : null;
+      badge.update();
+      bravo(`Il est ${q.words} !`);
+      const msgs = { 2: "Niveau 2 ! Maintenant, les heures et demie.", 3: "Niveau 3 ! Et quart, et moins le quart !", 4: "Niveau 4 ! C'est toi qui tournes les aiguilles !" };
+      if (lv === "up") setTimeout(() => { sounds.win(); confetti(40); say(msgs[prog.level]); }, 2800);
+      setTimeout(next, lv === "up" ? 6000 : 3500);
+    }
+
+    next();
+  </script>
+</body>
+</html>

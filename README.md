@@ -71,6 +71,10 @@ Les jeux sont rangés par **compétence** et par **âge** (3 à 8 ans). L’enfa
 | 🌈 Les Couleurs | 3-5 ans | `games/couleurs` |
 | 🔺 Les Formes | 3-5 ans | `games/formes` |
 | 🩺 Le Docteur des animaux | 3-7 ans | `games/docteur` |
+| 🌍 Le tour du monde des animaux | 4-8 ans | `games/monde` |
+| 🕐 Quelle heure est-il ? | 5-8 ans | `games/horloge` |
+| 🌦️ Les saisons et la météo | 3-7 ans | `games/saisons` |
+| 🌻 Mon jardin | 3-7 ans | `games/jardin` |
 
 ### ⚡ Agilité
 

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Course de Bulles</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -53,11 +53,13 @@
 
     // Tout est en unités "U" (10 de haut). La largeur visible = W/U.
     let player, obstacles, stars, bubbles, speed, dist, score, lives, inv, running = false, nextObs, best = 0;
+    let bossActive = false, bossHp = 0, combo = 0, lastStarAt = 0, comboShowUntil = 0;
 
     function reset() {
       player = { y: 5, target: 5, r: 0.55 };
       obstacles = []; stars = []; bubbles = [];
       speed = 3.2; dist = 0; score = 0; lives = 3; inv = 0; nextObs = 3;
+      bossActive = false; bossHp = 0; combo = 0; lastStarAt = 0; comboShowUntil = 0;
       updateHud();
     }
 
@@ -94,13 +96,18 @@
       if (!running) return;
       dist += speed * dt;
       speed = Math.min(6.5, 3.2 + dist / 250);
+      if (!bossActive && dist >= 65) {
+        bossActive = true; bossHp = 5; obstacles = [];
+        say("Un gros crabe arrive ! Attrape les cinq étoiles pour le faire danser !");
+        for (let i = 0; i < 5; i++) stars.push({ x: W / U - 2.4 + i * 0.45, y: 2 + i * 1.5 });
+      }
       if (keys.ArrowUp) player.target = Math.max(0.8, player.target - 8 * dt);
       if (keys.ArrowDown) player.target = Math.min(9.2, player.target + 8 * dt);
       player.y += (player.target - player.y) * Math.min(1, dt * 9);
       inv = Math.max(0, inv - dt);
 
       nextObs -= speed * dt;
-      if (nextObs <= 0) { spawnObstacle(); nextObs = 6 + Math.random() * 2.5; }
+      if (!bossActive && nextObs <= 0) { spawnObstacle(); nextObs = 6 + Math.random() * 2.5; }
 
       const px = 2.5;
       for (const o of obstacles) {
@@ -124,6 +131,13 @@
           score++;
           updateHud();
           sounds.coin();
+          combo = performance.now() - lastStarAt < 2200 ? combo + 1 : 1;
+          lastStarAt = performance.now();
+          if (combo >= 3) { say(`Combo de ${combo} étoiles !`); comboShowUntil = performance.now() + 1100; combo = 0; }
+          if (bossActive) {
+            bossHp--;
+            if (bossHp <= 0) { em("💫", W - U * 2.1, H / 2, U * 2); return gameOver(true); }
+          }
           if (score % 20 === 0) { Jeux.addStars(1); confetti(30); bravo(`${score} étoiles !`); }
         } else if (s.x < -2) stars.splice(i, 1);
       }
@@ -132,13 +146,14 @@
       bubbles = bubbles.filter((b) => b.x > -1);
     }
 
-    function gameOver() {
+    function gameOver(victory = false) {
       running = false;
       best = Math.max(best, score);
       sounds.win();
-      say(`Bravo ${Jeux.NAME} ! Tu as attrapé ${score} étoiles !`);
-      document.getElementById("otitle").textContent = `⭐ ${score} étoiles !`;
-      document.getElementById("otext").textContent = `Ton record : ${best} ⭐`;
+      if (victory) { Jeux.addStars(1); confetti(60, ["🦀", "⭐", "🫧", "🎉"]); }
+      say(victory ? `Bravo ${Jeux.NAME} ! Tu as fait danser le crabe !` : `Bravo ${Jeux.NAME} ! Tu as attrapé ${score} étoiles !`);
+      document.getElementById("otitle").textContent = victory ? "🦀 Crabe vaincu !" : `⭐ ${score} étoiles !`;
+      document.getElementById("otext").textContent = victory ? `Super nage ! Ton record : ${best} ⭐` : `Ton record : ${best} ⭐`;
       document.getElementById("go").textContent = "🔁 Encore !";
       document.getElementById("overlay").classList.remove("hidden");
     }
@@ -183,6 +198,8 @@
       }
       // étoiles
       for (const s of stars) em("⭐", s.x * U, s.y * U, U * 0.8 * (1 + Math.sin(t * 6 + s.x) * 0.08));
+      if (bossActive) { em("🦀", W - U * 2.1, H / 2, U * 1.8); em("❤️".repeat(bossHp), W - U * 2.1, H / 2 - U * 1.15, U * 0.35); }
+      if (performance.now() < comboShowUntil) em("✨ COMBO ! ✨", W / 2, H * 0.32, U * 0.7);
       // joueur dans sa bulle
       const px = 2.5 * U, py = player ? player.y * U : H / 2;
       const blink = inv > 0 && Math.floor(t * 10) % 2 === 0;

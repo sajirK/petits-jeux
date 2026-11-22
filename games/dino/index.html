@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Super Saut Dino</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -16,6 +16,7 @@
       display: flex; gap: 10px;
       z-index: 10;
     }
+    #skin { background: #fff; border-radius: 999px; padding: 6px 12px; font-size: 24px; box-shadow: var(--shadow); }
     .pill {
       background: #fff; border-radius: 999px; padding: 6px 18px;
       font-size: clamp(22px, 5vw, 34px); box-shadow: var(--shadow);
@@ -41,7 +42,7 @@
 </head>
 <body class="mute-left">
   <canvas id="c"></canvas>
-  <div id="hud"><div class="pill" id="level">🚩 1</div><div class="pill" id="apples">🍎 0</div></div>
+  <div id="hud"><div class="pill" id="level">🚩 1</div><div class="pill" id="apples">🍎 0</div><button id="skin" aria-label="Choisir un dinosaure">🦕</button></div>
   <button class="ctrl" id="left" aria-label="Gauche">⬅️</button>
   <button class="ctrl" id="right" aria-label="Droite">➡️</button>
   <button class="ctrl" id="jump" aria-label="Sauter">⬆️</button>
@@ -66,6 +67,19 @@
 
     // ---------- Niveau ----------
     let level = 1, platforms, apples, flag, clouds, totalApples = 0;
+    const SKINS = [{ e: "🦕", at: 1 }, { e: "🦖", at: 3 }, { e: "🐉", at: 5 }, { e: "🦴", at: 8 }];
+    let skin = localStorage.getItem("jeux.dino.skin") || "🦕", extraJump = false, doubleUntil = 0, magnetUntil = 0;
+    const skinBtn = document.getElementById("skin");
+    function updateSkinButton() {
+      const available = SKINS.filter((s) => level >= s.at);
+      if (!available.some((s) => s.e === skin)) skin = available[0].e;
+      skinBtn.textContent = skin; skinBtn.title = `Dinosaure ${available.map((s) => s.e).join(" ")}`;
+    }
+    skinBtn.onclick = () => {
+      const available = SKINS.filter((s) => level >= s.at), i = available.findIndex((s) => s.e === skin);
+      skin = available[(i + 1) % available.length].e;
+      localStorage.setItem("jeux.dino.skin", skin); updateSkinButton(); sounds.click(); say("Nouveau dinosaure !");
+    };
     const GROUND_Y = 8; // le sol est à la case 8 (sur 10)
 
     function buildLevel(n) {
@@ -94,11 +108,13 @@
         x += w;
       }
       platforms.push({ x, y: GROUND_Y, w: 14, h: 3, kind: "ground" });
+      apples.push({ x: 3.5, y: GROUND_Y - 1, kind: "double" }, { x: 7.5, y: GROUND_Y - 1, kind: "magnet" });
       flag = { x: x + 6, y: GROUND_Y - 1.6 };
       clouds = Array.from({ length: 12 }, (_, i) => ({ x: i * 9 + Math.random() * 6, y: 0.5 + Math.random() * 3, s: 0.8 + Math.random() }));
       player.x = 0; player.y = GROUND_Y - 1; player.vx = player.vy = 0;
       safe = { x: 0, y: GROUND_Y - 1 };
       document.getElementById("level").textContent = "🚩 " + n;
+      updateSkinButton();
     }
 
     // ---------- Joueur ----------
@@ -133,8 +149,9 @@
       if (dir) player.face = dir;
       jumpBuffered -= dt; coyote -= dt;
       if (player.onGround) coyote = 0.12;
-      if (jumpBuffered > 0 && coyote > 0) {
-        player.vy = -JUMP; jumpBuffered = 0; coyote = 0;
+      if (jumpBuffered > 0 && (coyote > 0 || (extraJump && t < doubleUntil))) {
+        player.vy = -JUMP; jumpBuffered = 0;
+        if (coyote > 0) coyote = 0; else extraJump = false;
         sounds.jump();
       }
       // saut plus court si on relâche
@@ -177,8 +194,14 @@
       // pommes
       for (let i = apples.length - 1; i >= 0; i--) {
         const a = apples[i];
+        if (t < magnetUntil) {
+          const dx = player.x + player.w / 2 - a.x, dy = player.y + player.h / 2 - a.y;
+          if (Math.hypot(dx, dy) < 5) { a.x += Math.sign(dx) * Math.min(Math.abs(dx), dt * 8); a.y += Math.sign(dy) * Math.min(Math.abs(dy), dt * 8); }
+        }
         if (Math.abs(a.x - (player.x + player.w / 2)) < 0.7 && Math.abs(a.y - (player.y + player.h / 2)) < 0.8) {
           apples.splice(i, 1);
+          if (a.kind === "double") { extraJump = true; doubleUntil = t + 12; sounds.win(); say("Super saut ! Tu peux sauter deux fois !"); continue; }
+          if (a.kind === "magnet") { magnetUntil = t + 12; sounds.coin(); say("Aimant à pommes ! Les pommes viennent à toi !"); continue; }
           totalApples++;
           document.getElementById("apples").textContent = "🍎 " + totalApples;
           sounds.coin();
@@ -243,14 +266,14 @@
         }
       }
       // pommes (qui flottent un peu)
-      for (const a of apples) emoji("🍎", a.x * T, (a.y + Math.sin(t * 3 + a.x) * 0.08) * T, T * 0.7);
+      for (const a of apples) emoji(a.kind === "double" ? "🪄" : a.kind === "magnet" ? "🧲" : "🍎", a.x * T, (a.y + Math.sin(t * 3 + a.x) * 0.08) * T, T * 0.7);
       // drapeau
       emoji("🏁", flag.x * T, flag.y * T, T * 1.6);
       emoji("🏰", (flag.x + 4) * T, (GROUND_Y - 1.4) * T, T * 3);
       // dino (l'emoji regarde à gauche : on le retourne pour aller à droite)
       const sq = player.squash * 0.25;
       const run = player.onGround && Math.abs(player.vx) > 0.5 ? Math.sin(t * 18) * 0.06 : 0;
-      emoji("🦕", (player.x + player.w / 2) * T, (player.y + player.h / 2 - 0.1 + run) * T, T * 1.25, player.face > 0, 1 + sq, 1 - sq);
+      emoji(skin, (player.x + player.w / 2) * T, (player.y + player.h / 2 - 0.1 + run) * T, T * 1.25, player.face > 0, 1 + sq, 1 - sq);
       ctx.restore();
     }
     function roundRect(x, y, w, h, r) {
@@ -267,6 +290,7 @@
       requestAnimationFrame(loop);
     }
     buildLevel(level);
+    setTimeout(() => say("Appuie sur les flèches pour courir et sauter. Attrape les pommes !"), 500);
     requestAnimationFrame(loop);
     setTimeout(() => say("Attrape les pommes et va jusqu'au drapeau !"), 600);
   </script>

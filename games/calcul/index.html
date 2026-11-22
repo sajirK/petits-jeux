@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Les Calculs malins</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -28,10 +28,13 @@
     .obj { font-size: clamp(30px, 7.5vmin, 54px); line-height: 1.1; transition: transform 0.2s, opacity 0.6s; cursor: pointer; }
     .obj.counted { transform: scale(1.2); }
     .obj.gone { opacity: 0.25; filter: grayscale(1); transform: translateY(-14px) rotate(15deg); }
+    .obj.waiting { opacity: .22; filter: grayscale(1); }
     .op { font-size: clamp(34px, 8vmin, 60px); font-weight: bold; }
     #options { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
     #stars { font-size: clamp(20px, 4.5vmin, 28px); min-height: 1.3em; margin-top: 16px; }
     #tip { font-size: clamp(14px, 3.2vmin, 18px); opacity: 0.7; margin-top: 6px; min-height: 1.2em; text-align: center; }
+    #eq, #tip { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    #equation { min-width: 62px; justify-content: center; }
   </style>
 </head>
 <body>
@@ -90,7 +93,11 @@
       counted = 0;
       if (!q.withObjects) return;
       const e = q.object.e;
-      if (q.op === "+") {
+      if (q.op === "c10") {
+        const group = document.createElement("div"); group.className = "group";
+        for (let i = 0; i < 10; i++) group.appendChild(makeObj(i < q.a ? e : "◯", i >= q.a));
+        scene.appendChild(group);
+      } else if (q.op === "+") {
         const g1 = document.createElement("div"); g1.className = "group";
         for (let i = 0; i < q.a; i++) g1.appendChild(makeObj(e));
         const plus = document.createElement("span"); plus.className = "op"; plus.textContent = "+";
@@ -110,8 +117,9 @@
     function next() {
       busy = false; wrongs = 0;
       q = CalculLogic.generate(prog.level);
+      q.withObjects = true;
       eqEl.innerHTML = eqHTML(false);
-      tip.textContent = q.withObjects ? "Tu peux toucher les objets pour compter 👆" : "";
+      tip.textContent = "";
       buildScene();
       optionsEl.innerHTML = "";
       q.options.forEach((o) => {
@@ -121,7 +129,14 @@
         b.onclick = () => answer(b, o);
         optionsEl.appendChild(b);
       });
-      setTimeout(() => say(q.speech), 400);
+      const itemName = q.object.many;
+      const spoken = q.op === "c10"
+        ? `Regarde les dix places. Il y a déjà ${NUMS[q.a]} ${itemName}. Combien en manque-t-il ?`
+        : q.op === "+"
+          ? `Il y a ${NUMS[q.a]} groupes de ${itemName}. On en ajoute ${NUMS[q.b]}. Combien au total ?`
+          : `Il y a ${NUMS[q.a]} ${itemName}. ${NUMS[q.b]} s'en vont. Combien restent ?`;
+      q.speech = spoken;
+      setTimeout(() => say(spoken), 400);
     }
 
     function answer(btn, v) {

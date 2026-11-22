@@ -35,9 +35,9 @@
     return { value: list[Math.floor(rng() * list.length)], go };
   }
 
-  // Temps d'affichage d'un objet selon le nombre de points (de 1,6 s à 0,75 s)
+  // Temps généreux : le jeu accélère peu pour laisser le temps de viser.
   function lifetime(hits) {
-    return Math.max(750, 1600 - hits * 30);
+    return Math.max(1800, 2600 - hits * 8);
   }
 
   // Points : bonne touche +1, mauvaise touche -1 (jamais en dessous de 0)

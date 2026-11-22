@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Respire avec moi</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -24,6 +24,7 @@
       transform: scale(0.55); transition: transform 4s ease-in-out;
       position: relative;
     }
+    #breathFriend { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(54px, 14vmin, 90px); filter: drop-shadow(0 4px 3px #0002); }
     #balloon::after { content: ""; position: absolute; left: 50%; bottom: -60px; width: 2px; height: 60px; background: #868e96; }
     /* fleur et bougie */
     #flowerCandle { display: none; gap: 12vmin; align-items: flex-end; }
@@ -52,7 +53,7 @@
       <button class="big-btn" data-mode="fleur">🌸 Fleur et bougie 🕯️</button>
     </div>
     <div id="stage">
-      <div id="balloon"></div>
+      <div id="balloon"><span id="breathFriend">🐻</span></div>
       <div id="flowerCandle"><div class="flower">🌸</div><div class="candle">🕯️<span class="flame">🔥</span></div></div>
     </div>
     <div id="cue">Installe-toi bien, puis appuie sur Commencer</div>
@@ -140,6 +141,7 @@
 
     startBtn.onclick = start;
     document.getElementById("again").onclick = start;
+    setTimeout(() => say("Choisis ton ballon ou ta fleur, puis respire avec moi."), 500);
   </script>
 </body>
 </html>

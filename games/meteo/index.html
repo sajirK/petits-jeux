@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Ma météo du jour</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -17,13 +17,17 @@
       display: flex; flex-direction: column; align-items: center; gap: 4px;
       font-size: clamp(13px, 3vmin, 18px); font-weight: bold;
     }
+    .emo { font-size: 0; }
+    .emo span { font-size: clamp(48px, 12vmin, 76px); }
     .emo span { font-size: clamp(40px, 10vmin, 64px); line-height: 1; }
     .emo:active { transform: scale(0.94); }
     #sizes { display: flex; align-items: flex-end; gap: clamp(14px, 4vmin, 30px); }
     .size { background: #fff; border-radius: 24px; padding: 10px 14px; box-shadow: 0 6px 0 rgba(0,0,0,0.1); display: flex; flex-direction: column; align-items: center; font-weight: bold; font-size: clamp(14px, 3.2vmin, 20px); }
     .size span { line-height: 1; }
     #answerCard { background: #fff; border-radius: 28px; padding: 14px 18px; box-shadow: var(--shadow); text-align: center; width: 100%; }
-    #bigFace { font-size: clamp(70px, 18vmin, 120px); line-height: 1; }
+    #bigFace { width: clamp(120px, 28vmin, 200px); aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; margin: auto; font-size: clamp(70px, 18vmin, 120px); line-height: 1; }
+    #bigFace.personal { animation: weatherJoy .7s cubic-bezier(.2,1.6,.4,1) both; }
+    @keyframes weatherJoy { 0% { transform: scale(.35) rotate(-12deg); opacity: .3; } 60% { transform: scale(var(--feeling-size, 1.18)) rotate(6deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
     #validate { font-size: clamp(18px, 4.2vmin, 26px); margin: 8px 0; }
     #tips { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
     .tip { display: flex; align-items: center; gap: 10px; background: #f8f9fa; border-radius: 18px; padding: 8px 12px; text-align: left; font-size: clamp(15px, 3.6vmin, 21px); text-decoration: none; color: var(--ink); }
@@ -89,6 +93,7 @@
       b.className = "emo";
       b.style.background = E[k].color;
       b.innerHTML = `<span>${E[k].emoji}</span>${E[k].label}`;
+      b.setAttribute("aria-label", E[k].label);
       b.onclick = () => pickEmotion(k);
       grid.appendChild(b);
     });
@@ -122,6 +127,10 @@
       localStorage.setItem("jeux.meteo", JSON.stringify(j));
 
       document.getElementById("bigFace").textContent = e.emoji;
+      const bigFace = document.getElementById("bigFace");
+      bigFace.classList.remove("personal"); void bigFace.offsetWidth; bigFace.classList.add("personal");
+      bigFace.style.background = e.color;
+      bigFace.style.setProperty("--feeling-size", `${1.12 + intensity * .12}`);
       const noun = e.noun.charAt(0).toUpperCase() + e.noun.slice(1);
       const msg = POSITIVE.has(chosen)
         ? `Merci de me l'avoir dit ! ${noun}, c'est bon à sentir. Profites-en !`

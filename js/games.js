@@ -11,7 +11,7 @@
     compter: { label: "Compter", emoji: "🔢", desc: "Les nombres, compter et calculer" },
     logique: { label: "Réfléchir", emoji: "🧩", desc: "Logique, mémoire et programmation" },
     emotions: { label: "Mes émotions", emoji: "💛", desc: "Reconnaître, comprendre et apaiser ce qu'on ressent" },
-    decouvrir: { label: "Découvrir", emoji: "🌍", desc: "Les couleurs, les formes, les animaux, soigner" },
+    decouvrir: { label: "Découvrir", emoji: "🌍", desc: "Le monde, l'heure, les saisons, la nature" },
     agilite: { label: "Agilité", emoji: "⚡", desc: "Réflexes, adresse et aventures" },
     creer: { label: "Créer", emoji: "🎨", desc: "Dessiner et faire de la musique" },
   };
@@ -21,12 +21,12 @@
 
   const GAMES = [
     // Lire
-    { id: "tracer", isNew: true, title: "J'écris", emoji: "✍️", skill: "lire", ages: [3, 7], color: "#d0ebff" },
-    { id: "syllabes", isNew: true, title: "Les syllabes magiques", emoji: "🪄", skill: "lire", ages: [5, 8], color: "#eebefa" },
+    { id: "tracer", title: "J'écris", emoji: "✍️", skill: "lire", ages: [3, 7], color: "#d0ebff" },
+    { id: "syllabes", title: "Les syllabes magiques", emoji: "🪄", skill: "lire", ages: [5, 8], color: "#eebefa" },
     { id: "premiere-lettre", title: "La Première Lettre", emoji: "🅰️", skill: "lire", ages: [4, 7], color: "#ffadad" },
     { id: "lettres", title: "Les Lettres", titleWithName: "Les lettres de {prenom}", emoji: "🔤", skill: "lire", ages: [4, 7], color: "#a0c4ff" },
     // Compter
-    { id: "boulangerie", isNew: true, title: "La Boulangerie des nombres", emoji: "🥐", skill: "compter", ages: [4, 8], color: "#ffe8cc" },
+    { id: "boulangerie", title: "La Boulangerie des nombres", emoji: "🥐", skill: "compter", ages: [4, 8], color: "#ffe8cc" },
     { id: "compter", title: "Je compte", emoji: "🔢", skill: "compter", ages: [3, 5], color: "#ffd166" },
     { id: "tours", title: "La Tour des Nombres", emoji: "🧱", skill: "compter", ages: [4, 7], color: "#ffb4a2" },
     { id: "calcul", title: "Les Calculs malins", emoji: "➕", skill: "compter", ages: [5, 8], color: "#9bf6ff" },
@@ -45,6 +45,10 @@
     { id: "emotion-situations", title: "Les histoires d'émotions", emoji: "🤔", skill: "emotions", ages: [4, 7], color: "#d0bfff" },
     { id: "que-faire", title: "Que ferais-tu ?", emoji: "🤝", skill: "emotions", ages: [4, 8], color: "#b2f2bb" },
     // Découvrir
+    { id: "monde", isNew: true, title: "Le tour du monde des animaux", emoji: "🌍", skill: "decouvrir", ages: [4, 8], color: "#c5f6fa" },
+    { id: "horloge", isNew: true, title: "Quelle heure est-il ?", emoji: "🕐", skill: "decouvrir", ages: [5, 8], color: "#fff3bf" },
+    { id: "saisons", isNew: true, title: "Les saisons et la météo", emoji: "🌦️", skill: "decouvrir", ages: [3, 7], color: "#d0ebff" },
+    { id: "jardin", isNew: true, title: "Mon jardin", emoji: "🌻", skill: "decouvrir", ages: [3, 7], color: "#d3f9d8" },
     { id: "couleurs", title: "Les Couleurs", emoji: "🌈", skill: "decouvrir", ages: [3, 5], color: "#ffadad" },
     { id: "formes", title: "Les Formes", emoji: "🔺", skill: "decouvrir", ages: [3, 5], color: "#fdffb6" },
     { id: "docteur", title: "Le Docteur des animaux", emoji: "🩺", skill: "decouvrir", ages: [3, 7], color: "#a8dadc" },

@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Tape la Taupe</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -56,6 +56,8 @@
     }
     .hole.up .mole { bottom: 15%; }
     .hole.hit .mole { animation: shake 0.3s; }
+    .hole.bonus .mole { filter: drop-shadow(0 0 18px #ffd60a); }
+    .hole.malus .mole { filter: drop-shadow(0 0 18px #ff6b6b); }
     .bonk {
       position: absolute;
       top: 10%; left: 50%;
@@ -99,7 +101,10 @@
       b.className = "bonk";
       b.textContent = pick(["💥", "⭐", "😵", "POUF"]);
       h.appendChild(b);
-      score++;
+      const type = h.dataset.type || "normal";
+      score = Math.max(0, score + (type === "bonus" ? 3 : type === "malus" ? -2 : 1));
+      if (type === "bonus") { say("Taupe étoilée ! Trois points !"); sounds.coin(); }
+      if (type === "malus") { say("Oups ! C'était la chauve-souris farceuse !"); sounds.wrong(); }
       scoreEl.textContent = "🐹 " + score;
       setTimeout(() => { h.classList.remove("up", "hit"); b.remove(); }, 350);
       if (score % 15 === 0) {
@@ -116,14 +121,20 @@
       const free = holes.filter((h) => !h.classList.contains("up"));
       if (free.length) {
         const h = pick(free);
-        h.querySelector(".mole").textContent = pick(CRITTERS);
+        const roll = Math.random();
+        const type = roll < 0.12 ? "bonus" : roll < 0.2 ? "malus" : "normal";
+        h.dataset.type = type;
+        h.classList.toggle("bonus", type === "bonus");
+        h.classList.toggle("malus", type === "malus");
+        h.querySelector(".mole").textContent = type === "bonus" ? "🌟" : type === "malus" ? "🦇" : pick(CRITTERS);
         h.classList.add("up");
         // reste visible plus longtemps au début, puis un peu moins
         const stay = Math.max(900, 1800 - score * 25);
-        setTimeout(() => { if (!h.classList.contains("hit")) h.classList.remove("up"); }, stay);
+        setTimeout(() => { if (!h.classList.contains("hit")) h.classList.remove("up", "bonus", "malus"); }, stay);
       }
       setTimeout(popUp, Math.max(450, 1000 - score * 15));
     }
+    setTimeout(() => say("Touche les petites taupes. Attrape les étoiles et évite les chauves-souris !"), 450);
     setTimeout(popUp, 800);
   </script>
 </body>

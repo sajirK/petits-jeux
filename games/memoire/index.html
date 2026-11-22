@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Memory des animaux</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -50,7 +50,7 @@
     .front {
       background: #fff;
       transform: rotateY(180deg);
-      font-size: clamp(36px, 10vw, 76px);
+      font-size: clamp(48px, 13vw, 104px);
     }
     .card.found .front { background: #fff3b0; animation: bounce-in 0.5s; }
   </style>
@@ -69,6 +69,7 @@
       ["🐸", "la grenouille"], ["🐷", "le cochon"], ["🐮", "la vache"], ["🐵", "le singe"],
       ["🐔", "la poule"], ["🐘", "l'éléphant"], ["🦒", "la girafe"], ["🐧", "le pingouin"],
     ];
+    const CALLS = { "le chien": "Wouf wouf !", "le chat": "Miaou !", "le lapin": "Couic !", "le lion": "Roaar !", "la grenouille": "Coâ coâ !", "le cochon": "Groin groin !", "la vache": "Meuh !", "le singe": "Ouh ouh !", "la poule": "Cot cot !", "l'éléphant": "Trompette !", "la girafe": "Miam !", "le pingouin": "Coin coin !" };
     const LEVELS = [
       { label: "😊 Facile", pairs: 3, cols: 3 },
       { label: "😃 Moyen", pairs: 6, cols: 4 },
@@ -113,7 +114,7 @@
       if (lock || c === first || c.classList.contains("found")) return;
       sounds.click();
       c.classList.add("flipped");
-      say(c.dataset.name);
+      say(CALLS[c.dataset.name] || c.dataset.name);
       if (!first) { first = c; return; }
       lock = true;
       if (first.dataset.emoji === c.dataset.emoji) {
@@ -143,6 +144,7 @@
     }
 
     start();
+    setTimeout(() => say("Retourne deux cartes et retrouve les animaux pareils !"), 500);
   </script>
 </body>
 </html>

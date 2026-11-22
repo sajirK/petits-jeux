@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Les histoires d'émotions</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -13,17 +13,18 @@
       padding: 14px 20px; max-width: min(94vw, 620px); text-align: center; cursor: pointer;
       animation: bounce-in 0.45s;
     }
-    #scene { font-size: clamp(64px, 17vmin, 110px); line-height: 1.1; letter-spacing: 6px; }
-    #text { font-size: clamp(18px, 4.4vmin, 28px); margin-top: 8px; }
-    #ask { font-size: clamp(17px, 4vmin, 24px); margin: 14px 0 10px; text-align: center; }
+    #scene { font-size: clamp(64px, 17vmin, 110px); line-height: 1.1; letter-spacing: 6px; display: flex; justify-content: center; gap: 8px; }
+    #scene span { animation: bounce-in .45s both; }
+    #text, #ask { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     #options { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
     .opt {
-      width: clamp(96px, 22vmin, 140px); padding: 10px 6px; border-radius: 24px;
+      width: clamp(112px, 25vmin, 160px); padding: 10px 6px; border-radius: 24px;
       background: #fff; box-shadow: 0 6px 0 rgba(0,0,0,0.12);
       display: flex; flex-direction: column; align-items: center; gap: 4px;
       font-size: clamp(15px, 3.4vmin, 20px); font-weight: bold;
     }
-    .opt span { font-size: clamp(48px, 12vmin, 76px); line-height: 1; }
+    .opt .emo { font-size: clamp(58px, 15vmin, 96px); line-height: 1; }
+    .opt .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .opt:active { transform: scale(0.94); }
     .opt.good { background: #b7efc5; animation: bounce-in 0.4s; }
     .opt.bad { background: #ffe3e3; }
@@ -69,7 +70,8 @@
       done = false; wrongs = 0;
       q = Emotions.situationQuestion(prog.level, Math.random, q && q.situation.text);
       const s = q.situation;
-      document.getElementById("scene").textContent = s.scene;
+      const scene = document.getElementById("scene"); scene.innerHTML = "";
+      Array.from(s.scene).forEach((e, i) => { const image = document.createElement("span"); image.textContent = e; image.style.animationDelay = `${i * .2}s`; scene.appendChild(image); });
       document.getElementById("text").textContent = s.text;
       document.getElementById("ask").textContent = question();
       storyEl.style.animation = "none"; void storyEl.offsetWidth; storyEl.style.animation = "";
@@ -78,7 +80,8 @@
       q.options.forEach((k) => {
         const b = document.createElement("button");
         b.className = "opt";
-        b.innerHTML = `<span>${E[k].emoji}</span>${E[k].label}`;
+        b.innerHTML = `<span class="emo">${E[k].emoji}</span><span class="label">${E[k].label}</span>`;
+        b.setAttribute("aria-label", E[k].label);
         b.onclick = () => answer(b, k);
         optionsEl.appendChild(b);
       });

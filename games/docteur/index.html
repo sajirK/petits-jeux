@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Le Docteur des animaux</title>
   <link rel="stylesheet" href="../../css/common.css" />
@@ -29,7 +29,8 @@
       max-width: min(94vw, 560px);
       cursor: pointer;
     }
-    #problem { font-size: clamp(16px, 3.8vmin, 24px); }
+    #problem { font-size: clamp(36px, 8vmin, 64px); line-height: 1; }
+    #help { border: 0; border-radius: 50%; background: #ffd166; width: 52px; height: 52px; font-size: 28px; box-shadow: var(--shadow); touch-action: manipulation; }
     #steps { display: flex; gap: 6px; }
     .step {
       width: clamp(38px, 8vmin, 52px); height: clamp(38px, 8vmin, 52px);
@@ -52,6 +53,7 @@
       position: relative; width: var(--P); height: var(--P);
       touch-action: none; z-index: 2; flex: none;
     }
+    #patient.drop-ready { filter: drop-shadow(0 0 16px #4cc9f0); }
     #patient.arrive { animation: arrive 0.8s ease-out; }
     @keyframes arrive { from { transform: translateX(-80vw); } }
     #patient.happy { animation: jump 0.5s ease-in-out 3; }
@@ -97,15 +99,16 @@
       max-width: 760px;
     }
     .tool {
-      width: clamp(54px, 12vmin, 80px); height: clamp(54px, 12vmin, 80px);
+      width: clamp(70px, 14vmin, 96px); height: clamp(70px, 14vmin, 96px);
       border-radius: 18px; background: #fff; box-shadow: 0 5px 0 rgba(0,0,0,0.15);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      font-size: clamp(26px, 6vmin, 40px); line-height: 1.05; transition: transform 0.1s;
+      font-size: clamp(36px, 8vmin, 54px); line-height: 1.05; transition: transform 0.1s; touch-action: none;
     }
-    .tool small { font-size: clamp(9px, 2.1vmin, 13px); }
+    .tool small { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     .tool.active { background: #ffd166; transform: translateY(-4px) scale(1.06); }
     .tool.hint { animation: hint 0.6s ease-in-out infinite alternate; }
     @keyframes hint { to { transform: translateY(-6px); box-shadow: 0 0 0 4px #4cc9f0, 0 5px 0 rgba(0,0,0,0.15); } }
+    .tool-drag { position: fixed; z-index: 100; pointer-events: none; transform: translate(-50%, -50%) scale(1.12); font-size: 58px; filter: drop-shadow(0 6px 7px #0005); }
 
     /* téléphone debout : place pour le bouton son en haut à droite */
     @media (max-width: 600px) {
@@ -129,7 +132,7 @@
 </head>
 <body>
   <div id="top"><h1 id="docTitle">🩺 Docteur</h1><div class="pill" id="healed">❤️ 0</div></div>
-  <div id="info" title="Écouter"><span id="problem"></span><div id="steps"></div></div>
+  <div id="info" title="Écouter"><span id="problem" aria-hidden="true"></span><div id="steps"></div><button id="help" type="button" aria-label="Répéter l'aide">🔊</button></div>
   <div id="room"><div id="patient"></div><div id="bed"></div></div>
   <div id="tray"></div>
   <div id="cursor"></div>
@@ -152,6 +155,8 @@
       eponge: ["🧽", "éponge"],
       radio: ["📷", "radio"],
       platre: ["🧻", "plâtre"],
+      seringue: ["💉", "seringue"],
+      croquettes: ["🦴", "croquettes"],
     };
 
     // ---------- Le corps (positions en % de la boîte du patient) ----------
@@ -209,6 +214,16 @@
           { tool: "radio", zone: "jambe", type: "rub", amount: 2.5, say: "On fait une radio pour voir les os ! Passe l'appareil sur sa jambe." },
           { tool: "platre", zone: "jambe", type: "tap", count: 3, say: "L'os est cassé ! Il faut un plâtre. Touche trois fois sa jambe !" },
         ],
+      },
+      faim: {
+        intro: "Mon ventre gargouille ! J'ai très faim !",
+        label: "Il a faim",
+        steps: [{ tool: "croquettes", zone: "bouche", type: "tap", count: 3, say: "Glisse les croquettes jusqu'à sa bouche. Trois petites bouchées !" }],
+      },
+      piqure: {
+        intro: "Aïe ! Une abeille m'a piqué la patte !",
+        label: "Une piqûre à la patte",
+        steps: [{ tool: "seringue", zone: "patte", type: "tap", count: 1, say: "Glisse la seringue sur sa patte pour l'aider." }],
       },
     };
 
@@ -316,7 +331,8 @@
 
     // ---------- Fiche + étapes ----------
     function renderInfo() {
-      document.getElementById("problem").textContent = `${patient[0]} ${ailment.label}`;
+      document.getElementById("problem").textContent = patient[0];
+      document.getElementById("info").setAttribute("aria-label", `${patient[3]} : ${ailment.label}. Appuie sur le haut-parleur pour écouter.`);
       document.getElementById("steps").innerHTML = ailment.steps
         .map((s, i) => `<div class="step ${i < stepIndex ? "done" : i === stepIndex ? "now" : ""}">${TOOLS[s.tool][0]}</div>`)
         .join("");
@@ -324,6 +340,12 @@
     document.getElementById("info").addEventListener("click", () => {
       const s = ailment.steps[stepIndex];
       say(s ? s.say : ailment.intro);
+    });
+    document.getElementById("help").addEventListener("click", (e) => {
+      e.stopPropagation();
+      const s = ailment.steps[stepIndex];
+      say(s ? s.say : ailment.intro);
+      if (s) tray.querySelector(`[data-tool="${s.tool}"]`)?.classList.add("hint");
     });
 
     let targetEl = null, hintTimer = null;
@@ -353,6 +375,8 @@
         b.className = "tool";
         b.dataset.tool = id;
         b.innerHTML = `${e}<small>${label}</small>`;
+        b.setAttribute("aria-label", label);
+        b.title = label;
         b.onclick = () => {
           if (busy) return;
           tool = id;
@@ -362,9 +386,48 @@
           say(label);
           scheduleHint();
         };
+        b.addEventListener("pointerdown", (e) => {
+          if (busy || e.button > 0) return;
+          draggingTool = { id, pointerId: e.pointerId };
+          dragEl = document.createElement("div");
+          dragEl.className = "tool-drag";
+          dragEl.textContent = e.currentTarget.firstChild.textContent;
+          document.body.appendChild(dragEl);
+          moveToolDrag(e);
+          e.preventDefault();
+        });
         tray.appendChild(b);
       }
     }
+
+    let draggingTool = null, dragEl = null;
+    function moveToolDrag(e) {
+      if (!draggingTool || e.pointerId !== draggingTool.pointerId) return;
+      dragEl.style.left = e.clientX + "px";
+      dragEl.style.top = e.clientY + "px";
+      const r = patientEl.getBoundingClientRect();
+      patientEl.classList.toggle("drop-ready", e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
+    }
+    document.addEventListener("pointermove", moveToolDrag);
+    document.addEventListener("pointerup", (e) => {
+      if (!draggingTool || e.pointerId !== draggingTool.pointerId) return;
+      const id = draggingTool.id;
+      draggingTool = null;
+      dragEl?.remove(); dragEl = null;
+      patientEl.classList.remove("drop-ready");
+      const r = patientEl.getBoundingClientRect();
+      if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+      tool = id;
+      tray.querySelectorAll(".tool").forEach((t) => t.classList.remove("active", "hint"));
+      tray.querySelector(`[data-tool="${id}"]`)?.classList.add("active");
+      sounds.click();
+      const s = ailment.steps[stepIndex];
+      const pos = rel(e);
+      if (s && s.tool === id && s.type === "tap" && inZone(pos, Z[s.zone], 1.3)) doTap(s, e);
+      else if (s && s.tool !== id) tickle();
+      else if (s) say(s.say);
+      scheduleHint();
+    });
 
     // ---------- Gestes sur le patient ----------
     function rel(e) {
@@ -537,6 +600,12 @@
         sounds.noise(0.2, { from: 600, to: 1200, q: 1, volume: 0.12 });
         if (taps === s.count && sick.bolt) sick.bolt.remove();
       }
+      if (tool === "seringue") {
+        const shot = fx("", z[0], z[1] - 4, 16, 16);
+        shot.textContent = "💉"; shot.style.fontSize = "calc(var(--P) * 0.12)"; shot.style.zIndex = 8;
+        puff(e, "✨"); sounds.bell(740, 0, .14, .7); say("Piqûre terminée !");
+      }
+      if (tool === "croquettes") { puff(e, "🦴"); sounds.yum(); say(taps < s.count ? "Miam, encore une bouchée !" : "Bien mangé !"); }
       setProgress((taps / s.count) * 100);
       const idx = stepIndex;
       if (taps >= s.count) setTimeout(() => nextStep(idx), tool === "sirop" ? 900 : 400);

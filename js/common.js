@@ -1,6 +1,10 @@
 // Outils partagés : sons, voix, confettis, bouton maison.
 // Utilisable dans chaque jeu via <script src="../../js/common.js"></script>
 (function () {
+  // Safari iOS : bloque le geste de pincement sans intercepter les gestes de jeu.
+  window.addEventListener("gesturestart", (event) => event.preventDefault(), { passive: false });
+  window.addEventListener("gesturechange", (event) => event.preventDefault(), { passive: false });
+
   // Reprise des sauvegardes d'une ancienne version (autre préfixe que "jeux.") :
   // on recopie nos propres clés connues, une seule fois, pour ne rien perdre.
   try {
@@ -305,6 +309,34 @@
     a.textContent = "🏠";
     document.body.appendChild(a);
     document.body.classList.add("has-home");
+
+    if (!document.querySelector(".game-help-btn")) {
+      const help = document.createElement("button");
+      help.className = "game-help-btn";
+      help.type = "button";
+      help.textContent = "💡";
+      help.setAttribute("aria-label", "Montre-moi comment jouer");
+      help.title = "Montre-moi comment jouer";
+      help.addEventListener("click", () => {
+        const selectors = ["#ask", "#question", "#mission", "#cue", "#wText", "#stepTitle", ".hint", "#tip", "#target", "#story"];
+        const prompt = selectors.map((sel) => [...document.querySelectorAll(sel)].find((el) => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden";
+        })).find(Boolean);
+        let instruction = prompt && (prompt.getAttribute("aria-label") || prompt.innerText || prompt.textContent || "").replace(/\s+/g, " ").trim();
+        if (!instruction || instruction.length < 4) instruction = `Regarde les images. ${document.querySelector("h1")?.textContent || ""}. Écoute la consigne et touche ou glisse les éléments pour jouer.`;
+        instruction = instruction.slice(0, 180);
+        say(instruction);
+        toast(instruction);
+        const targets = [...document.querySelectorAll("button, .opt, .tool, .arrow, .item, .card, .balloon, .piece")].filter((el) => {
+          const r = el.getBoundingClientRect();
+          return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden";
+        }).slice(0, 8);
+        targets.forEach((el) => el.classList.add("help-flash"));
+        setTimeout(() => targets.forEach((el) => el.classList.remove("help-flash")), 1800);
+      });
+      document.body.appendChild(help);
+    }
   }
 
   // --- Bouton son / muet, présent sur toutes les pages ---
