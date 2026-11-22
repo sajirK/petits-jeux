@@ -50,14 +50,11 @@
   <script src="../../js/common.js?v=2.0.0-dev"></script>
   <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
   <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    const COLORS = {
-      rouge: "#e63946", bleu: "#1d70f5", jaune: "#ffd60a", vert: "#2dc653", orange: "#ff8c1a",
-      violet: "#8338ec", rose: "#ff70a6", marron: "#8d5524", noir: "#2b2b2b", blanc: "#fdfdfd",
-    };
-    // "le rouge", mais "l'orange"
-    const le = (n) => (/^[aeiou]/.test(n) ? "l'" : "le ") + n;
-    const shuffle = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map((x) => x[1]);
+    const { COLORS, le } = CouleursLogic;
+    const SIZES = { 1: "clamp(110px, 26vmin, 190px)", 2: "clamp(96px, 22vmin, 160px)", 3: "clamp(80px, 18vmin, 130px)" };
+    let lastGoal = null;
 
     Kit.game({
       id: "couleurs",
@@ -65,18 +62,11 @@
       icon: "🌈",
       bg: "linear-gradient(180deg, #d0ebff 0%, #fff0f6 100%)",
       instruction: () => "Écoute bien, et touche le ballon de la bonne couleur !",
-      levels: {
-        // Facile : 3 ballons, les 4 couleurs de base
-        1: { rounds: 5, balloons: 3, palette: ["rouge", "bleu", "jaune", "vert"], size: "clamp(110px, 26vmin, 190px)" },
-        // Moyen : 4 ballons, 8 couleurs
-        2: { rounds: 6, balloons: 4, palette: ["rouge", "bleu", "jaune", "vert", "orange", "violet", "rose", "marron"], size: "clamp(96px, 22vmin, 160px)" },
-        // Difficile : 6 ballons qui bougent, toutes les couleurs (dont noir et blanc)
-        3: { rounds: 8, balloons: 6, palette: Object.keys(COLORS), size: "clamp(80px, 18vmin, 130px)", drift: true },
-      },
+      levels: CouleursLogic.LEVELS,
       start(round) {
         const { cfg, stage } = round;
-        const set = shuffle(cfg.palette).slice(0, cfg.balloons);
-        const goal = set[Math.floor(Math.random() * set.length)];
+        const { set, goal } = CouleursLogic.question(round.level, Math.random, lastGoal);
+        lastGoal = goal;
 
         // la consigne : une tache de la couleur + la voix (le mot est écrit en petit pour les parents)
         const target = document.createElement("button");
@@ -88,7 +78,7 @@
 
         const sky = document.createElement("div");
         sky.className = "sky" + (cfg.drift ? " drift" : "");
-        sky.style.setProperty("--bw", cfg.size);
+        sky.style.setProperty("--bw", SIZES[round.level]);
         let goalEl = null;
         set.forEach((name, i) => {
           const b = document.createElement("button");

@@ -2,107 +2,52 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>La Première Lettre</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    body { background: linear-gradient(160deg, #ffd6a5, #ffadad); }
-    #picture {
-      font-size: clamp(80px, 22vmin, 150px); line-height: 1.1; cursor: pointer;
-      animation: bounce-in 0.45s;
-    }
-    #word {
-      display: flex; gap: 4px; margin: 6px 0 20px;
-      font-size: clamp(34px, 9vmin, 64px); font-weight: bold; letter-spacing: 2px;
-      background: #fff; border-radius: 22px; padding: 6px 20px; box-shadow: var(--shadow);
-    }
-    #word .first { color: #7b2cbf; border-bottom: 5px solid #7b2cbf; min-width: 0.8em; text-align: center; }
-    #word .first.found { color: #2d6a4f; border-color: #06d6a0; animation: bounce-in 0.4s; }
-    #word .rest { opacity: 0.85; }
-    #options { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
-    #stars { font-size: clamp(20px, 4.5vmin, 28px); min-height: 1.3em; margin-top: 16px; }
-    #question { font-size: clamp(16px, 3.8vmin, 24px); text-align: center; margin-bottom: 4px; }
+    .word { display: flex; font-size: clamp(36px, 9vmin, 64px); font-weight: bold; letter-spacing: 3px; background: #fff; border-radius: var(--r-md); padding: 4px 18px; box-shadow: var(--sh-1); margin: -8px 0 var(--s-4); }
+    .word .first { color: var(--c-primary); border-bottom: 5px solid var(--c-primary); min-width: 0.8em; text-align: center; }
+    .word .first.found { color: var(--c-success); border-color: var(--c-success); animation: k-good var(--t-slow) var(--ease-bounce); }
   </style>
 </head>
 <body>
-  <div class="brain">
-    <h1 class="game-title">La Première Lettre</h1>
-    <div class="brain-bar" id="bar"></div>
-    <div id="question">Par quelle lettre commence ce mot ? (touche l'image pour l'écouter)</div>
-    <div id="picture"></div>
-    <div id="word"></div>
-    <div id="options"></div>
-    <div id="stars"></div>
-  </div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
   <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, bravo, confetti } = Jeux;
-    // Nom des lettres à l'oral
+    const LL = LettreLogic;
     const NAMES = { A: "a", B: "bé", C: "cé", D: "dé", E: "e", F: "effe", G: "gé", H: "hache", I: "i", J: "ji", K: "ka", L: "elle", M: "emme", N: "enne", O: "o", P: "pé", Q: "ku", R: "erre", S: "esse", T: "té", U: "u", V: "vé", W: "double vé", X: "ixe", Y: "i grec", Z: "zède" };
-    const prog = Jeux.progress("premiere-lettre", 3);
-    const badge = Jeux.levelBadge(prog, () => next());
-    document.getElementById("bar").appendChild(badge);
-    const pic = document.getElementById("picture");
-    const wordEl = document.getElementById("word");
-    const optionsEl = document.getElementById("options");
-    const starsEl = document.getElementById("stars");
-    let q, busy = false, stars = 0, wrongs = 0;
-
-    pic.onclick = () => say(q.word);
-
-    function next() {
-      busy = false; wrongs = 0;
-      q = LettreLogic.generate(prog.level, Math.random, q && q.word);
-      pic.textContent = q.emoji;
-      pic.style.animation = "none"; void pic.offsetWidth; pic.style.animation = "";
-      const up = q.word.toUpperCase();
-      wordEl.innerHTML = `<span class="first">_</span><span class="rest">${up.slice(1)}</span>`;
-      optionsEl.innerHTML = "";
-      q.options.forEach((l) => {
-        const b = document.createElement("button");
-        b.className = "answer-btn";
-        b.textContent = l;
-        b.onclick = () => answer(b, l);
-        optionsEl.appendChild(b);
-      });
-      setTimeout(() => say(`${q.word}. Par quelle lettre commence ${q.word} ?`), 400);
-    }
-
-    function answer(btn, l) {
-      if (busy) return;
-      if (l === q.answer) {
-        busy = true;
-        btn.classList.add("good");
-        const first = wordEl.querySelector(".first");
-        // on affiche la vraie première lettre du mot (avec accent si besoin)
-        first.textContent = q.word.charAt(0).toUpperCase();
-        first.classList.add("found");
-        sounds.success();
-        if (wrongs === 0) {
-          stars++;
-          starsEl.textContent = "⭐".repeat(stars % 10 || 10);
-          if (stars % 10 === 0) { confetti(50); sounds.win(); Jeux.addStars(1); }
-        }
-        const lv = wrongs === 0 ? prog.success() : null;
-        badge.update();
-        bravo(`${q.word} commence par la lettre ${NAMES[q.answer]} !`);
-        if (lv === "up") setTimeout(() => { sounds.win(); say(`Niveau ${prog.level} ! Il y a plus de lettres à choisir !`); }, 3000);
-        setTimeout(next, lv === "up" ? 5500 : 3000);
-      } else {
-        wrongs++;
-        btn.classList.add("bad", "shake");
-        setTimeout(() => btn.classList.remove("shake"), 400);
-        sounds.wrong();
-        if (prog.fail() === "down") badge.update();
-        say(`Non, ça c'est la lettre ${NAMES[l]}. Écoute bien : ${q.word}.`);
-      }
-    }
-
-    next();
+    let last = null;
+    Kit.game({
+      id: "premiere-lettre", title: "La Première Lettre", icon: "🅰️",
+      bg: "linear-gradient(160deg, #ffe8cc, #ffdeeb)",
+      instruction: () => "Écoute le mot. Par quelle lettre commence-t-il ?",
+      levels: LL.LEVELS,
+      start(round) {
+        const q = LL.generate(round.cfg.internal[0], Math.random, last);
+        last = q.word;
+        Kit.ui.prompt(round.stage, { visual: q.emoji, onTap: () => round.say(q.word) });
+        const w = Kit.ui.el("div", "word");
+        w.innerHTML = `<span class="first">_</span><span></span>`;
+        w.lastChild.textContent = q.word.toUpperCase().slice(1);
+        round.stage.appendChild(w);
+        const buttons = Kit.ui.choices(round.stage, q.options, {
+          onPick(l, b) {
+            if (l === q.answer) {
+              const f = w.querySelector(".first"); f.textContent = q.word.charAt(0).toUpperCase(); f.classList.add("found");
+              round.win(b, `${q.word} commence par la lettre ${NAMES[q.answer]} !`, { delay: 2600 });
+            } else round.miss(b, `Ça, c'est la lettre ${NAMES[l]}. Écoute bien : ${q.word}.`);
+          },
+        });
+        round.setHintTarget(() => buttons[q.options.indexOf(q.answer)]);
+        round.timeout(() => round.say(`${q.word}. Par quelle lettre commence ${q.word} ?`), round.index === 0 ? 2800 : 350);
+      },
+    });
   </script>
 </body>
 </html>

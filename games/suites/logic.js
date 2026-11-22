@@ -91,5 +91,12 @@
     return { kind: "numbers", rule: rule.label, shown, answer, options: shuffle([...cands], rng) };
   }
 
-  return { generate, minimalPeriod, UNITS, THEMES };
+  // V2 : 3 niveaux. "internal" = crans de difficulté du générateur utilisés à ce niveau
+  const LEVELS = {
+    1: { rounds: 6, internal: [1, 2] },        // motifs AB, puis ABC / AAB
+    2: { rounds: 7, internal: [3, 4] },        // AABB, ABAC, ABCD…
+    3: { rounds: 8, internal: [4, 5, 6] },     // motifs longs + suites de nombres
+  };
+
+  return { LEVELS, generate, minimalPeriod, UNITS, THEMES };
 });

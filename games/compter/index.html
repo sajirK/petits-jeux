@@ -2,150 +2,60 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Je compte</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    html, body { height: 100%; }
-    body {
-      background: linear-gradient(160deg, #fff3b0, #ffd166);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    #stars { font-size: clamp(22px, 5vw, 34px); min-height: 1.4em; letter-spacing: 2px; }
-    #question {
-      font-size: clamp(22px, 5vw, 34px);
-      margin: 4px 0 10px;
-      display: flex; align-items: center; gap: 10px;
-    }
-    #question > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    #speak { font-size: 30px; background: #fff; border-radius: 50%; width: 54px; height: 54px; box-shadow: var(--shadow); }
-    #items {
-      flex: 1;
-      width: min(94vw, 760px);
-      max-height: 48vh;
-      background: rgba(255, 255, 255, 0.7);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      display: flex;
-      flex-wrap: wrap;
-      align-content: center;
-      justify-content: center;
-      gap: 6px 14px;
-      padding: 16px;
-    }
-    .item {
-      font-size: clamp(44px, 11vw, 84px);
-      animation: bounce-in 0.4s both;
-      transition: transform 0.2s;
-    }
+    .box { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 6px 14px; background: rgba(255,255,255,0.7); border-radius: var(--r-lg); padding: 16px; box-shadow: var(--sh-1); width: min(94vw, 760px); min-height: clamp(120px, 26vh, 260px); margin-bottom: var(--s-4); }
+    .item { font-size: clamp(44px, 11vmin, 80px); cursor: pointer; transition: transform var(--t-med) var(--ease-bounce); animation: k-in var(--t-slow) var(--ease-bounce) both; }
     .item.counted { transform: scale(1.25); filter: drop-shadow(0 0 10px #fff); }
-    #answers {
-      display: flex;
-      gap: clamp(12px, 4vw, 30px);
-      margin: 18px 0 max(24px, env(safe-area-inset-bottom));
-    }
-    .answer {
-      width: clamp(84px, 22vw, 140px);
-      height: clamp(84px, 22vw, 140px);
-      border-radius: 50%;
-      font-size: clamp(44px, 12vw, 78px);
-      font-weight: bold;
-      background: #fff;
-      box-shadow: 0 8px 0 rgba(0,0,0,0.15);
-      transition: transform 0.1s;
-    }
-    .answer:active { transform: scale(0.9) translateY(5px); }
-    .answer.good { background: #95d5b2; animation: bounce-in 0.4s; }
   </style>
 </head>
 <body>
-  <h1 class="game-title">Je compte</h1>
-  <div id="stars"></div>
-  <div id="question"><span>Combien il y en a ?</span><button id="speak" aria-label="Écouter">🔊</button></div>
-  <div id="items"></div>
-  <div id="answers"></div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, confetti, shuffle, pick } = Jeux;
-    const things = [
-      ["🍎", "pommes"], ["🐟", "poissons"], ["🚗", "voitures"], ["⭐", "étoiles"],
-      ["🐞", "coccinelles"], ["🎈", "ballons"], ["🍪", "biscuits"], ["🦆", "canards"],
-      ["🌸", "fleurs"], ["🦖", "dinosaures"], ["🍌", "bananes"], ["⚽", "ballons de foot"],
-    ];
-    const NUMBERS = ["zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix"];
-    const itemsEl = document.getElementById("items");
-    const answersEl = document.getElementById("answers");
-    const starsEl = document.getElementById("stars");
-    let stars = 0, count = 0, name = "", busy = false, max = 5;
-
-    function ask() { say(`Combien de ${name} ?`); }
-    document.getElementById("speak").onclick = ask;
-
-    function round() {
-      busy = false;
-      max = stars < 5 ? 5 : stars < 10 ? 8 : 10; // devient un peu plus dur petit à petit
-      count = 1 + Math.floor(Math.random() * max);
-      const [emoji, n] = pick(things);
-      name = n;
-      itemsEl.innerHTML = "";
-      for (let i = 0; i < count; i++) {
-        const s = document.createElement("span");
-        s.className = "item";
-        s.textContent = emoji;
-        s.style.animationDelay = i * 0.08 + "s";
-        // Toucher un objet le "compte" à voix haute
-        s.addEventListener("click", () => {
-          if (s.classList.contains("counted")) return;
-          s.classList.add("counted");
-          const done = itemsEl.querySelectorAll(".counted").length;
-          sounds.step(done - 1);
-          say(NUMBERS[done]);
+    const CO = CompterLogic;
+    let last = null;
+    Kit.game({
+      id: "compter", title: "Je compte", icon: "🔢",
+      bg: "linear-gradient(160deg, #fff3bf, #ffd8a8)",
+      instruction: (cfg, lv) => lv === 3 ? "Compte seulement les objets demandés ! Touche-les pour compter." : "Combien y en a-t-il ? Touche les objets pour compter.",
+      levels: CO.LEVELS,
+      start(round) {
+        const q = CO.question(round.level, Math.random, last);
+        last = q.n;
+        Kit.ui.prompt(round.stage, { visual: `${q.thing.e} ❓`, onTap: () => round.say(CO.say(q)) });
+        const box = Kit.ui.el("div", "box");
+        let counted = 0;
+        q.items.forEach((e, i) => {
+          const s = Kit.ui.el("span", "item", e);
+          s.style.animationDelay = i * 60 + "ms";
+          s.onclick = () => {
+            if (e !== q.thing.e) { round.say(`Ça, ce n'est pas ${q.thing.f ? "une" : "un"} ${q.thing.one} !`); return; }
+            if (s.classList.contains("counted")) return;
+            s.classList.add("counted"); counted++;
+            Jeux.sounds.step(counted - 1);
+            round.say(CO.countWord(counted, q.thing));
+          };
+          box.appendChild(s);
         });
-        itemsEl.appendChild(s);
-      }
-      const options = new Set([count]);
-      while (options.size < 3) {
-        const o = Math.max(1, Math.min(10, count + Math.floor(Math.random() * 5) - 2));
-        options.add(o);
-      }
-      answersEl.innerHTML = "";
-      shuffle([...options]).forEach((o) => {
-        const b = document.createElement("button");
-        b.className = "answer";
-        b.textContent = o;
-        b.onclick = () => answer(b, o);
-        answersEl.appendChild(b);
-      });
-      setTimeout(ask, 500);
-    }
-
-    function answer(btn, o) {
-      if (busy) return;
-      if (o === count) {
-        busy = true;
-        btn.classList.add("good");
-        sounds.success();
-        stars++;
-        starsEl.textContent = "⭐".repeat(stars % 10 || 10);
-        Jeux.addStars(1);
-        say(`Oui ! ${NUMBERS[count]} ${name} ! Bravo ${Jeux.NAME} !`);
-        if (stars % 10 === 0) { confetti(60); sounds.win(); }
-        setTimeout(round, 2300);
-      } else {
-        sounds.wrong();
-        btn.classList.remove("shake");
-        void btn.offsetWidth;
-        btn.classList.add("shake");
-        say("Essaie encore ! Touche-les pour compter.");
-      }
-    }
-
-    round();
+        round.stage.appendChild(box);
+        const buttons = Kit.ui.choices(round.stage, q.options, {
+          onPick(v, b) {
+            if (v === q.n) round.win(b, `${CO.countWord(q.n, q.thing)} ${q.n > 1 ? q.thing.many : q.thing.one} !`);
+            else round.miss(b, "Essaie encore ! Touche-les pour compter.");
+          },
+        });
+        round.setHintTarget(() => buttons[q.options.indexOf(q.n)]);
+        round.timeout(() => round.say(CO.say(q)), round.index === 0 ? 2600 : 350);
+      },
+    });
   </script>
 </body>
 </html>

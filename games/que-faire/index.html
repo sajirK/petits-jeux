@@ -2,116 +2,65 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Que ferais-tu ?</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    body { background: linear-gradient(160deg, #d3f9d8, #c3fae8); }
-    #story {
-      background: #fff; border-radius: 28px; box-shadow: var(--shadow);
-      padding: 12px 20px; max-width: min(94vw, 640px); text-align: center; cursor: pointer;
-      animation: bounce-in 0.45s;
-    }
-    #scene { font-size: clamp(60px, 15vmin, 100px); line-height: 1.1; letter-spacing: 6px; }
-    #text, #ask { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    #options { display: flex; flex-direction: column; gap: 10px; width: min(94vw, 640px); }
-    .opt {
-      display: flex; align-items: center; gap: 12px; text-align: left;
-      padding: 10px 14px; border-radius: 22px; background: #fff;
-      box-shadow: 0 6px 0 rgba(0,0,0,0.1); font-size: clamp(16px, 3.8vmin, 22px);
-      border-left: 10px solid var(--c);
-    }
-    .opt .e { font-size: clamp(34px, 8vmin, 50px); flex: none; }
-    .opt .t { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    .opt .listen { flex: none; background: #f1f3f5; border-radius: 50%; width: 48px; height: 48px; font-size: 20px; }
-    .opt:active { transform: scale(0.98); }
-    .opt.good { background: #b7efc5; animation: bounce-in 0.4s; }
-    .opt.bad { background: #fff0f0; opacity: 0.7; }
-    #feedback {
-      margin-top: 12px; background: #fff; border-radius: 22px; padding: 10px 16px; box-shadow: var(--shadow);
-      font-size: clamp(16px, 3.8vmin, 22px); max-width: min(94vw, 640px); text-align: center; display: none;
-    }
-    #next { margin-top: 12px; display: none; }
-    #hearts { font-size: clamp(20px, 4.5vmin, 28px); min-height: 1.3em; margin-top: 10px; }
+    .k-prompt-visual { letter-spacing: 6px; }
+    .opts { display: flex; flex-direction: column; gap: 12px; width: min(94vw, 680px); }
+    .opt { display: flex; align-items: center; gap: 12px; text-align: left; min-height: var(--tap-big); padding: 8px 14px; border-radius: var(--r-md); background: #fff; box-shadow: var(--sh-2); font-size: var(--fs-md); border-left: 12px solid var(--c); animation: k-in var(--t-slow) var(--ease-bounce) both; }
+    .opt .e { font-size: clamp(36px, 8vmin, 52px); flex: none; }
+    .opt .t { flex: 1; }
+    .opt .listen { flex: none; width: 52px; height: 52px; border-radius: 50%; background: #f1f3f5; font-size: 22px; }
+    .opt.k-good { background: var(--c-success-soft); } .opt.k-miss { background: var(--c-soft-error); }
+    .why { font-size: var(--fs-md); text-align: center; min-height: 2.6em; margin-top: var(--s-3); max-width: 640px; }
   </style>
 </head>
 <body>
-  <div class="brain">
-    <h1 class="game-title">Que ferais-tu ?</h1>
-    <div class="brain-bar"><div class="brain-pill" id="score">💛 0</div></div>
-    <div id="story" title="Écouter l'histoire"><div id="scene"></div><div id="text"></div></div>
-    <div id="ask">Qu'est-ce que tu ferais ? <small>(🔊 pour écouter chaque idée)</small></div>
-    <div id="options"></div>
-    <div id="feedback"></div>
-    <button class="big-btn" id="next">Histoire suivante ➡️</button>
-    <div id="hearts"></div>
-  </div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
   <script src="../../js/emotions.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, confetti } = Jeux;
     const COLORS = ["#4dabf7", "#ffa94d", "#b197fc"];
     const NAMES = ["Le bleu", "L'orange", "Le violet"];
-    const optionsEl = document.getElementById("options");
-    const feedback = document.getElementById("feedback");
-    const nextBtn = document.getElementById("next");
-    let q, done = false, firstTry = true, hearts = parseInt(localStorage.getItem("jeux.coeurs") || "0", 10);
-    document.getElementById("score").textContent = "💛 " + hearts;
-
-    const readAll = () => say(`${q.text} Qu'est-ce que tu ferais ? ${q.options.map((o, i) => `${NAMES[i]} : ${o.t}`).join(" ")}`, { rate: 0.92 });
-    document.getElementById("story").onclick = readAll;
-    nextBtn.onclick = () => { sounds.click(); next(); };
-
-    function next() {
-      done = false; firstTry = true;
-      q = Emotions.choiceQuestion(Math.random, q && q.text);
-      document.getElementById("scene").textContent = q.scene;
-      document.getElementById("text").textContent = q.text;
-      feedback.style.display = nextBtn.style.display = "none";
-      optionsEl.innerHTML = "";
-      q.options.forEach((o, i) => {
-        const b = document.createElement("div");
-        b.className = "opt";
-        b.setAttribute("role", "button");
-        b.style.setProperty("--c", COLORS[i]);
-        b.innerHTML = `<span class="e"></span><span class="t"></span><button class="listen" aria-label="Écouter">🔊</button>`;
-        b.querySelector(".e").textContent = o.e;
-        b.querySelector(".t").textContent = o.t;
-        b.setAttribute("aria-label", o.t);
-        b.querySelector(".listen").onclick = (ev) => { ev.stopPropagation(); say(o.t); };
-        b.onclick = () => choose(b, o);
-        optionsEl.appendChild(b);
-      });
-      setTimeout(readAll, 400);
-    }
-
-    function choose(el, o) {
-      if (done) return;
-      feedback.textContent = (o.good ? "💛 " : "🤔 ") + o.why;
-      feedback.style.display = "block";
-      say(o.why);
-      if (o.good) {
-        done = true;
-        el.classList.add("good");
-        sounds.success();
-        if (firstTry) {
-          hearts++;
-          localStorage.setItem("jeux.coeurs", hearts);
-          document.getElementById("score").textContent = "💛 " + hearts;
-          if (hearts % 5 === 0) { Jeux.addStars(1); confetti(40, ["💛", "💚", "💙", "⭐"]); sounds.win(); }
-        }
-        setTimeout(() => (nextBtn.style.display = "inline-block"), 1500);
-      } else {
-        firstTry = false;
-        el.classList.add("bad");
-        sounds.slide(330, 260, 0.2, 0.15);
-      }
-    }
-
-    next();
+    let list = [];
+    Kit.game({
+      id: "que-faire", title: "Que ferais-tu ?", icon: "🤝",
+      bg: "linear-gradient(160deg, #d3f9d8, #c3fae8)",
+      instruction: () => "Écoute l'histoire, puis choisis ce que tu ferais. Choisis la réponse la plus gentille !",
+      levels: QueFaireLogic.LEVELS,
+      start(round) {
+        if (round.index === 0) list = QueFaireLogic.stories(round.level);
+        const c = list[round.index];
+        const readAll = () => round.say(`${c.text} Qu'est-ce que tu ferais ? ${c.options.map((o, i) => `${NAMES[i]} : ${o.t}`).join(" ")}`, { rate: 0.92 });
+        Kit.ui.prompt(round.stage, { visual: c.scene, caption: c.text, onTap: readAll });
+        const opts = Kit.ui.el("div", "opts");
+        const why = Kit.ui.el("div", "why");
+        const buttons = c.options.map((o, i) => {
+          const b = Kit.ui.el("button", "opt");
+          b.style.setProperty("--c", COLORS[i]);
+          b.innerHTML = `<span class="e"></span><span class="t"></span><span class="listen" role="button" aria-label="Écouter">🔊</span>`;
+          b.querySelector(".e").textContent = o.e;
+          b.querySelector(".t").textContent = o.t;
+          b.querySelector(".listen").addEventListener("click", (ev) => { ev.stopPropagation(); round.say(o.t); });
+          b.onclick = () => {
+            why.textContent = (o.good ? "💛 " : "🤔 ") + o.why;
+            if (o.good) round.win(b, o.why, { praise: false, delay: 4200 });
+            else round.miss(b, o.why);
+          };
+          opts.appendChild(b);
+          return b;
+        });
+        round.stage.append(opts, why);
+        round.setHintTarget(() => buttons[c.options.findIndex((o) => o.good)]);
+        round.timeout(readAll, round.index === 0 ? 3600 : 400);
+      },
+    });
   </script>
 </body>
 </html>

@@ -2,109 +2,52 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Devine l'émotion</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    body { background: linear-gradient(160deg, #fff3bf, #ffd8a8); }
-    #question { font-size: clamp(18px, 4.2vmin, 26px); text-align: center; margin-bottom: 6px; }
-    #face {
-      width: clamp(200px, 52vmin, 330px); aspect-ratio: 1; border-radius: 50%;
-      display: grid; place-items: center; font-size: clamp(140px, 36vmin, 230px);
-      background: #fff; box-shadow: 0 8px 0 rgba(0,0,0,0.1);
-      animation: bounce-in 0.45s; transition: background 0.4s;
-    }
-    #body { min-height: 1.4em; font-size: clamp(16px, 3.8vmin, 22px); margin: 12px 0; text-align: center; max-width: 560px; }
-    #options { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; max-width: 760px; }
-    .opt {
-      min-width: clamp(130px, 30vmin, 190px); padding: 14px 18px; border-radius: 22px;
-      background: #fff; box-shadow: 0 6px 0 rgba(0,0,0,0.12);
-      font-size: clamp(20px, 4.6vmin, 28px); font-weight: bold;
-    }
-    .opt:active { transform: scale(0.94); }
-    .opt.good { background: #b7efc5; animation: bounce-in 0.4s; }
-    .opt.bad { background: #ffe3e3; }
-    #stars { font-size: clamp(20px, 4.5vmin, 28px); min-height: 1.3em; margin-top: 14px; }
+    .k-choice.face { font-size: clamp(64px, 16vmin, 110px); min-width: clamp(110px, 24vmin, 160px); min-height: clamp(110px, 24vmin, 160px); }
+    .k-choice.face small { opacity: 0; } .k-choice.face.k-good small { opacity: 1; }
+    .body { font-size: var(--fs-md); text-align: center; min-height: 1.6em; margin-top: var(--s-3); color: var(--c-ink-soft); }
   </style>
 </head>
 <body>
-  <div class="brain">
-    <h1 class="game-title">Devine l'émotion</h1>
-    <div class="brain-bar" id="bar"></div>
-    <div id="question">Comment se sent ce visage ? <button id="speak" style="background:#fff;border-radius:50%;width:44px;height:44px;font-size:22px;box-shadow:var(--shadow)">🔊</button></div>
-    <div id="face"></div>
-    <div id="body"></div>
-    <div id="options"></div>
-    <div id="stars"></div>
-  </div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
   <script src="../../js/emotions.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, bravo, confetti } = Jeux;
     const E = Emotions.EMOTIONS;
-    const prog = Jeux.progress("emotion-visage", 3);
-    const badge = Jeux.levelBadge(prog, () => next());
-    document.getElementById("bar").appendChild(badge);
-    const face = document.getElementById("face");
-    const bodyEl = document.getElementById("body");
-    const optionsEl = document.getElementById("options");
-    const starsEl = document.getElementById("stars");
-    let q, busy = false, wrongs = 0, stars = 0;
-
-    document.getElementById("speak").onclick = () => say("Comment se sent ce visage ?");
-
-    function next() {
-      busy = false; wrongs = 0;
-      q = Emotions.faceQuestion(prog.level, Math.random, q && q.answer);
-      face.textContent = E[q.answer].emoji;
-      face.style.background = "#fff";
-      face.style.animation = "none"; void face.offsetWidth; face.style.animation = "";
-      bodyEl.textContent = "";
-      optionsEl.innerHTML = "";
-      q.options.forEach((k) => {
-        const b = document.createElement("button");
-        b.className = "opt";
-        b.textContent = E[k].label;
-        b.onclick = () => answer(b, k);
-        optionsEl.appendChild(b);
-      });
-      setTimeout(() => say("Comment se sent ce visage ?"), 400);
-    }
-
-    function answer(btn, k) {
-      if (busy) return;
-      const e = E[k];
-      if (k === q.answer) {
-        busy = true;
-        btn.classList.add("good");
-        face.style.background = e.color;
-        bodyEl.textContent = e.body;
-        sounds.success();
-        if (wrongs === 0) {
-          stars++;
-          starsEl.textContent = "⭐".repeat(stars % 10 || 10);
-          if (stars % 10 === 0) { confetti(40, ["💛", "⭐"]); sounds.win(); Jeux.addStars(1); }
-        }
-        const lv = wrongs === 0 ? prog.success() : null;
-        badge.update();
-        // le nom de l'émotion + comment on la reconnaît
-        bravo(`C'est ${e.noun} ! ${e.body}`);
-        if (lv === "up") setTimeout(() => { sounds.win(); say(`Niveau ${prog.level} ! Il y a de nouvelles émotions à découvrir.`); }, 4200);
-        setTimeout(next, lv === "up" ? 7000 : 4500);
-      } else {
-        wrongs++;
-        btn.classList.add("bad", "shake");
-        setTimeout(() => btn.classList.remove("shake"), 400);
-        sounds.wrong();
-        if (prog.fail() === "down") badge.update();
-        say("Regarde bien sa bouche et ses yeux. Essaie encore !");
-      }
-    }
-
-    next();
+    let last = null;
+    Kit.game({
+      id: "emotion-visage", title: "Devine l'émotion", icon: "😊",
+      bg: "linear-gradient(160deg, #fff3bf, #ffd8a8)",
+      instruction: () => "Écoute l'émotion, et touche le bon visage !",
+      levels: EmotionVisageLogic.LEVELS,
+      start(round) {
+        const q = EmotionVisageLogic.question(round.level, Math.random, last);
+        last = q.answer;
+        const e = E[q.answer];
+        const ask = `Touche le visage de ${e.noun} !`;
+        Kit.ui.prompt(round.stage, { visual: "👂❓", onTap: () => round.say(ask) });
+        const body = Kit.ui.el("div", "body");
+        const buttons = Kit.ui.choices(round.stage, q.options, {
+          cls: "face",
+          render(k, b) { b.innerHTML = `<span>${E[k].emoji}</span><small>${E[k].label}</small>`; },
+          onPick(k, b) {
+            if (k === q.answer) { body.textContent = e.body; round.win(b, `C'est ${e.noun} ! ${e.body}`, { praise: false, delay: 3800 }); }
+            else round.miss(b, `Ça, c'est ${E[k].noun}. ${ask}`);
+          },
+        });
+        round.stage.appendChild(body);
+        round.setHintTarget(() => buttons[q.options.indexOf(q.answer)]);
+        round.timeout(() => round.say(ask), round.index === 0 ? 2400 : 350);
+      },
+    });
   </script>
 </body>
 </html>

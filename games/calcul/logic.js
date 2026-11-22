@@ -119,5 +119,12 @@
   // Vérifie une réponse
   const check = (q, value) => value === q.answer;
 
-  return { generate, check, hint, options, MAX_LEVEL, OBJECTS, LEAVE, LEAVE_ONE };
+  // V2 : 3 niveaux
+  const LEVELS = {
+    1: { rounds: 6, internal: [1, 2] },   // additions jusqu'à 10, avec des objets
+    2: { rounds: 7, internal: [3, 4] },   // soustractions, puis sans objets
+    3: { rounds: 8, internal: [5, 6] },   // compléments à 10, doubles, jusqu'à 20
+  };
+
+  return { LEVELS, generate, check, hint, options, MAX_LEVEL, OBJECTS, LEAVE, LEAVE_ONE };
 });

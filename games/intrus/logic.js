@@ -123,5 +123,12 @@
     return `Non : ${name}, ${plural ? "ce sont bien" : "c'est bien"} ${plural ? g.plural : g.member}, comme les autres. Cherche encore !`;
   }
 
-  return { CATEGORIES, generate, pairsFor, explain, whyNot, BASE };
+  // V2 : 3 niveaux (catégories éloignées → proches → règles "vole / chaud")
+  const LEVELS = {
+    1: { rounds: 6, internal: [1] },
+    2: { rounds: 7, internal: [2] },
+    3: { rounds: 8, internal: [3] },
+  };
+
+  return { LEVELS, CATEGORIES, generate, pairsFor, explain, whyNot, BASE };
 });

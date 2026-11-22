@@ -2,172 +2,85 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Les Calculs malins</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    body { background: linear-gradient(160deg, #caffbf, #9bf6ff); }
-    #equation {
-      font-size: clamp(40px, 11vmin, 84px); font-weight: bold;
-      background: #fff; border-radius: 26px; padding: 6px 26px; box-shadow: var(--shadow);
-      margin: 4px 0 12px; display: flex; align-items: center; gap: 12px; letter-spacing: 2px;
-    }
-    #equation .q { color: #7b2cbf; }
-    #equation .ok { color: #2d6a4f; }
-    #speak { background: #f1f3f5; border-radius: 50%; width: 46px; height: 46px; font-size: 24px; letter-spacing: 0; }
-    #scene {
-      display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px;
-      min-height: clamp(70px, 16vmin, 120px); max-width: min(96vw, 900px); margin-bottom: 18px;
-    }
-    .group {
-      display: flex; flex-wrap: wrap; justify-content: center; gap: 4px;
-      background: rgba(255,255,255,0.6); border-radius: 20px; padding: 8px 10px; max-width: 46vw;
-    }
-    .group.added { background: rgba(255, 214, 102, 0.55); }
-    .obj { font-size: clamp(30px, 7.5vmin, 54px); line-height: 1.1; transition: transform 0.2s, opacity 0.6s; cursor: pointer; }
-    .obj.counted { transform: scale(1.2); }
+    .eq { font-size: clamp(42px, 11vmin, 84px); font-weight: bold; background: #fff; border-radius: var(--r-lg); padding: 6px 28px; box-shadow: var(--sh-2); margin-bottom: var(--s-3); letter-spacing: 2px; cursor: pointer; }
+    .eq .q { color: var(--c-primary); } .eq .ok { color: var(--c-success); }
+    .scene { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-bottom: var(--s-4); max-width: 900px; }
+    .grp { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; background: rgba(255,255,255,0.65); border-radius: var(--r-md); padding: 8px 10px; max-width: 44vw; }
+    .grp.add { background: rgba(255, 212, 59, 0.45); }
+    .obj { font-size: clamp(30px, 7.5vmin, 54px); line-height: 1.1; cursor: pointer; transition: transform var(--t-med), opacity 0.6s, filter 0.6s; }
+    .obj.counted { transform: scale(1.22); }
     .obj.gone { opacity: 0.25; filter: grayscale(1); transform: translateY(-14px) rotate(15deg); }
-    .obj.waiting { opacity: .22; filter: grayscale(1); }
     .op { font-size: clamp(34px, 8vmin, 60px); font-weight: bold; }
-    #options { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
-    #stars { font-size: clamp(20px, 4.5vmin, 28px); min-height: 1.3em; margin-top: 16px; }
-    #tip { font-size: clamp(14px, 3.2vmin, 18px); opacity: 0.7; margin-top: 6px; min-height: 1.2em; text-align: center; }
-    #eq, #tip { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    #equation { min-width: 62px; justify-content: center; }
   </style>
 </head>
 <body>
-  <div class="brain">
-    <h1 class="game-title">Les Calculs malins</h1>
-    <div class="brain-bar" id="bar"></div>
-    <div id="equation"><span id="eq"></span><button id="speak" aria-label="Écouter">🔊</button></div>
-    <div id="scene"></div>
-    <div id="options"></div>
-    <div id="tip"></div>
-    <div id="stars"></div>
-  </div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
   <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, bravo, confetti } = Jeux;
-    const prog = Jeux.progress("calcul", CalculLogic.MAX_LEVEL);
-    const badge = Jeux.levelBadge(prog, () => next());
-    document.getElementById("bar").appendChild(badge);
-    const eqEl = document.getElementById("eq");
-    const scene = document.getElementById("scene");
-    const optionsEl = document.getElementById("options");
-    const tip = document.getElementById("tip");
-    const starsEl = document.getElementById("stars");
-    const NUMS = ["zéro", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf", "dix", "onze", "douze", "treize", "quatorze", "quinze", "seize", "dix-sept", "dix-huit", "dix-neuf", "vingt"];
-    let q, busy = false, stars = 0, wrongs = 0;
-
-    document.getElementById("speak").onclick = () => say(q.speech);
-
-    function eqHTML(final) {
-      const res = final ? `<span class="ok">${q.answer}</span>` : `<span class="q">?</span>`;
-      if (q.op === "c10") return `${q.a} + ${final ? `<span class="ok">${q.answer}</span>` : '<span class="q">?</span>'} = 10`;
-      return `${q.a} ${q.op === "-" ? "−" : "+"} ${q.b} = ${res}`;
+const stepOf = (round) => { const a = round.cfg.internal; return a[Math.min(a.length - 1, Math.floor((round.index * a.length) / round.rounds))]; };
+    const CL = CalculLogic;
+    const NUMS = ["zéro","un","deux","trois","quatre","cinq","six","sept","huit","neuf","dix","onze","douze","treize","quatorze","quinze","seize","dix-sept","dix-huit","dix-neuf","vingt"];
+    let lastText = "";
+    function eqHTML(q, done) {
+      const a = done ? `<span class="ok">${q.answer}</span>` : `<span class="q">?</span>`;
+      return q.op === "c10" ? `${q.a} + ${a} = 10` : `${q.a} ${q.op === "-" ? "−" : "+"} ${q.b} = ${a}`;
     }
-
-    // Toucher les objets pour compter à voix haute
-    let counted = 0;
-    function makeObj(e, gone = false) {
-      const s = document.createElement("span");
-      s.className = "obj" + (gone ? " gone" : "");
-      s.textContent = e;
-      s.onclick = () => {
-        if (s.classList.contains("counted") || s.classList.contains("gone")) return;
-        s.classList.add("counted");
-        counted++;
-        sounds.step(Math.min(counted - 1, 11));
-        say(NUMS[counted] || String(counted));
-      };
-      return s;
-    }
-
-    function buildScene() {
-      scene.innerHTML = "";
-      counted = 0;
-      if (!q.withObjects) return;
-      const e = q.object.e;
-      if (q.op === "c10") {
-        const group = document.createElement("div"); group.className = "group";
-        for (let i = 0; i < 10; i++) group.appendChild(makeObj(i < q.a ? e : "◯", i >= q.a));
-        scene.appendChild(group);
-      } else if (q.op === "+") {
-        const g1 = document.createElement("div"); g1.className = "group";
-        for (let i = 0; i < q.a; i++) g1.appendChild(makeObj(e));
-        const plus = document.createElement("span"); plus.className = "op"; plus.textContent = "+";
-        const g2 = document.createElement("div"); g2.className = "group added";
-        for (let i = 0; i < q.b; i++) g2.appendChild(makeObj(e));
-        scene.append(g1, plus, g2);
-      } else {
-        const g = document.createElement("div"); g.className = "group";
-        const objs = [];
-        for (let i = 0; i < q.a; i++) { const o = makeObj(e); objs.push(o); g.appendChild(o); }
-        scene.appendChild(g);
-        // les derniers "partent" sous ses yeux
-        setTimeout(() => objs.slice(q.a - q.b).forEach((o, i) => setTimeout(() => { o.classList.add("gone"); sounds.slide(600, 300, 0.1, 0.12); }, i * 250)), 900);
-      }
-    }
-
-    function next() {
-      busy = false; wrongs = 0;
-      q = CalculLogic.generate(prog.level);
-      q.withObjects = true;
-      eqEl.innerHTML = eqHTML(false);
-      tip.textContent = "";
-      buildScene();
-      optionsEl.innerHTML = "";
-      q.options.forEach((o) => {
-        const b = document.createElement("button");
-        b.className = "answer-btn";
-        b.textContent = o;
-        b.onclick = () => answer(b, o);
-        optionsEl.appendChild(b);
-      });
-      const itemName = q.object.many;
-      const spoken = q.op === "c10"
-        ? `Regarde les dix places. Il y a déjà ${NUMS[q.a]} ${itemName}. Combien en manque-t-il ?`
-        : q.op === "+"
-          ? `Il y a ${NUMS[q.a]} groupes de ${itemName}. On en ajoute ${NUMS[q.b]}. Combien au total ?`
-          : `Il y a ${NUMS[q.a]} ${itemName}. ${NUMS[q.b]} s'en vont. Combien restent ?`;
-      q.speech = spoken;
-      setTimeout(() => say(spoken), 400);
-    }
-
-    function answer(btn, v) {
-      if (busy) return;
-      if (CalculLogic.check(q, v)) {
-        busy = true;
-        btn.classList.add("good");
-        eqEl.innerHTML = eqHTML(true);
-        sounds.success();
-        if (wrongs === 0) {
-          stars++;
-          starsEl.textContent = "⭐".repeat(stars % 10 || 10);
-          if (stars % 10 === 0) { confetti(50); sounds.win(); Jeux.addStars(1); }
+    Kit.game({
+      id: "calcul", title: "Les Calculs malins", icon: "➕",
+      bg: "linear-gradient(160deg, #d3f9d8, #c5f6fa)",
+      instruction: () => "Écoute bien le calcul, et touche la bonne réponse !",
+      levels: CL.LEVELS,
+      start(round) {
+        let q, k = 0;
+        do { q = CL.generate(stepOf(round)); } while (q.text === lastText && k++ < 10);
+        lastText = q.text;
+        const eq = Kit.ui.el("button", "eq"); eq.innerHTML = eqHTML(q, false);
+        eq.onclick = () => round.say(q.speech);
+        round.stage.appendChild(eq);
+        if (q.withObjects) {
+          const scene = Kit.ui.el("div", "scene");
+          let counted = 0;
+          const obj = (gone) => {
+            const s = Kit.ui.el("span", "obj" + (gone ? " gone" : ""), q.object.e);
+            s.onclick = () => { if (s.classList.contains("counted") || s.classList.contains("gone")) return; s.classList.add("counted"); counted++; Jeux.sounds.step(Math.min(11, counted - 1)); round.say(NUMS[counted] || String(counted)); };
+            return s;
+          };
+          if (q.op === "+") {
+            const g1 = Kit.ui.el("div", "grp"), g2 = Kit.ui.el("div", "grp add");
+            for (let i = 0; i < q.a; i++) g1.appendChild(obj());
+            for (let i = 0; i < q.b; i++) g2.appendChild(obj());
+            scene.append(g1, Kit.ui.el("span", "op", "+"), g2);
+          } else {
+            const g = Kit.ui.el("div", "grp"); const all = [];
+            for (let i = 0; i < q.a; i++) { const o = obj(); all.push(o); g.appendChild(o); }
+            scene.appendChild(g);
+            // ceux qui "partent" disparaissent sous ses yeux
+            round.timeout(() => all.slice(q.a - q.b).forEach((o, i) => round.timeout(() => { o.classList.add("gone"); Jeux.sounds.slide(600, 300, 0.1, 0.12); }, i * 260)), 1200);
+          }
+          round.stage.appendChild(scene);
         }
-        const sentence = q.op === "c10" ? `${q.a} plus ${q.answer} égale 10 !` : `${q.a} ${q.op === "-" ? "moins" : "plus"} ${q.b} égale ${q.answer} !`;
-        const lv = wrongs === 0 ? prog.success() : null;
-        badge.update();
-        if (lv === "up") setTimeout(() => { sounds.win(); confetti(40); say(`Niveau ${prog.level} ! Bravo ${Jeux.NAME}, tu calcules super bien !`); }, 2200);
-        bravo(sentence);
-        setTimeout(next, lv === "up" ? 5500 : 2800);
-      } else {
-        wrongs++;
-        btn.classList.add("bad", "shake");
-        setTimeout(() => btn.classList.remove("shake"), 400);
-        sounds.wrong();
-        if (prog.fail() === "down") badge.update();
-        say(CalculLogic.hint(q));
-      }
-    }
-
-    next();
+        const buttons = Kit.ui.choices(round.stage, q.options, {
+          onPick(v, b) {
+            if (CL.check(q, v)) {
+              eq.innerHTML = eqHTML(q, true);
+              const s = q.op === "c10" ? `${q.a} plus ${q.answer} égale 10 !` : `${q.a} ${q.op === "-" ? "moins" : "plus"} ${q.b} égale ${q.answer} !`;
+              round.win(b, s, { delay: 2400 });
+            } else round.miss(b, CL.hint(q));
+          },
+        });
+        round.setHintTarget(() => buttons[q.options.indexOf(q.answer)]);
+        round.timeout(() => round.say(q.speech), round.index === 0 ? 2600 : 350);
+      },
+    });
   </script>
 </body>
 </html>

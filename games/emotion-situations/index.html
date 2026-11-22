@@ -2,123 +2,56 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Les histoires d'émotions</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    body { background: linear-gradient(160deg, #e7f5ff, #d0bfff); }
-    #story {
-      background: #fff; border-radius: 28px; box-shadow: var(--shadow);
-      padding: 14px 20px; max-width: min(94vw, 620px); text-align: center; cursor: pointer;
-      animation: bounce-in 0.45s;
-    }
-    #scene { font-size: clamp(64px, 17vmin, 110px); line-height: 1.1; letter-spacing: 6px; display: flex; justify-content: center; gap: 8px; }
-    #scene span { animation: bounce-in .45s both; }
-    #text, #ask { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    #options { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
-    .opt {
-      width: clamp(112px, 25vmin, 160px); padding: 10px 6px; border-radius: 24px;
-      background: #fff; box-shadow: 0 6px 0 rgba(0,0,0,0.12);
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-      font-size: clamp(15px, 3.4vmin, 20px); font-weight: bold;
-    }
-    .opt .emo { font-size: clamp(58px, 15vmin, 96px); line-height: 1; }
-    .opt .label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    .opt:active { transform: scale(0.94); }
-    .opt.good { background: #b7efc5; animation: bounce-in 0.4s; }
-    .opt.bad { background: #ffe3e3; }
-    #explain {
-      margin-top: 14px; background: #fff; border-radius: 22px; padding: 10px 16px; box-shadow: var(--shadow);
-      font-size: clamp(16px, 3.8vmin, 22px); max-width: min(94vw, 620px); text-align: center; display: none;
-    }
-    #explain .tip { margin-top: 6px; opacity: 0.85; }
-    #next { margin-top: 12px; display: none; }
+    .k-prompt-visual { letter-spacing: 6px; }
+    .k-choice.face { font-size: clamp(56px, 13vmin, 90px); min-width: clamp(104px, 22vmin, 150px); }
+    .tip { font-size: var(--fs-md); text-align: center; min-height: 2.6em; margin-top: var(--s-3); max-width: 640px; color: var(--c-ink-soft); }
   </style>
 </head>
 <body>
-  <div class="brain">
-    <h1 class="game-title">Les histoires d'émotions</h1>
-    <div class="brain-bar" id="bar"></div>
-    <div id="story" title="Écouter l'histoire"><div id="scene"></div><div id="text"></div></div>
-    <div id="ask"></div>
-    <div id="options"></div>
-    <div id="explain"></div>
-    <button class="big-btn" id="next">Histoire suivante ➡️</button>
-  </div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
   <script src="../../js/emotions.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, confetti, pick } = Jeux;
     const E = Emotions.EMOTIONS;
-    const prog = Jeux.progress("emotion-situations", 3);
-    const badge = Jeux.levelBadge(prog, () => next());
-    document.getElementById("bar").appendChild(badge);
-    const storyEl = document.getElementById("story");
-    const optionsEl = document.getElementById("options");
-    const explain = document.getElementById("explain");
-    const nextBtn = document.getElementById("next");
-    let q, done = false, wrongs = 0;
-
-    const question = () => `Comment se sent ${q.situation.who} ?`;
-    storyEl.onclick = () => say(`${q.situation.text} ${question()}`);
-    nextBtn.onclick = () => { sounds.click(); next(); };
-
-    function next() {
-      done = false; wrongs = 0;
-      q = Emotions.situationQuestion(prog.level, Math.random, q && q.situation.text);
-      const s = q.situation;
-      const scene = document.getElementById("scene"); scene.innerHTML = "";
-      Array.from(s.scene).forEach((e, i) => { const image = document.createElement("span"); image.textContent = e; image.style.animationDelay = `${i * .2}s`; scene.appendChild(image); });
-      document.getElementById("text").textContent = s.text;
-      document.getElementById("ask").textContent = question();
-      storyEl.style.animation = "none"; void storyEl.offsetWidth; storyEl.style.animation = "";
-      explain.style.display = nextBtn.style.display = "none";
-      optionsEl.innerHTML = "";
-      q.options.forEach((k) => {
-        const b = document.createElement("button");
-        b.className = "opt";
-        b.innerHTML = `<span class="emo">${E[k].emoji}</span><span class="label">${E[k].label}</span>`;
-        b.setAttribute("aria-label", E[k].label);
-        b.onclick = () => answer(b, k);
-        optionsEl.appendChild(b);
-      });
-      setTimeout(() => say(`${s.text} ${question()}`), 400);
-    }
-
-    function answer(btn, k) {
-      if (done) return;
-      const s = q.situation;
-      if (k === q.answer) {
-        done = true;
-        btn.classList.add("good");
-        sounds.success();
-        const e = E[k];
-        const tip = pick(e.tips);
-        const why = Emotions.sentence(s, k);
-        explain.innerHTML = `<div></div><div class="tip"></div>`;
-        explain.firstChild.textContent = "✅ " + why;
-        explain.lastChild.textContent = `${tip[0]} ${tip[1]}`;
-        explain.style.display = "block";
-        say(`Oui ! ${why} ${tip[1]}`);
-        if (wrongs === 0) {
-          if (prog.success() === "up") { badge.update(); confetti(40, ["💛", "⭐"]); Jeux.addStars(1); }
-        }
-        setTimeout(() => (nextBtn.style.display = "inline-block"), 1200);
-      } else {
-        wrongs++;
-        btn.classList.add("bad", "shake");
-        setTimeout(() => btn.classList.remove("shake"), 400);
-        sounds.wrong();
-        if (prog.fail() === "down") badge.update();
-        // forme interrogative : pas de subjonctif compliqué
-        say(`Hmm… ${Emotions.isItQuestion(s, k)} Je ne crois pas. Écoute encore : ${s.text}`);
-      }
-    }
-
-    next();
+    let last = null;
+    Kit.game({
+      id: "emotion-situations", title: "Les histoires d'émotions", icon: "🤔",
+      bg: "linear-gradient(160deg, #e7f5ff, #e5dbff)",
+      instruction: () => "Écoute l'histoire. Comment se sent le personnage ?",
+      levels: EmotionSituationsLogic.LEVELS,
+      start(round) {
+        const q = EmotionSituationsLogic.question(round.level, Math.random, last);
+        last = q.situation.text;
+        const s = q.situation;
+        const story = `${s.text} Comment se sent ${s.who} ?`;
+        Kit.ui.prompt(round.stage, { visual: s.scene, caption: s.text, onTap: () => round.say(story) });
+        const tip = Kit.ui.el("div", "tip");
+        const buttons = Kit.ui.choices(round.stage, q.options, {
+          cls: "face",
+          render(k, b) { b.innerHTML = `<span>${E[k].emoji}</span><small>${E[k].label}</small>`; },
+          onPick(k, b) {
+            if (k === q.answer) {
+              const why = Emotions.sentence(s, k);
+              const help = E[k].tips[Math.floor(Math.random() * E[k].tips.length)];
+              tip.textContent = `${help[0]} ${help[1]}`;
+              round.win(b, `Oui ! ${why} ${help[1]}`, { praise: false, delay: 5200 });
+            } else round.miss(b, `Hmm… ${Emotions.isItQuestion(s, k)} Je ne crois pas. Écoute encore : ${s.text}`);
+          },
+        });
+        round.stage.appendChild(tip);
+        round.setHintTarget(() => buttons[q.options.indexOf(q.answer)]);
+        round.timeout(() => round.say(story), round.index === 0 ? 2800 : 350);
+      },
+    });
   </script>
 </body>
 </html>

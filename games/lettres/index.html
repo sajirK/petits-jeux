@@ -2,137 +2,69 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Les Lettres</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      background: linear-gradient(160deg, #caf0f8, #a0c4ff);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    #picture { font-size: clamp(70px, 18vw, 120px); line-height: 1; margin: 4px 0; animation: bounce-in 0.5s; }
-    #word { display: flex; gap: clamp(6px, 2vw, 14px); margin: 10px 0 20px; }
-    .slot {
-      width: clamp(52px, 14vw, 96px);
-      height: clamp(64px, 17vw, 116px);
-      border-radius: 18px;
-      background: rgba(255,255,255,0.55);
-      border: 4px dashed rgba(59,42,77,0.35);
-      display: grid; place-items: center;
-      font-size: clamp(38px, 10vw, 74px);
-      font-weight: bold;
-      color: rgba(59,42,77,0.25);
-    }
+    .slots { display: flex; gap: clamp(6px, 2vmin, 12px); margin: -6px 0 var(--s-4); }
+    .slot { width: clamp(50px, 12vmin, 86px); height: clamp(60px, 15vmin, 104px); border-radius: var(--r-md); background: rgba(255,255,255,0.55); border: 4px dashed rgba(47,37,69,0.3); display: grid; place-items: center; font-size: clamp(36px, 9vmin, 66px); font-weight: bold; color: rgba(47,37,69,0.22); }
     .slot.next { border-color: #ef476f; animation: pulse 1s infinite; }
-    .slot.done { background: #fff; border: 4px solid #06d6a0; color: var(--ink); animation: bounce-in 0.3s; }
+    .slot.done { background: #fff; border: 4px solid var(--c-success); color: var(--c-ink); animation: k-good var(--t-slow) var(--ease-bounce); }
     @keyframes pulse { 50% { transform: scale(1.06); } }
-    #tiles {
-      display: flex; flex-wrap: wrap; justify-content: center;
-      gap: clamp(10px, 3vw, 20px);
-      width: min(94vw, 760px);
-      padding-bottom: max(16px, env(safe-area-inset-bottom));
-    }
-    .tile {
-      width: clamp(64px, 17vw, 110px);
-      height: clamp(64px, 17vw, 110px);
-      border-radius: 22px;
-      font-size: clamp(40px, 11vw, 70px);
-      font-weight: bold;
-      box-shadow: 0 7px 0 rgba(0,0,0,0.18);
-      color: #fff;
-      text-shadow: 0 3px 0 rgba(0,0,0,0.2);
-      transition: transform 0.1s, opacity 0.3s;
-    }
-    .tile:active { transform: scale(0.9) translateY(5px); }
-    .tile.used { opacity: 0; pointer-events: none; }
+    .k-choice.tile { color: #fff; text-shadow: 0 3px 0 rgba(0,0,0,0.2); min-width: clamp(64px, 15vmin, 100px); min-height: clamp(64px, 15vmin, 100px); }
+    .k-choice.tile.used { visibility: hidden; }
   </style>
 </head>
 <body>
-  <h1 class="game-title">Les lettres</h1>
-  <div id="picture"></div>
-  <div id="word"></div>
-  <div id="tiles"></div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, shuffle, pick, confetti, bravo, NAME } = Jeux;
-    // Le prénom de l'enfant d'abord (s'il est court et sans tiret), puis des petits mots faciles
-    const NAME_WORD = NAME.toUpperCase().replace(/[^A-ZÀ-ÖØ-Ý]/g, "");
-    const WORDS = [
-      ["PAPA", "👨", "papa"], ["MAMAN", "👩", "maman"], ["CHAT", "🐱", "chat"],
-      ["LION", "🦁", "lion"], ["SOLEIL", "☀️", "soleil"], ["AUTO", "🚗", "auto"],
-      ["LUNE", "🌙", "lune"], ["VACHE", "🐮", "vache"], ["ROBOT", "🤖", "robot"],
-      ["POMME", "🍎", "pomme"], ["BEBE", "👶", "bébé"], ["ARBRE", "🌳", "arbre"],
-      ["OURS", "🐻", "ours"], ["DINO", "🦖", "dino"], ["COEUR", "❤️", "cœur"],
-    ];
-    if (NAME_WORD.length >= 2 && NAME_WORD.length <= 8) WORDS.unshift([NAME_WORD, Jeux.getAvatar(), NAME]);
-    const LETTER_NAMES = { A:"a",B:"bé",C:"cé",D:"dé",E:"e",F:"effe",G:"gé",H:"hache",I:"i",J:"ji",K:"ka",L:"elle",M:"emme",N:"enne",O:"o",P:"pé",Q:"ku",R:"erre",S:"esse",T:"té",U:"u",V:"vé",W:"double vé",X:"ixe",Y:"i grec",Z:"zède" };
-    const TILE_COLORS = ["#ef476f", "#ff9f1c", "#06d6a0", "#118ab2", "#7b2cbf", "#f15bb5", "#00bbf9"];
-    const picEl = document.getElementById("picture");
-    const wordEl = document.getElementById("word");
-    const tilesEl = document.getElementById("tiles");
-    let index = 0, word, pos;
-
-    function round() {
-      const [w, emoji, spoken] = WORDS[index % WORDS.length];
-      word = w; pos = 0;
-      picEl.textContent = emoji;
-      picEl.style.animation = "none"; void picEl.offsetWidth; picEl.style.animation = "";
-      wordEl.innerHTML = "";
-      [...w].forEach((l, i) => {
-        const s = document.createElement("div");
-        s.className = "slot" + (i === 0 ? " next" : "");
-        s.textContent = l; // lettre en "fantôme" pour aider
-        wordEl.appendChild(s);
-      });
-      tilesEl.innerHTML = "";
-      // Les lettres du mot + 1 ou 2 lettres en plus pour corser un peu
-      const extras = shuffle([..."ABCDEFGILMNOPRSTU"].filter((l) => !w.includes(l))).slice(0, w.length > 4 ? 1 : 2);
-      shuffle([...w, ...extras]).forEach((l, i) => {
-        const t = document.createElement("button");
-        t.className = "tile";
-        t.textContent = l;
-        t.style.background = TILE_COLORS[i % TILE_COLORS.length];
-        t.onclick = () => tap(t, l);
-        tilesEl.appendChild(t);
-      });
-      setTimeout(() => say(spoken === NAME ? `On écrit ton prénom : ${NAME} !` : `On écrit ${spoken} !`), 400);
-    }
-
-    function tap(t, l) {
-      if (l === word[pos]) {
-        const slot = wordEl.children[pos];
-        slot.classList.remove("next");
-        slot.classList.add("done");
-        t.classList.add("used");
-        sounds.step(pos);
-        say(LETTER_NAMES[l] || l);
-        pos++;
-        if (pos < word.length) {
-          wordEl.children[pos].classList.add("next");
-        } else {
-          setTimeout(() => {
-            sounds.win();
-            confetti(45, ["🎉", "⭐", picEl.textContent]);
-            Jeux.addStars(1);
-            const spoken = WORDS[index % WORDS.length][2];
-            bravo(`Tu as écrit ${spoken} !`);
-            index++;
-            setTimeout(round, 3000);
-          }, 500);
+    const LT = LettresLogic;
+    const COLORS = ["#ef476f", "#ff9f1c", "#06d6a0", "#118ab2", "#7b2cbf", "#f15bb5", "#00bbf9"];
+    let list = [];
+    Kit.game({
+      id: "lettres", title: "Les Lettres", icon: "🔤",
+      bg: "linear-gradient(160deg, #caf0f8, #a0c4ff)",
+      instruction: () => "Écris le mot : touche les lettres dans l'ordre !",
+      levels: LT.LEVELS,
+      start(round) {
+        if (round.index === 0) {
+          list = LT.words(round.level);
+          // le prénom de l'enfant en premier mot, s'il est de la bonne taille
+          const nw = LT.nameWord(Jeux.NAME);
+          if (nw && round.level <= 2) list[0] = [nw, Jeux.getAvatar(), Jeux.NAME];
         }
-      } else {
-        sounds.wrong();
-        t.classList.remove("shake"); void t.offsetWidth; t.classList.add("shake");
-        say(`Non, ça c'est ${LETTER_NAMES[l] || l}. Cherche le ${LETTER_NAMES[word[pos]] || word[pos]}.`);
-      }
-    }
-    round();
+        const [word, emoji, spoken] = list[round.index];
+        Kit.ui.prompt(round.stage, { visual: emoji, onTap: () => round.say(spoken) });
+        const slots = Kit.ui.el("div", "slots");
+        word.split("").forEach((l, i) => slots.appendChild(Kit.ui.el("div", "slot" + (i === 0 ? " next" : ""), l)));
+        round.stage.appendChild(slots);
+        const tiles = LT.tiles(word, round.level);
+        let pos = 0;
+        const buttons = Kit.ui.choices(round.stage, tiles, {
+          cls: "tile",
+          render(l, b) { b.textContent = l; b.style.background = COLORS[tiles.indexOf(l) % COLORS.length]; },
+          onPick(l, b) {
+            if (l === word[pos]) {
+              const s = slots.children[pos]; s.classList.remove("next"); s.classList.add("done");
+              b.classList.add("used");
+              Jeux.sounds.step(pos);
+              round.say(LT.LETTER_NAMES[l]);
+              pos++;
+              if (pos < word.length) slots.children[pos].classList.add("next");
+              else round.win(null, `Tu as écrit ${spoken} !`, { delay: 2600 });
+            } else round.miss(b, `Ça, c'est ${LT.LETTER_NAMES[l]}. Cherche le ${LT.LETTER_NAMES[word[pos]]}.`);
+          },
+        });
+        round.setHintTarget(() => buttons.find((b, i) => !b.classList.contains("used") && tiles[i] === word[pos]));
+        round.timeout(() => round.say(spoken === Jeux.NAME ? `On écrit ton prénom : ${spoken} !` : `On écrit ${spoken} !`), round.index === 0 ? 2400 : 350);
+      },
+    });
   </script>
 </body>
 </html>

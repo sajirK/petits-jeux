@@ -187,3 +187,40 @@ canvas.k-particles { position: fixed; inset: 0; width: 100%; height: 100%; point
 
 /* ---------- Consigne visuelle (petite, pour les parents) ---------- */
 .k-caption { font-size: var(--fs-sm); color: var(--c-ink-soft); text-align: center; min-height: 1.3em; margin: 4px 0; }
+
+/* ---------- Carte de consigne (grand visuel + 👂) ---------- */
+.k-prompt {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-width: clamp(150px, 34vmin, 260px);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-lg);
+  background: var(--c-paper);
+  box-shadow: var(--sh-2);
+  margin-bottom: var(--s-4);
+  animation: k-in var(--t-slow) var(--ease-bounce);
+  max-width: min(94vw, 720px);
+}
+.k-prompt-visual { font-size: clamp(64px, 16vmin, 120px); line-height: 1.05; display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.k-prompt-ear { position: absolute; right: -10px; top: -12px; width: 46px; height: 46px; border-radius: 50%; background: #e7f5ff; display: grid; place-items: center; font-size: 24px; box-shadow: var(--sh-1); }
+.k-prompt-caption { font-size: var(--fs-sm); color: var(--c-ink-soft); max-width: 560px; text-align: center; }
+
+/* ---------- Grille de réponses ---------- */
+.k-choices { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(12px, 3vmin, 22px); max-width: min(96vw, 900px); }
+.k-choice {
+  min-width: var(--tap-big); min-height: var(--tap-big);
+  padding: 8px 16px;
+  border-radius: var(--r-lg);
+  background: var(--c-paper);
+  box-shadow: var(--sh-2);
+  font-size: var(--fs-xl);
+  font-weight: bold;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  animation: k-in var(--t-slow) var(--ease-bounce) both;
+  transition: transform var(--t-fast) var(--ease-out), box-shadow var(--t-fast), background var(--t-med);
+}
+.k-choice:active { transform: translateY(5px); box-shadow: var(--sh-pressed); }
+.k-choice small { font-size: var(--fs-xs); color: var(--c-ink-soft); font-weight: normal; }
+.k-choice.k-good { background: var(--c-success-soft); }
+.k-choice.k-miss { background: var(--c-soft-error); }
+.k-choice.dim { opacity: 0.45; }

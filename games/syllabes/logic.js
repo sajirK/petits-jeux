@@ -105,5 +105,12 @@
     return q.syllables.map((s) => s.say).join("... ") + "... " + q.word.toLowerCase() + " !";
   }
 
-  return { WORDS, EXTRA, wordsFor, generate, isNext, blendSpeech };
+  // V2 : 3 niveaux (2 syllabes → 2-3 syllabes + piège → mots longs et lecture seule)
+  const LEVELS = {
+    1: { rounds: 5, internal: [1] },
+    2: { rounds: 6, internal: [2] },
+    3: { rounds: 7, internal: [3, 4] },
+  };
+
+  return { LEVELS, WORDS, EXTRA, wordsFor, generate, isNext, blendSpeech };
 });

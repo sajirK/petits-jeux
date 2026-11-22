@@ -63,5 +63,12 @@
     return { emoji, word, answer, options };
   }
 
-  return { WORDS, BAD_STARTS, ALLOWED_VOWEL_WORDS, ALPHABET, LOOK_ALIKE, firstLetter, generate };
+  // V2 : 3 niveaux (2 lettres très différentes → 3 lettres → 4 lettres dont des sosies)
+  const LEVELS = {
+    1: { rounds: 6, internal: [1] },
+    2: { rounds: 7, internal: [2] },
+    3: { rounds: 8, internal: [3] },
+  };
+
+  return { LEVELS, WORDS, BAD_STARTS, ALLOWED_VOWEL_WORDS, ALPHABET, LOOK_ALIKE, firstLetter, generate };
 });

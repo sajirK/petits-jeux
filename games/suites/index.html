@@ -2,130 +2,61 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Les Suites logiques</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    body { background: linear-gradient(160deg, #e0c3fc, #8ec5fc); }
-    #question { font-size: clamp(18px, 4.2vmin, 26px); margin: 4px 0 12px; text-align: center; display: flex; align-items: center; gap: 8px; }
-    #question button { background: #fff; border-radius: 50%; width: 46px; height: 46px; font-size: 24px; box-shadow: var(--shadow); }
-    #row {
-      display: flex; flex-wrap: wrap; justify-content: center; gap: 6px;
-      background: rgba(255,255,255,0.55); border-radius: 26px; padding: 14px;
-      max-width: min(96vw, 900px); margin-bottom: 24px;
-    }
-    .cell {
-      width: clamp(46px, 10.5vmin, 80px); height: clamp(46px, 10.5vmin, 80px);
-      border-radius: 16px; background: #fff;
-      display: grid; place-items: center;
-      font-size: clamp(28px, 7vmin, 52px); font-weight: bold;
-      box-shadow: 0 4px 0 rgba(0,0,0,0.08);
-      animation: bounce-in 0.35s both;
-      transition: background 0.3s;
-    }
-    .cell.slot { border: 4px dashed #7b2cbf; background: #f3e8ff; color: #7b2cbf; animation: pulse 1.1s infinite; }
-    .cell.slot.filled { border-style: solid; border-color: #06d6a0; background: #e9fff7; animation: bounce-in 0.4s; }
-    @keyframes pulse { 50% { transform: scale(1.07); } }
-    /* indice : on colore chaque répétition du motif */
-    .cell.g0 { background: #ffe5ec; }
-    .cell.g1 { background: #e0f4ff; }
-    #options { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
-    #stars { font-size: clamp(20px, 4.5vmin, 28px); min-height: 1.3em; margin-top: 18px; }
+    .row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; background: rgba(255,255,255,0.6); border-radius: var(--r-lg); padding: 14px; margin-bottom: var(--s-4); max-width: min(96vw, 920px); }
+    .cell { width: clamp(50px, 11vmin, 84px); aspect-ratio: 1; border-radius: var(--r-md); background: #fff; display: grid; place-items: center; font-size: clamp(30px, 7vmin, 54px); font-weight: bold; box-shadow: var(--sh-1); animation: k-in var(--t-slow) var(--ease-bounce) both; }
+    .cell.g0 { background: #ffe5ec; } .cell.g1 { background: #e0f4ff; }
+    .slot { border: 4px dashed var(--c-primary); background: #f3f0ff; color: var(--c-primary); animation: pulse 1.1s infinite; }
+    .slot.filled { border-style: solid; border-color: var(--c-success); background: var(--c-success-soft); animation: k-good var(--t-slow) var(--ease-bounce); }
+    @keyframes pulse { 50% { transform: scale(1.08); } }
   </style>
 </head>
 <body>
-  <div class="brain">
-    <h1 class="game-title">Les Suites logiques</h1>
-    <div class="brain-bar" id="bar"></div>
-    <div id="question"><span id="qtext">Qu'est-ce qui vient après ?</span><button id="speak" aria-label="Écouter">🔊</button></div>
-    <div id="row"></div>
-    <div id="options"></div>
-    <div id="stars"></div>
-  </div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
   <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, bravo, confetti, pick } = Jeux;
-    const prog = Jeux.progress("suites", 6);
-    const badge = Jeux.levelBadge(prog, () => next());
-    document.getElementById("bar").appendChild(badge);
-
-    const row = document.getElementById("row");
-    const optionsEl = document.getElementById("options");
-    const starsEl = document.getElementById("stars");
-    let q, busy = false, wrongs = 0, stars = 0;
-
-    const ask = () => say(q.kind === "numbers" ? "Quel nombre vient après ?" : "Qu'est-ce qui vient après ?");
-    document.getElementById("speak").onclick = ask;
-
-    function next() {
-      busy = false; wrongs = 0;
-      q = SuitesLogic.generate(prog.level);
-      document.getElementById("qtext").textContent = q.kind === "numbers" ? "Quel nombre vient après ?" : "Qu'est-ce qui vient après ?";
-      row.innerHTML = "";
-      q.shown.forEach((v, i) => {
-        const c = document.createElement("div");
-        c.className = "cell";
-        c.textContent = v;
-        c.style.animationDelay = i * 0.05 + "s";
-        row.appendChild(c);
-      });
-      const slot = document.createElement("div");
-      slot.className = "cell slot";
-      slot.textContent = "?";
-      slot.style.animationDelay = q.shown.length * 0.05 + "s";
-      row.appendChild(slot);
-      optionsEl.innerHTML = "";
-      q.options.forEach((o) => {
-        const b = document.createElement("button");
-        b.className = "answer-btn";
-        b.textContent = o;
-        b.onclick = () => answer(b, o, slot);
-        optionsEl.appendChild(b);
-      });
-      setTimeout(ask, 400);
-    }
-
-    function showHint() {
-      // colorie les répétitions pour voir le motif
-      if (q.kind !== "symbols") return;
-      const p = q.unit.length;
-      [...row.children].forEach((c, i) => { if (!c.classList.contains("slot")) c.classList.add("g" + (Math.floor(i / p) % 2)); });
-    }
-
-    function answer(btn, value, slot) {
-      if (busy) return;
-      if (value === q.answer) {
-        busy = true;
-        btn.classList.add("good");
-        slot.textContent = value;
-        slot.classList.add("filled");
-        sounds.success();
-        stars++;
-        starsEl.textContent = "⭐".repeat(stars % 10 || 10);
-        if (stars % 10 === 0) { confetti(50); sounds.win(); Jeux.addStars(1); }
-        const lv = prog.success();
-        badge.update();
-        if (lv === "up") { setTimeout(() => { sounds.win(); confetti(40); say(`Niveau ${prog.level} ! Tu deviens très fort, ${Jeux.NAME} !`); }, 300); }
-        else bravo(q.kind === "numbers" ? `Après ${q.shown[q.shown.length - 1]}, c'est ${q.answer} !` : "");
-        setTimeout(next, lv === "up" ? 3500 : 2200);
-      } else {
-        wrongs++;
-        btn.classList.add("bad", "shake");
-        setTimeout(() => btn.classList.remove("shake"), 400);
-        sounds.wrong();
-        const lv = prog.fail();
-        badge.update();
-        if (wrongs === 1) { showHint(); say(q.kind === "numbers" ? "Regarde bien : de combien ça avance à chaque fois ?" : "Regarde bien les couleurs : le même groupe se répète !"); }
-        else say("Essaie encore !");
-        if (lv === "down") setTimeout(next, 1500);
-      }
-    }
-
-    next();
+const stepOf = (round) => { const a = round.cfg.internal; return a[Math.min(a.length - 1, Math.floor((round.index * a.length) / round.rounds))]; };
+    const SL = SuitesLogic;
+    let lastKey = "";
+    Kit.game({
+      id: "suites", title: "Les Suites logiques", icon: "🧩",
+      bg: "linear-gradient(160deg, #e5dbff, #d0ebff)",
+      instruction: () => "Regarde bien la suite. Qu'est-ce qui vient après ?",
+      levels: SL.LEVELS,
+      start(round) {
+        let q, k = 0;
+        do { q = SL.generate(stepOf(round)); } while (q.shown.join() + q.answer === lastKey && k++ < 10);
+        lastKey = q.shown.join() + q.answer;
+        const row = Kit.ui.el("div", "row");
+        q.shown.forEach((v, i) => { const c = Kit.ui.el("div", "cell", String(v)); c.style.animationDelay = i * 50 + "ms"; row.appendChild(c); });
+        const slot = Kit.ui.el("div", "cell slot", "?");
+        row.appendChild(slot);
+        round.stage.appendChild(row);
+        let hinted = false;
+        const buttons = Kit.ui.choices(round.stage, q.options, {
+          onPick(o, b) {
+            if (o === q.answer) {
+              slot.textContent = o; slot.classList.add("filled");
+              round.win(b, q.kind === "numbers" ? `Après ${q.shown[q.shown.length - 1]}, c'est ${o} !` : "");
+            } else {
+              // indice : on colorie les répétitions du motif
+              if (!hinted && q.kind === "symbols") { hinted = true; [...row.children].forEach((c, i) => { if (c !== slot) c.classList.add("g" + (Math.floor(i / q.unit.length) % 2)); }); }
+              round.miss(b, q.kind === "numbers" ? "Regarde de combien ça avance à chaque fois !" : "Regarde les couleurs : le même groupe se répète !");
+            }
+          },
+        });
+        round.setHintTarget(() => buttons[q.options.indexOf(q.answer)]);
+        if (round.index > 0) round.say(q.kind === "numbers" ? "Quel nombre vient après ?" : "Qu'est-ce qui vient après ?");
+      },
+    });
   </script>
 </body>
 </html>

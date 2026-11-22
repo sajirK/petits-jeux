@@ -14,6 +14,11 @@
 //     round.say(text)          → parle
 //     round.hint(el)           → montre la main 👆 sur un élément (aide)
 //     round.setHintTarget(fn)  → élément à montrer si l'enfant ne fait rien pendant un moment
+//     round.end({errors, text}) → terminer la partie (jeux "arcade" et "libre")
+//     round.loop(fn) / round.timeout / round.interval / round.onCleanup → arrêtés automatiquement
+//
+//   Modes : "rounds" (manches, par défaut), "arcade" (une partie qui se termine par round.end),
+//           "free" (jeu libre sans niveaux, bouton ✅ "J'ai fini").
 (function () {
   const J = window.Jeux;
   const L = window.KitLevels;
@@ -134,9 +139,11 @@
   function game(def) {
     lockViewport();
     if (def.bg) document.documentElement.style.setProperty("--game-bg", def.bg);
+    const mode = def.mode || (def.levels ? "rounds" : "free"); // "rounds" | "arcade" | "free"
     const hasLevels = !!def.levels;
     if (!L.validateConfig(def.levels)) console.warn(`[Kit] ${def.id} : les 3 niveaux doivent avoir "rounds"`);
     let level = hasLevels ? L.load(localStorage, def.id) : 1;
+    document.body.dataset.kitMode = mode;
 
     // ---------- squelette ----------
     const bar = document.createElement("header");
@@ -163,6 +170,15 @@
     replay.textContent = "🔊";
     bar.append(home, title);
     if (hasLevels) bar.append(levelsEl);
+    // jeux libres : un bouton "J'ai fini" pour avoir aussi une fin
+    let doneBtn = null;
+    if (mode === "free" && def.doneButton !== false) {
+      doneBtn = document.createElement("button");
+      doneBtn.className = "k-round-btn k-done";
+      doneBtn.setAttribute("aria-label", "J'ai fini");
+      doneBtn.textContent = "✅";
+      bar.append(doneBtn);
+    }
     bar.append(replay);
     const mute = document.querySelector(".mute-btn");
     if (mute) bar.append(mute); // le bouton son de common.js rejoint la barre
@@ -170,7 +186,6 @@
     progress.className = "k-progress";
     const stage = document.createElement("main");
     stage.className = "k-stage";
-    // le contenu existant de la page (s'il y en a) va dans la scène
     [...document.body.children].forEach((c) => { if (c.tagName !== "SCRIPT" && !c.classList.contains("mute-btn")) stage.appendChild(c); });
     document.body.prepend(bar, progress, stage);
 
@@ -197,10 +212,16 @@
     }
     function setLevel(n) { level = L.save(localStorage, def.id, n); renderLevels(); }
 
+    // ---------- nettoyage (boucles, minuteries) entre deux manches / parties ----------
+    let cleanups = [];
+    function cleanup() { const c = cleanups; cleanups = []; c.forEach((fn) => { try { fn(); } catch (e) { console.error(e); } }); }
+
     // ---------- inactivité : on redit la consigne et on montre ----------
     let idleTimer = null, hintTarget = null, ended = false;
+    const idleMs = def.idleMs === undefined ? (mode === "rounds" ? 12000 : false) : def.idleMs;
     function armIdle() {
       clearTimeout(idleTimer);
+      if (!idleMs) return;
       idleTimer = setTimeout(() => {
         if (ended) return;
         replay.classList.add("k-pulse");
@@ -208,16 +229,17 @@
         const t = typeof hintTarget === "function" ? hintTarget() : hintTarget;
         if (t) showHand(t);
         armIdle();
-      }, def.idleMs || 12000);
+      }, idleMs);
     }
     document.addEventListener("pointerdown", () => { replay.classList.remove("k-pulse"); if (!ended) armIdle(); }, true);
     replay.onclick = () => { replay.classList.remove("k-pulse"); Voice.repeat(); };
+    if (doneBtn) doneBtn.onclick = () => { J.sounds.click(); finish({ errors: 0, text: def.doneText }); };
 
     // ---------- manche ----------
     let cfg, rounds, index, errors, roundErrors, busy;
     function renderProgress() {
       progress.innerHTML = "";
-      if (!rounds || rounds <= 1) return;
+      if (mode !== "rounds" || !rounds || rounds <= 1) return;
       for (let i = 0; i < rounds; i++) {
         const d = document.createElement("span");
         d.className = "k-dot" + (i < index ? " ok" : i === index ? " now" : "");
@@ -225,9 +247,10 @@
       }
     }
     function startSession() {
+      cleanup();
       document.querySelectorAll(".k-end").forEach((e) => e.remove());
       cfg = hasLevels ? def.levels[level] : (def.config || {});
-      rounds = cfg.rounds || def.rounds || 0;
+      rounds = mode === "rounds" ? (cfg.rounds || def.rounds || 1) : 1;
       index = 0; errors = 0; ended = false;
       renderLevels();
       const text = typeof def.instruction === "function" ? def.instruction(cfg, level) : def.instruction;
@@ -235,11 +258,13 @@
       runRound(false);
     }
     function runRound(animate = true) {
+      cleanup();
       busy = false; roundErrors = 0; hintTarget = null;
       renderProgress();
       const build = () => {
         stage.innerHTML = "";
-        def.start(api());
+        try { def.start(api()); }
+        catch (e) { console.error(`[Kit] ${def.id}`, e); }
         if (animate) { stage.classList.add("k-swap-in"); setTimeout(() => stage.classList.remove("k-swap-in"), 520); }
       };
       if (animate) { stage.classList.add("k-swap-out"); setTimeout(() => { stage.classList.remove("k-swap-out"); build(); }, 240); }
@@ -248,12 +273,26 @@
     }
     function api() {
       return {
-        cfg, level, index, stage, rounds,
+        cfg, level, index, stage, rounds, mode,
+        get ended() { return ended; },
         say: (t, o) => Voice.say(t, o),
         instruct: (t) => Voice.instruct(t),
         hint: showHand,
         setHintTarget: (t) => { hintTarget = t; },
         burst: (el, o) => Particles.at(el, o),
+        burstAt: (x, y, o) => Particles.burst(x, y, o),
+        praise: (extra) => Voice.praise(extra),
+        // fonction appelée quand la manche/partie s'arrête (stopper une boucle, une minuterie…)
+        onCleanup: (fn) => { cleanups.push(fn); },
+        // une minuterie qui s'arrête toute seule au changement de niveau ou à la fin
+        timeout: (fn, ms) => { const t = setTimeout(() => { if (!ended) fn(); }, ms); cleanups.push(() => clearTimeout(t)); return t; },
+        interval: (fn, ms) => { const t = setInterval(() => { if (!ended) fn(); }, ms); cleanups.push(() => clearInterval(t)); return t; },
+        loop(fn) { // boucle d'animation (dt en secondes), arrêtée automatiquement
+          let alive = true, last = performance.now();
+          const step = (now) => { if (!alive) return; const dt = Math.min(0.05, (now - last) / 1000); last = now; if (!ended) fn(dt, now); requestAnimationFrame(step); };
+          requestAnimationFrame(step);
+          cleanups.push(() => { alive = false; });
+        },
         win(el, phrase = "", { delay = 1500, praise = true } = {}) {
           if (busy || ended) return;
           busy = true;
@@ -263,7 +302,7 @@
           index++;
           renderProgress();
           clearTimeout(idleTimer);
-          setTimeout(() => (index >= rounds ? finish() : runRound()), delay);
+          setTimeout(() => { if (ended) return; index >= rounds ? finish() : runRound(); }, delay);
         },
         miss(el, hint = "") {
           if (busy || ended) return;
@@ -271,25 +310,29 @@
           if (el) { el.classList.remove("k-miss"); void el.offsetWidth; el.classList.add("k-miss"); }
           J.sounds.wrong();
           Voice.encourage(hint);
-          // après 2 erreurs sur le même défi, on montre la réponse avec la main
           if (roundErrors >= 2) { const t = typeof hintTarget === "function" ? hintTarget() : hintTarget; if (t) setTimeout(() => showHand(t), 900); }
         },
-        // pour les jeux "libres" ou chronométrés : terminer la manche maintenant
-        finish: (extraErrors = 0) => { errors += extraErrors; finish(); },
+        // erreur qui compte pour les étoiles, sans son ni voix (jeux d'action)
+        oops() { if (!ended) errors++; },
+        // terminer la partie maintenant (arcade, libre) : { errors, text, stars }
+        end: (opts = {}) => finish(opts),
+        finish: (extraErrors = 0) => finish({ errors: errors + extraErrors }),
       };
     }
 
     // ---------- écran de fin ----------
-    function finish() {
+    function finish(opts = {}) {
       if (ended) return;
       ended = true;
       clearTimeout(idleTimer);
-      const stars = L.starsFor(errors);
+      cleanup();
+      const totalErrors = opts.errors !== undefined ? opts.errors : errors;
+      const stars = opts.stars || L.starsFor(totalErrors);
       if (hasLevels) L.recordBest(localStorage, def.id, level, stars);
       J.addStars(stars);
-      // l'aventure du jour sait que ce jeu a été terminé
       try { sessionStorage.setItem("jeux.finished", JSON.stringify({ id: def.id, t: Date.now() })); } catch (e) {}
-      const next = L.LEVELS[level]; // niveau suivant (index = level)
+      const next = L.LEVELS[level];
+      const canUp = hasLevels && L.suggestUp(level, stars) && next;
       const end = document.createElement("div");
       end.className = "k-end";
       end.innerHTML = `
@@ -300,16 +343,16 @@
           <p class="k-end-sub"></p>
           <div class="k-end-actions"></div>
         </div>`;
-      const phrase = Voice.end(stars);
+      const phrase = opts.text || Voice.end(stars);
       end.querySelector(".k-end-title").textContent = J.NAME ? `Bravo ${J.NAME} !` : "Bravo !";
       end.querySelector(".k-end-sub").textContent = phrase;
       const actions = end.querySelector(".k-end-actions");
       const again = document.createElement("button");
       again.className = "k-btn";
-      again.innerHTML = "🔁 <span>Rejouer</span>";
+      again.innerHTML = mode === "free" ? "🔁 <span>Encore</span>" : "🔁 <span>Rejouer</span>";
       again.onclick = () => { J.sounds.click(); startSession(); };
       actions.append(again);
-      if (hasLevels && L.suggestUp(level, stars) && next) {
+      if (canUp) {
         const up = document.createElement("button");
         up.className = "k-btn up";
         up.style.setProperty("--lv-next", next.color);
@@ -325,7 +368,6 @@
       homeBtn.addEventListener("click", (e) => { e.preventDefault(); location.replace(home.href); });
       actions.append(homeBtn);
       document.body.appendChild(end);
-      // les étoiles s'allument une par une, avec une note qui monte
       const starEls = end.querySelectorAll(".k-end-star");
       J.sounds.win();
       for (let i = 0; i < stars; i++) {
@@ -337,16 +379,58 @@
       }
       setTimeout(() => {
         J.confetti(stars * 15, ["⭐", "🎉", "✨", def.icon || "🎈"]);
-        const tail = hasLevels && L.suggestUp(level, stars) && next ? ` Tu veux essayer le niveau ${next.label} ?` : "";
+        const tail = canUp ? ` Tu veux essayer le niveau ${next.label} ?` : "";
         Voice.say(`${end.querySelector(".k-end-title").textContent} ${phrase}${tail}`);
       }, 500 + stars * 420);
     }
 
-    // reprise depuis le cache du navigateur (bouton retour) : on repart proprement
     addEventListener("pageshow", (e) => { if (e.persisted) startSession(); });
+    // accès pour les tests automatiques : la bonne réponse attendue et l'état de la partie
+    window.__kit = {
+      target: () => (typeof hintTarget === "function" ? hintTarget() : hintTarget),
+      state: () => ({ index, rounds, errors, ended, level, mode }),
+      setLevel: (n) => { setLevel(n); startSession(); },
+    };
     startSession();
     return { restart: startSession, get level() { return level; } };
   }
 
-  window.Kit = { game, Voice, Particles, showHand, lockViewport, levels: L };
+  // ======================================================================
+  // Petits composants d'interface réutilisables
+  // ======================================================================
+  const UI = {
+    el(tag, cls = "", text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    },
+    // Carte de consigne : un grand visuel + 👂 pour réécouter (aucune lecture nécessaire)
+    prompt(parent, { visual = "", html = "", caption = "", onTap } = {}) {
+      const card = UI.el("button", "k-prompt");
+      card.innerHTML = `<span class="k-prompt-visual"></span><span class="k-prompt-ear">👂</span>`;
+      const v = card.querySelector(".k-prompt-visual");
+      if (html) v.innerHTML = html; else v.textContent = visual;
+      if (caption) { const c = UI.el("span", "k-prompt-caption", caption); card.appendChild(c); }
+      if (onTap) card.onclick = onTap;
+      parent.appendChild(card);
+      return card;
+    },
+    // Grille de gros boutons de réponse
+    choices(parent, items, { cls = "", render, onPick } = {}) {
+      const wrap = UI.el("div", "k-choices");
+      const buttons = items.map((it, i) => {
+        const b = UI.el("button", "k-choice " + cls);
+        b.style.animationDelay = i * 60 + "ms";
+        if (render) render(it, b); else b.textContent = String(it);
+        b.onclick = () => onPick && onPick(it, b);
+        wrap.appendChild(b);
+        return b;
+      });
+      parent.appendChild(wrap);
+      return buttons;
+    },
+  };
+
+  window.Kit = { game, Voice, Particles, showHand, lockViewport, levels: L, ui: UI };
 })();
