@@ -210,47 +210,78 @@
     },
   };
 
-  // Voix française (synthèse vocale du navigateur)
-  // On choisit une voix française de France (pas québécoise, pas une voix "rigolote" d'Apple).
-  let frVoice = null;
-  const PREFERRED = ["audrey", "marie", "aurélie", "amelie (premium)", "thomas", "google français", "denise", "henri", "julie", "hortense", "paul", "jacques"];
+  // Voix française (synthèse vocale de l'appareil)
+  // On choisit une voix française de France, de bonne qualité. Jamais une voix anglaise :
+  // sur Mac (surtout Chrome) la liste des voix arrive en retard, donc on l'attend avant de parler.
+  const PREFERRED = ["audrey", "thomas", "marie", "aurélie", "google français", "denise", "henri", "julie", "hortense", "paul", "jacques", "amélie"];
   const NOVELTY = ["eddy", "flo", "grandma", "grandpa", "reed", "rocko", "sandy", "shelley"];
-  function pickVoice() {
-    const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
-    const lang = (v) => (v.lang || "").toLowerCase().replace("_", "-");
-    const name = (v) => v.name.toLowerCase();
-    const frFR = voices.filter((v) => lang(v) === "fr-fr");
-    const score = (v) => {
-      const i = PREFERRED.findIndex((p) => name(v).includes(p));
-      if (i >= 0) return i;
-      if (NOVELTY.some((n) => name(v).startsWith(n))) return 1000;
-      return 100 + (name(v).includes("enhanced") || name(v).includes("premium") ? -50 : 0);
-    };
-    frVoice =
-      frFR.sort((a, b) => score(a) - score(b))[0] ||
-      voices.find((v) => lang(v).startsWith("fr")) ||
-      null;
+  const vLang = (v) => (v.lang || "").toLowerCase().replace("_", "-");
+  const vName = (v) => v.name.toLowerCase();
+  function voiceScore(v) {
+    let sc = 100;
+    const i = PREFERRED.findIndex((p) => vName(v).includes(p));
+    if (i >= 0) sc = i;
+    if (NOVELTY.some((n) => vName(v).startsWith(n))) sc = 1000;
+    if (/premium|enhanced|amélioré|améliorée/.test(vName(v))) sc -= 0.5; // meilleure qualité
+    if (vLang(v) !== "fr-fr") sc += 500; // français d'ailleurs (Canada, Belgique...) seulement en secours
+    return sc;
   }
+  // Toutes les voix françaises disponibles, la meilleure en premier
+  function frenchVoices() {
+    const voices = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+    return voices.filter((v) => vLang(v).startsWith("fr")).sort((a, b) => voiceScore(a) - voiceScore(b));
+  }
+  let frVoice = null;
+  function pickVoice() {
+    const list = frenchVoices();
+    const wanted = localStorage.getItem("jeux.voix");
+    frVoice = (wanted && list.find((v) => v.name === wanted)) || list[0] || null;
+  }
+  function setVoice(name) {
+    if (name) localStorage.setItem("jeux.voix", name);
+    else localStorage.removeItem("jeux.voix");
+    pickVoice();
+  }
+  const voicesLoaded = () => window.speechSynthesis && speechSynthesis.getVoices().length > 0;
   if (window.speechSynthesis) {
     pickVoice();
-    speechSynthesis.onvoiceschanged = pickVoice;
+    speechSynthesis.addEventListener ? speechSynthesis.addEventListener("voiceschanged", pickVoice) : (speechSynthesis.onvoiceschanged = pickVoice);
   }
-  function say(text, { rate = 0.95, pitch = 1.15 } = {}) {
+
+  let pendingSay = null;
+  function speakNow(text, rate, pitch) {
+    if (!frVoice) pickVoice();
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = frVoice ? frVoice.lang : "fr-FR";
+    if (frVoice) u.voice = frVoice;
+    u.rate = rate;
+    u.pitch = pitch;
+    speechSynthesis.speak(u);
+  }
+  function say(text, { rate = 0.95, pitch = 1.05 } = {}) {
     text = String(text)
       .replace(/\s+/g, " ")
       .replace(/\s+([,!?.:])/g, "$1")
       .replace(/,([!?.])/g, "$1")
       .trim();
     if (!window.speechSynthesis || muted) return;
-    if (!frVoice) pickVoice(); // sur iPad, la liste des voix arrive parfois en retard
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = "fr-FR";
-    if (frVoice) u.voice = frVoice;
-    u.rate = rate;
-    u.pitch = pitch;
-    speechSynthesis.speak(u);
+    if (voicesLoaded()) return speakNow(text, rate, pitch);
+    // la liste des voix n'est pas encore prête : on attend (2 s maximum)
+    const first = !pendingSay;
+    pendingSay = { text, rate, pitch, until: Date.now() + 2000 };
+    if (!first) return;
+    const tick = () => {
+      if (!pendingSay) return;
+      if (voicesLoaded() || Date.now() > pendingSay.until) {
+        const p = pendingSay;
+        pendingSay = null;
+        speakNow(p.text, p.rate, p.pitch);
+      } else setTimeout(tick, 100);
+    };
+    setTimeout(tick, 100);
   }
+  const currentVoice = () => frVoice;
 
   function confetti(count = 40, items = ["🎉", "⭐", "🎈", "✨", "🌟", "🍬"]) {
     for (let i = 0; i < count; i++) {
@@ -383,5 +414,5 @@
     return wrap;
   }
 
-  window.Jeux = { progress, levelBadge, NAME, getName, setName, getAvatar, setAvatar, getCoins, cleanName, isMuted, setMuted, audio, output: () => (audio(), master), sounds, say, bravo, confetti, addHomeButton, shuffle, pick, getStars, addStars };
+  window.Jeux = { frenchVoices, setVoice, currentVoice, progress, levelBadge, NAME, getName, setName, getAvatar, setAvatar, getCoins, cleanName, isMuted, setMuted, audio, output: () => (audio(), master), sounds, say, bravo, confetti, addHomeButton, shuffle, pick, getStars, addStars };
 })();

@@ -123,6 +123,9 @@
       transition: transform 0.1s;
     }
     .av.sel { background: #ffe5ec; outline: 4px solid #ef476f; transform: scale(1.08); }
+    #voiceRow { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; font-size: 16px; }
+    #voiceSel { font: inherit; font-size: 16px; padding: 8px 10px; border-radius: 14px; border: 3px solid #e9ecef; max-width: 60vw; background: #fff; color: var(--ink); }
+    #voiceTest { background: #e7f5ff; border-radius: 14px; padding: 8px 12px; font-size: 16px; }
     #go { width: 100%; background: #06d6a0; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,0.2); }
     #go:disabled { opacity: 0.5; }
   </style>
@@ -156,6 +159,11 @@
       <input id="nameInput" type="text" maxlength="16" autocomplete="off" autocapitalize="words" spellcheck="false" placeholder="Ton prénom" />
       <p style="margin-top: 14px">Choisis ton animal :</p>
       <div id="avatars"></div>
+      <div id="voiceRow">
+        <label for="voiceSel">🔊 La voix</label>
+        <select id="voiceSel"></select>
+        <button id="voiceTest" type="button">▶️ Tester</button>
+      </div>
       <button class="big-btn" id="go">C'est parti ! 🚀</button>
     </div>
   </div>
@@ -259,7 +267,31 @@
       avatarsEl.appendChild(b);
     });
 
+    // Choix de la voix (voix françaises de l'appareil)
+    const voiceSel = document.getElementById("voiceSel");
+    function fillVoices() {
+      const list = Jeux.frenchVoices();
+      const saved = localStorage.getItem("jeux.voix") || "";
+      voiceSel.innerHTML = "";
+      const auto = document.createElement("option");
+      auto.value = "";
+      auto.textContent = list.length ? `Automatique (${list[0].name})` : "Automatique";
+      voiceSel.appendChild(auto);
+      list.forEach((v) => {
+        const o = document.createElement("option");
+        o.value = v.name;
+        o.textContent = `${v.name}${v.lang.toLowerCase().replace("_", "-") !== "fr-fr" ? " (" + v.lang + ")" : ""}`;
+        voiceSel.appendChild(o);
+      });
+      voiceSel.value = list.some((v) => v.name === saved) ? saved : "";
+      document.getElementById("voiceRow").style.display = list.length > 1 ? "flex" : "none";
+    }
+    if (window.speechSynthesis) speechSynthesis.addEventListener("voiceschanged", fillVoices);
+    voiceSel.onchange = () => { Jeux.setVoice(voiceSel.value); Jeux.say(`Bonjour ! Je parle comme ça.`); };
+    document.getElementById("voiceTest").onclick = () => Jeux.say(`Bonjour ${Jeux.cleanName(input.value) || ""} ! Je parle comme ça. On joue ?`);
+
     function openWelcome() {
+      fillVoices();
       input.value = Jeux.getName();
       goBtn.disabled = !Jeux.cleanName(input.value);
       welcome.classList.add("show");
