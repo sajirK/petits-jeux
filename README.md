@@ -1,5 +1,7 @@
 # 🎈 Les Petits Jeux
 
+👉 **Jouer en ligne : https://sajirk.github.io/petits-jeux/**
+
 Des petits jeux pour les enfants (dès 4-5 ans) : réfléchir, apprendre, rire et créer.
 Jouables sur tablette, téléphone et ordinateur, au doigt ou à la souris, avec une voix en français.
 
@@ -67,4 +69,4 @@ Outils dispo dans `window.Jeux` : `sounds` (pop, success, wrong, win, tone), `sa
 
 ## Héberger gratuitement
 
-Le site est 100 % statique (HTML/CSS/JS) : il peut être publié tel quel sur GitHub Pages, Netlify ou Vercel.
+Le site est 100 % statique (HTML/CSS/JS). Il est publié avec GitHub Pages : chaque `git push` sur `main` met le site à jour en une ou deux minutes.
