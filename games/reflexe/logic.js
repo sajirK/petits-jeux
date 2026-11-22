@@ -50,5 +50,19 @@
     return Math.round(times.reduce((a, b) => a + b, 0) / times.length);
   }
 
-  return { RULES, nextItem, lifetime, score, average };
+  // V2 : 3 niveaux. goal : bonnes touches pour finir ; life : temps à l'écran ; gap : rythme
+  // Facile : règles faciles (grenouilles, fruits), lent, beaucoup de bons objets
+  // Moyen : toutes les règles sauf les chiffres ; Difficile : toutes, et la règle change à mi-parcours
+  const LEVELS = {
+    1: { rounds: 1, goal: 10, rules: ["grenouille", "fruits"], life: 3200, gap: 1100, goRatio: 0.75 },
+    2: { rounds: 1, goal: 15, rules: ["grenouille", "rouge", "fruits", "animaux-mer"], life: 2500, gap: 900, goRatio: 0.65 },
+    3: { rounds: 1, goal: 20, rules: RULES.map((r) => r.id), life: 2000, gap: 720, goRatio: 0.6, switchAt: 10 },
+  };
+  function ruleFor(level, rng = Math.random, avoid = null) {
+    const ids = LEVELS[level].rules.filter((id) => id !== avoid);
+    const id = ids[Math.floor(rng() * ids.length)];
+    return RULES.find((r) => r.id === id);
+  }
+
+  return { LEVELS, ruleFor, RULES, nextItem, lifetime, score, average };
 });

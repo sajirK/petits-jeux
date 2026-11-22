@@ -33,6 +33,8 @@
     w.setTimeout = (fn, ms, ...a) => st(fn, (ms || 0) / 25, ...a);
     w.setInterval = (fn, ms, ...a) => si(fn, Math.max(4, (ms || 0) / 25), ...a);
     w.speechSynthesis.speak = () => {};
+    // si la page est en arrière-plan, requestAnimationFrame ne tourne plus : on le remplace par une minuterie
+    w.requestAnimationFrame = (fn) => st(() => fn(w.performance.now()), 16);
     if (!w.__kit) { f.remove(); return `${id} L${lv}: PAS DE KIT`; }
     w.__kit.setLevel(lv);
     let gestures = 0, res = "";
@@ -41,7 +43,8 @@
       if (w.document.querySelector(".k-end")) { await wait(150); res = `fin ⭐${w.document.querySelectorAll(".k-end-star.lit").length} (${gestures} gestes)`; break; }
       let t = null;
       try { t = w.__kit.target(); } catch (e) { errs.push("target: " + e.message); }
-      if (t && t.from) { dragEl(w, t.from, t.to, t.paint); gestures++; await wait(50); }
+      if (t && t.swipe) { const [x1, y1, x2, y2] = t.swipe, ev = (k, x, y) => t.el.dispatchEvent(new w.PointerEvent(k, { clientX: x, clientY: y, bubbles: true, pointerId: 7 })); ev("pointerdown", x1, y1); for (let k = 1; k <= 6; k++) ev("pointermove", x1 + ((x2 - x1) * k) / 6, y1 + ((y2 - y1) * k) / 6); ev("pointerup", x2, y2); gestures++; await wait(50); }
+      else if (t && t.from) { dragEl(w, t.from, t.to, t.paint); gestures++; await wait(50); }
       else if (t && t.isConnected && !t.disabled && !t.classList.contains("used")) { tapEl(w, t); gestures++; await wait(50); }
     }
     const s = w.__kit.state();

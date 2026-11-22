@@ -103,6 +103,13 @@ html.kit body {
 }
 .k-dot.now { background: rgba(112, 72, 232, 0.25); transform: scale(1.15); }
 .k-dot.ok { background: #ffd43b; transform: scale(1.1); }
+.k-meter { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.85); border-radius: 999px; padding: 3px 12px 3px 6px; box-shadow: var(--sh-1); }
+.k-meter-icon { font-size: 26px; line-height: 1; }
+.k-meter-track { width: clamp(120px, 30vw, 260px); height: 14px; border-radius: 7px; background: rgba(0,0,0,0.1); overflow: hidden; }
+.k-meter-fill { display: block; height: 100%; width: 0; border-radius: 7px; background: linear-gradient(90deg, #ffd43b, #ff922b); transition: width var(--t-med) var(--ease-out); }
+.k-meter-count { font-weight: bold; font-size: var(--fs-sm); min-width: 3.2em; text-align: right; }
+.k-meter-bump { animation: k-bump 0.3s var(--ease-bounce); }
+@keyframes k-bump { 50% { transform: scale(1.08); } }
 .k-dot.ok::after { content: "★"; color: #fff; font-size: 14px; text-shadow: 0 1px 0 rgba(0,0,0,0.2); }
 
 /* ---------- Scène de jeu ---------- */

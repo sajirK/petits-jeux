@@ -2,140 +2,89 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Tape la Taupe</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      background: linear-gradient(180deg, #a8e6ff 0 30%, #7ac74f 30%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    #score {
-      font-size: clamp(26px, 6vw, 42px);
-      background: #fff;
-      border-radius: 999px;
-      padding: 6px 24px;
-      box-shadow: var(--shadow);
-    }
-    #field {
-      flex: 1;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: clamp(10px, 3vw, 30px);
-      width: min(94vw, 620px, 110vh);
-      align-content: center;
-      padding-bottom: max(20px, env(safe-area-inset-bottom));
-    }
-    .hole {
-      position: relative;
-      aspect-ratio: 1;
-      overflow: hidden;
-      border-radius: 0 0 50% 50%;
-    }
-    .hole::after {
-      content: "";
-      position: absolute;
-      left: 5%; right: 5%; bottom: 4%;
-      height: 32%;
-      background: radial-gradient(ellipse at center, #3d2817 0 55%, #5c3d22 56% 70%, transparent 71%);
-      z-index: 0;
-    }
-    .mole {
-      position: absolute;
-      left: 0; right: 0;
-      bottom: -100%;
-      text-align: center;
-      font-size: clamp(56px, 17vw, 120px);
-      line-height: 1;
-      transition: bottom 0.18s ease-out;
-      z-index: 1;
-    }
+    .field { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(10px, 3vmin, 30px); width: min(94vw, 620px, 100%); aspect-ratio: var(--ar); max-height: 100%; align-content: center; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+    .hole { position: relative; aspect-ratio: 1; overflow: hidden; border-radius: 0 0 50% 50%; touch-action: none; }
+    .hole::after { content: ""; position: absolute; left: 5%; right: 5%; bottom: 4%; height: 32%; background: radial-gradient(ellipse at center, #3d2817 0 55%, #5c3d22 56% 70%, transparent 71%); z-index: 0; }
+    .mole { position: absolute; left: 0; right: 0; bottom: -100%; text-align: center; font-size: clamp(56px, 15vmin, 120px); line-height: 1; transition: bottom 0.18s ease-out; z-index: 1; pointer-events: none; }
     .hole.up .mole { bottom: 15%; }
-    .hole.hit .mole { animation: shake 0.3s; }
+    .hole.hit .mole { animation: k-shake 0.3s; }
     .hole.bonus .mole { filter: drop-shadow(0 0 18px #ffd60a); }
-    .hole.malus .mole { filter: drop-shadow(0 0 18px #ff6b6b); }
-    .bonk {
-      position: absolute;
-      top: 10%; left: 50%;
-      transform: translateX(-50%);
-      font-size: 40px;
-      z-index: 2;
-      pointer-events: none;
-      animation: bounce-in 0.3s;
-    }
+    .hole.bat .mole { filter: drop-shadow(0 0 14px #845ef7); }
+    @keyframes k-shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+    .bonk { position: absolute; top: 10%; left: 50%; transform: translateX(-50%); font-size: 40px; z-index: 2; pointer-events: none; animation: k-in 0.3s var(--ease-bounce); }
   </style>
 </head>
 <body>
-  <h1 class="game-title">Tape la Taupe</h1>
-  <div id="score">🐹 0</div>
-  <div id="field"></div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, pick, confetti, bravo, say } = Jeux;
-    const field = document.getElementById("field");
-    const scoreEl = document.getElementById("score");
-    const CRITTERS = ["🐹", "🐹", "🐹", "🐰", "🐭", "🦔", "🐻"];
-    let score = 0;
-    const holes = [];
+    const TL = TaupeLogic;
+    const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
-    for (let i = 0; i < 9; i++) {
-      const h = document.createElement("div");
-      h.className = "hole";
-      h.innerHTML = `<div class="mole"></div>`;
-      h.addEventListener("pointerdown", (e) => { e.preventDefault(); hit(h); });
-      field.appendChild(h);
-      holes.push(h);
-    }
-
-    function hit(h) {
-      if (!h.classList.contains("up") || h.classList.contains("hit")) return;
-      h.classList.add("hit");
-      sounds.bonk();
-      const b = document.createElement("div");
-      b.className = "bonk";
-      b.textContent = pick(["💥", "⭐", "😵", "POUF"]);
-      h.appendChild(b);
-      const type = h.dataset.type || "normal";
-      score = Math.max(0, score + (type === "bonus" ? 3 : type === "malus" ? -2 : 1));
-      if (type === "bonus") { say("Taupe étoilée ! Trois points !"); sounds.coin(); }
-      if (type === "malus") { say("Oups ! C'était la chauve-souris farceuse !"); sounds.wrong(); }
-      scoreEl.textContent = "🐹 " + score;
-      setTimeout(() => { h.classList.remove("up", "hit"); b.remove(); }, 350);
-      if (score % 15 === 0) {
-        Jeux.addStars(1);
-        sounds.win();
-        confetti(50);
-        bravo(`${score} taupes !`);
-      } else if (Math.random() < 0.2) {
-        say(pick(["Aïe !", "Ouille !", "Hihihi !", "Raté... non, touché !", "Boing !"]));
+    function start(round) {
+      const cfg = round.cfg, el = Kit.ui.el;
+      const meter = round.meter("🐹", cfg.goal);
+      const field = el("div", "field");
+      field.style.setProperty("--ar", cfg.holes === 6 ? "3 / 2" : "1");
+      round.stage.appendChild(field);
+      let score = 0, warnedBat = false;
+      const holes = [];
+      for (let i = 0; i < cfg.holes; i++) {
+        const h = el("div", "hole");
+        h.innerHTML = `<div class="mole"></div>`;
+        h.addEventListener("pointerdown", (e) => { e.preventDefault(); hit(h); });
+        field.appendChild(h); holes.push(h);
       }
+      function hit(h) {
+        if (round.ended || !h.classList.contains("up") || h.classList.contains("hit")) return;
+        h.classList.add("hit");
+        const type = h.dataset.type;
+        const b = el("div", "bonk", type === "bat" ? "🙈" : pick(["💥", "⭐", "😵", "✨"]));
+        h.appendChild(b);
+        round.timeout(() => { h.classList.remove("up", "hit"); b.remove(); }, 350);
+        if (TL.isMistake(type)) { round.oops(); Jeux.sounds.wrong(); round.say("Oups ! Pas la chauve-souris !"); return; }
+        Jeux.sounds.bonk();
+        if (type === "bonus") { Jeux.sounds.coin(); round.say("Taupe étoilée ! Deux d'un coup !"); }
+        round.burst(h);
+        score += TL.points(type);
+        meter.set(score);
+        if (score >= cfg.goal) round.timeout(() => round.end({ text: `Bravo ! Tu as attrapé toutes les taupes !` }), 500);
+        else if (Math.random() < 0.15) round.say(pick(["Aïe !", "Ouille !", "Hihihi !", "Boing !"]));
+      }
+      function popUp() {
+        const free = holes.filter((h) => !h.classList.contains("up"));
+        if (free.length) {
+          const h = pick(free), type = TL.nextType(cfg);
+          h.dataset.type = type;
+          h.classList.toggle("bonus", type === "bonus");
+          h.classList.toggle("bat", type === "bat");
+          h.querySelector(".mole").textContent = type === "bonus" ? "🌟" : type === "bat" ? "🦇" : pick(TL.CRITTERS);
+          h.classList.add("up");
+          if (type === "bat" && !warnedBat) { warnedBat = true; round.say("Attention, la chauve-souris ! Ne la touche pas !"); }
+          round.timeout(() => { if (!h.classList.contains("hit")) h.classList.remove("up", "bonus", "bat"); }, cfg.stay);
+        }
+        round.timeout(popUp, cfg.gap * (0.8 + Math.random() * 0.4));
+      }
+      round.setHintTarget(() => holes.find((h) => h.classList.contains("up") && !h.classList.contains("hit") && h.dataset.type !== "bat"));
+      round.timeout(popUp, 2600);
     }
 
-    function popUp() {
-      const free = holes.filter((h) => !h.classList.contains("up"));
-      if (free.length) {
-        const h = pick(free);
-        const roll = Math.random();
-        const type = roll < 0.12 ? "bonus" : roll < 0.2 ? "malus" : "normal";
-        h.dataset.type = type;
-        h.classList.toggle("bonus", type === "bonus");
-        h.classList.toggle("malus", type === "malus");
-        h.querySelector(".mole").textContent = type === "bonus" ? "🌟" : type === "malus" ? "🦇" : pick(CRITTERS);
-        h.classList.add("up");
-        // reste visible plus longtemps au début, puis un peu moins
-        const stay = Math.max(900, 1800 - score * 25);
-        setTimeout(() => { if (!h.classList.contains("hit")) h.classList.remove("up", "bonus", "malus"); }, stay);
-      }
-      setTimeout(popUp, Math.max(450, 1000 - score * 15));
-    }
-    setTimeout(() => say("Touche les petites taupes. Attrape les étoiles et évite les chauves-souris !"), 450);
-    setTimeout(popUp, 800);
+    Kit.game({
+      id: "taupe", title: "Tape la Taupe", icon: "🐹", mode: "arcade",
+      bg: "linear-gradient(180deg, #a8e6ff 0 22%, #7ac74f 22%)",
+      instruction: (cfg) => cfg.bats ? "Touche les petites taupes ! Mais pas les chauves-souris !" : "Touche les petites taupes quand elles sortent de leur trou !",
+      levels: TL.LEVELS,
+      start,
+    });
   </script>
 </body>
 </html>

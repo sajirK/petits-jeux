@@ -15,6 +15,7 @@
 //     round.hint(el)           → montre la main 👆 sur un élément (aide)
 //     round.setHintTarget(fn)  → élément à montrer si l'enfant ne fait rien pendant un moment
 //     round.end({errors, text}) → terminer la partie (jeux "arcade" et "libre")
+//     round.meter(icon, total)  → jauge d'objectif d'un jeu d'action ; .set(n)
 //     round.loop(fn) / round.timeout / round.interval / round.onCleanup → arrêtés automatiquement
 //
 //   Modes : "rounds" (manches, par défaut), "arcade" (une partie qui se termine par round.end),
@@ -122,7 +123,7 @@
   // ======================================================================
   // el : un élément (la main tapote dessus) ou { from, to } (la main fait le geste de glisser)
   function showHand(el) {
-    if (!el) return;
+    if (!el || (!el.from && typeof el.getBoundingClientRect !== "function")) return; // ex. { swipe } : seulement pour le robot
     document.querySelectorAll(".k-hand").forEach((h) => h.remove());
     const isDrag = el.from && el.to;
     const a = (isDrag ? el.from : el).getBoundingClientRect();
@@ -321,6 +322,19 @@
           J.sounds.wrong();
           Voice.encourage(hint);
           if (roundErrors >= 2) { const t = typeof hintTarget === "function" ? hintTarget() : hintTarget; if (t) setTimeout(() => showHand(t), 900); }
+        },
+        // jauge d'objectif des jeux d'action (dans la barre de progression) : const g = round.meter("🐹", 12); g.set(3)
+        meter(icon, total) {
+          progress.innerHTML = `<div class="k-meter"><span class="k-meter-icon">${icon}</span><span class="k-meter-track"><span class="k-meter-fill"></span></span><span class="k-meter-count">0/${total}</span></div>`;
+          const fill = progress.querySelector(".k-meter-fill"), count = progress.querySelector(".k-meter-count"), box = progress.querySelector(".k-meter");
+          return {
+            set(n) {
+              n = Math.max(0, Math.min(total, n));
+              fill.style.width = (n / total) * 100 + "%";
+              count.textContent = `${n}/${total}`;
+              box.classList.remove("k-meter-bump"); void box.offsetWidth; box.classList.add("k-meter-bump");
+            },
+          };
         },
         // erreur qui compte pour les étoiles, sans son ni voix (jeux d'action)
         oops() { if (!ended) errors++; },

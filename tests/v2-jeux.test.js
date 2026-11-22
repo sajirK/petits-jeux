@@ -241,3 +241,44 @@ test("Jardin V2 : en suivant l'aide, chaque plante pousse et se cueille", () => 
     }
   }
 });
+
+// ---------------------------------------------------------------- Lot 4 : jeux d'action
+const TA = require("../games/taupe/logic.js");
+const BU = require("../games/bulles/logic.js");
+const RE = require("../games/reflexe/logic.js");
+
+test("Taupe V2 : pas de chauve-souris en Facile, la chauve-souris est la seule erreur", () => {
+  for (let k = 0; k < 500; k++) assert.notEqual(TA.nextType(TA.LEVELS[1]), "bat");
+  assert.ok(Array.from({ length: 500 }, () => TA.nextType(TA.LEVELS[3])).includes("bat"));
+  assert.equal(TA.points("normal"), 1); assert.equal(TA.points("bonus"), 2); assert.equal(TA.points("bat"), 0);
+  assert.ok(TA.isMistake("bat") && !TA.isMistake("bonus"));
+  assert.ok(TA.LEVELS[1].stay > TA.LEVELS[2].stay && TA.LEVELS[2].stay > TA.LEVELS[3].stay);
+});
+
+test("Bulles V2 : en Facile toutes les bulles sont bonnes ; ensuite, seulement la bonne couleur", () => {
+  assert.ok(BU.isGood(BU.LEVELS[1], "roses", "bleues"));
+  assert.ok(!BU.isGood(BU.LEVELS[2], "roses", "bleues"));
+  assert.ok(BU.isGood(BU.LEVELS[3], "bleues", "bleues"));
+  for (let k = 0; k < 50; k++) { const t = BU.nextTarget("bleues"); assert.notEqual(t, "bleues"); assert.ok(BU.COLORS[t]); }
+  const n = Array.from({ length: 1000 }, () => BU.bubbleColor(BU.LEVELS[2], "vertes")).filter((c) => c === "vertes").length;
+  assert.ok(n > 400, "assez de bulles de la bonne couleur");
+});
+
+test("Réflexe V2 : les règles de chaque niveau existent, et les objets sont du bon côté", () => {
+  for (const lv of [1, 2, 3]) for (let k = 0; k < 20; k++) {
+    const r = RE.ruleFor(lv);
+    assert.ok(RE.LEVELS[lv].rules.includes(r.id));
+    for (let j = 0; j < 20; j++) { const it = RE.nextItem(r, Math.random, RE.LEVELS[lv].goRatio); assert.ok((it.go ? r.go : r.nogo).includes(it.value)); }
+  }
+  assert.notEqual(RE.ruleFor(3, () => 0, "grenouille").id, "grenouille");
+});
+
+const FR = require("../games/fruits/logic.js");
+test("Fruits V2 : pas de piège en Facile, chaussette et bombe sont des erreurs, la coupe est bien détectée", () => {
+  for (let k = 0; k < 500; k++) assert.ok(!FR.isMistake(FR.nextKind(FR.LEVELS[1])));
+  const kinds = Array.from({ length: 2000 }, () => FR.nextKind(FR.LEVELS[3]));
+  assert.ok(kinds.includes("sock") && kinds.includes("bomb"));
+  assert.equal(FR.VALUE.fruit, 1); assert.equal(FR.VALUE.sock, 0);
+  assert.equal(FR.segDist(5, 3, { x: 0, y: 0 }, { x: 10, y: 0 }), 3);
+  assert.equal(FR.segDist(-4, 3, { x: 0, y: 0 }, { x: 10, y: 0 }), 5);
+});
