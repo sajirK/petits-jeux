@@ -10,7 +10,7 @@
   <meta name="description" content="Des petits jeux pour les enfants de 3 à 8 ans : lire, compter, réfléchir, les émotions, découvrir et créer. Sur tablette, téléphone et ordinateur." />
   <link rel="manifest" href="manifest.json" />
   <title>Les Petits Jeux</title>
-  <link rel="stylesheet" href="css/common.css" />
+  <link rel="stylesheet" href="css/common.css?v=2.0.0-dev" />
   <style>
     body {
       padding: max(16px, env(safe-area-inset-top)) 14px 40px;
@@ -193,7 +193,7 @@
     <nav class="filters" id="filters"></nav>
     <div id="ageToggle"></div>
     <main id="sections"></main>
-    <footer>🔊 Le bouton en haut à gauche coupe le son · ✏️ « Moi » pour changer de prénom, d'âge ou de voix</footer>
+    <footer>🔊 Le bouton en haut à gauche coupe le son · ✏️ « Moi » pour changer de prénom, d'âge ou de voix<br /><span id="appVersion"></span></footer>
   </div>
 
   <!-- Profil -->
@@ -221,9 +221,10 @@
     </div>
   </div>
 
-  <script src="js/common.js"></script>
-  <script src="js/games.js"></script>
-  <script src="js/parcours.js"></script>
+  <script src="js/common.js?v=2.0.0-dev"></script>
+  <script src="js/games.js?v=2.0.0-dev"></script>
+  <script src="js/parcours.js?v=2.0.0-dev"></script>
+  <script src="js/version.js?v=2.0.0-dev"></script>
   <script>
     const AVATARS = ["🦁", "🐼", "🦊", "🐯", "🐸", "🐵", "🦄", "🐶", "🐱", "🐰", "🦖", "🐧"];
     const P = Parcours;
@@ -259,13 +260,17 @@
 
     // Au retour d'un jeu de l'aventure : validé si on y a joué assez longtemps
     function checkReturn() {
-      let playing;
+      let playing, finished;
       try { playing = JSON.parse(sessionStorage.getItem("jeux.playing") || "null"); } catch (e) {}
+      try { finished = JSON.parse(sessionStorage.getItem("jeux.finished") || "null"); } catch (e) {}
       sessionStorage.removeItem("jeux.playing");
+      sessionStorage.removeItem("jeux.finished");
       if (!playing) return null;
       const s = dailyState();
       const isPick = picks().some((g) => g.id === playing.id);
-      const long = (Date.now() - playing.t) / 1000 >= P.MIN_PLAY_SECONDS;
+      // V2 : un jeu terminé (écran de victoire) compte tout de suite ; sinon il faut avoir joué un moment
+      const done = finished && finished.id === playing.id && finished.t >= playing.t;
+      const long = done || (Date.now() - playing.t) / 1000 >= P.MIN_PLAY_SECONDS;
       if (!isPick || !long || s.done.includes(playing.id)) return null;
       s.done.push(playing.id);
       Jeux.addPendingStickers(1);
@@ -540,6 +545,10 @@
       else if (!sessionStorage.getItem("jeux.hello")) {
         window.addEventListener("pointerdown", () => { sessionStorage.setItem("jeux.hello", "1"); Jeux.say(plumeText); }, { once: true });
       }
+    }
+    if (window.APP_VERSION) {
+      document.getElementById("appVersion").textContent = `Version ${APP_VERSION.version} · ${APP_VERSION.date.split("-").reverse().join("/")}`;
+      console.info(`Les Petits Jeux ${APP_VERSION.version}`);
     }
     start();
     // retour avec le bouton "précédent" (page gardée en mémoire par le navigateur)

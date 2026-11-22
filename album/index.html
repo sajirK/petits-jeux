@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Mon album</title>
-  <link rel="stylesheet" href="../css/common.css" />
+  <link rel="stylesheet" href="../css/common.css?v=2.0.0-dev" />
   <style>
     body { background: linear-gradient(160deg, #fff0f6, #e5dbff); padding-bottom: 30px; }
     .brain { max-width: 900px; margin: 0 auto; }
@@ -40,8 +40,8 @@
     <div id="hint">Gagne des étoiles ⭐ dans les jeux et fais ton aventure du jour pour remplir l'album !</div>
   </div>
 
-  <script src="../js/common.js"></script>
-  <script src="../js/parcours.js"></script>
+  <script src="../js/common.js?v=2.0.0-dev"></script>
+  <script src="../js/parcours.js?v=2.0.0-dev"></script>
   <script>
     Jeux.addHomeButton("../index.html");
     const owned = JSON.parse(localStorage.getItem("jeux.stickers") || "[]");

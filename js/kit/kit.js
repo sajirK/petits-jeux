@@ -1,0 +1,352 @@
+// Les Petits Jeux V2 — le "kit" partagé par tous les jeux.
+// Dépend de : js/common.js (Jeux : sons, voix, prénom, étoiles) et js/kit/levels.js (KitLevels).
+//
+//   Kit.game({
+//     id, title, icon, bg,                       // identité du jeu
+//     instruction: (cfg, level) => "…",          // consigne dite à l'ouverture et sur 🔊
+//     levels: { 1: {rounds, …}, 2: {…}, 3: {…} },// ce qui change selon le niveau (null = jeu libre)
+//     start(round) { … },                        // construit un défi dans round.stage
+//   });
+//
+//   Dans start(round) : round.cfg, round.level, round.index, round.stage,
+//     round.win(el, phrase?)   → réussite (son, particules, voix, étoile, défi suivant)
+//     round.miss(el, hint?)    → erreur douce (boing, secousse, indice), compte pour les étoiles
+//     round.say(text)          → parle
+//     round.hint(el)           → montre la main 👆 sur un élément (aide)
+//     round.setHintTarget(fn)  → élément à montrer si l'enfant ne fait rien pendant un moment
+(function () {
+  const J = window.Jeux;
+  const L = window.KitLevels;
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+
+  // ======================================================================
+  // Robustesse : anti-zoom, anti appui long, anti rebond, retour du cache
+  // ======================================================================
+  function lockViewport() {
+    document.documentElement.classList.add("kit");
+    let meta = document.querySelector('meta[name="viewport"]');
+    if (!meta) { meta = document.createElement("meta"); meta.name = "viewport"; document.head.appendChild(meta); }
+    meta.content = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";
+    // iOS ignore parfois user-scalable=no : on bloque les gestes de zoom et le double-tap
+    ["gesturestart", "gesturechange", "gestureend"].forEach((t) => document.addEventListener(t, (e) => e.preventDefault(), { passive: false }));
+    let lastTouch = 0;
+    document.addEventListener("touchend", (e) => {
+      const now = Date.now();
+      if (now - lastTouch < 320 && e.target.closest(".kit-no-dbl, .k-stage, .k-bar")) e.preventDefault();
+      lastTouch = now;
+    }, { passive: false });
+    document.addEventListener("dblclick", (e) => e.preventDefault());
+    document.addEventListener("contextmenu", (e) => e.preventDefault()); // appui long = pas de menu
+  }
+
+  // ======================================================================
+  // Voix : consignes, encouragements, félicitations (phrases variées)
+  // ======================================================================
+  const PRAISE = ["Bravo !", "Super !", "Oui !", "Génial !", "Bien joué !", "Trop fort !", "Parfait !", "C'est ça !"];
+  const ENCOURAGE = ["Presque !", "Essaie encore !", "Pas tout à fait…", "Tu vas y arriver !", "Oups, encore une fois !"];
+  const END = {
+    3: ["Incroyable, tout est juste !", "Parfait, zéro erreur !", "Tu es un champion !"],
+    2: ["Très bien joué !", "Super partie !", "Bravo, c'est presque parfait !"],
+    1: ["Bravo, tu as fini !", "Bien joué, tu as tout terminé !", "Tu progresses, continue !"],
+  };
+  const Voice = {
+    last: "",
+    say(text, opts) { if (text) J.say(text, opts); },
+    instruct(text) { this.last = text; this.say(text); },
+    repeat() { this.say(this.last); },
+    praise(extra = "") {
+      const name = J.NAME && Math.random() < 0.35 ? ` ${J.NAME}` : "";
+      this.say(`${pick(PRAISE).replace(" !", `${name} !`)} ${extra}`);
+    },
+    encourage(hint = "") { this.say(hint || pick(ENCOURAGE)); },
+    end(stars) { return pick(END[stars]); },
+  };
+
+  // ======================================================================
+  // Particules (étincelles au point touché)
+  // ======================================================================
+  const Particles = (() => {
+    let canvas, ctx, parts = [], running = false;
+    function ensure() {
+      if (canvas) return;
+      canvas = document.createElement("canvas");
+      canvas.className = "k-particles";
+      document.body.appendChild(canvas);
+      ctx = canvas.getContext("2d");
+      const fit = () => { const d = devicePixelRatio || 1; canvas.width = innerWidth * d; canvas.height = innerHeight * d; ctx.setTransform(d, 0, 0, d, 0, 0); };
+      fit(); addEventListener("resize", fit);
+    }
+    function star(x, y, r, rot) {
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const a = rot + (i * Math.PI) / 5, rr = i % 2 ? r * 0.45 : r;
+        ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+      }
+      ctx.closePath(); ctx.fill();
+    }
+    function loop() {
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      parts = parts.filter((p) => p.life > 0);
+      for (const p of parts) {
+        p.vy += 0.25; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= 0.018;
+        ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 1.6));
+        if (p.emoji) { ctx.font = `${p.r * 2}px serif`; ctx.textAlign = "center"; ctx.fillText(p.emoji, p.x, p.y); }
+        else { ctx.fillStyle = p.c; star(p.x, p.y, p.r, p.rot); }
+      }
+      ctx.globalAlpha = 1;
+      if (parts.length) requestAnimationFrame(loop); else running = false;
+    }
+    return {
+      burst(x, y, { colors = ["#ffd43b", "#ff922b", "#f06595", "#51cf66", "#4dabf7", "#cc5de8"], emojis = null, count = 26, power = 1 } = {}) {
+        ensure();
+        for (let i = 0; i < count; i++) {
+          const a = Math.random() * Math.PI * 2, v = (3 + Math.random() * 6) * power;
+          parts.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 3, r: 5 + Math.random() * 7, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3, life: 1, c: pick(colors), emoji: emojis ? pick(emojis) : null });
+        }
+        if (!running) { running = true; requestAnimationFrame(loop); }
+      },
+      at(el, opts) {
+        const r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : { left: innerWidth / 2, top: innerHeight / 2, width: 0, height: 0 };
+        this.burst(r.left + r.width / 2, r.top + r.height / 2, opts);
+      },
+    };
+  })();
+
+  // ======================================================================
+  // Main qui montre (aide quand l'enfant hésite)
+  // ======================================================================
+  function showHand(el) {
+    if (!el) return;
+    document.querySelectorAll(".k-hand").forEach((h) => h.remove());
+    const r = el.getBoundingClientRect();
+    const h = document.createElement("div");
+    h.className = "k-hand";
+    h.textContent = "👆";
+    h.style.left = r.left + r.width / 2 + "px";
+    h.style.top = r.top + r.height / 2 + "px";
+    document.body.appendChild(h);
+    setTimeout(() => h.remove(), 2900);
+  }
+
+  // ======================================================================
+  // Le jeu
+  // ======================================================================
+  function game(def) {
+    lockViewport();
+    if (def.bg) document.documentElement.style.setProperty("--game-bg", def.bg);
+    const hasLevels = !!def.levels;
+    if (!L.validateConfig(def.levels)) console.warn(`[Kit] ${def.id} : les 3 niveaux doivent avoir "rounds"`);
+    let level = hasLevels ? L.load(localStorage, def.id) : 1;
+
+    // ---------- squelette ----------
+    const bar = document.createElement("header");
+    bar.className = "k-bar";
+    const home = document.createElement("a");
+    home.className = "k-round-btn";
+    home.href = def.home || "../../index.html";
+    home.setAttribute("aria-label", "Retour à l'accueil");
+    home.textContent = "🏠";
+    // on remplace la page au lieu d'empiler : le bouton "retour" du navigateur ne ramène pas dans le jeu
+    home.addEventListener("click", (e) => { e.preventDefault(); location.replace(home.href); });
+    const title = document.createElement("div");
+    title.className = "k-title";
+    title.innerHTML = `<span class="k-icon"></span><span class="k-name"></span>`;
+    title.querySelector(".k-icon").textContent = def.icon || "🎈";
+    title.querySelector(".k-name").textContent = def.title || "";
+    const levelsEl = document.createElement("div");
+    levelsEl.className = "k-levels";
+    levelsEl.setAttribute("role", "group");
+    levelsEl.setAttribute("aria-label", "Niveau");
+    const replay = document.createElement("button");
+    replay.className = "k-round-btn";
+    replay.setAttribute("aria-label", "Réécouter la consigne");
+    replay.textContent = "🔊";
+    bar.append(home, title);
+    if (hasLevels) bar.append(levelsEl);
+    bar.append(replay);
+    const mute = document.querySelector(".mute-btn");
+    if (mute) bar.append(mute); // le bouton son de common.js rejoint la barre
+    const progress = document.createElement("div");
+    progress.className = "k-progress";
+    const stage = document.createElement("main");
+    stage.className = "k-stage";
+    // le contenu existant de la page (s'il y en a) va dans la scène
+    [...document.body.children].forEach((c) => { if (c.tagName !== "SCRIPT" && !c.classList.contains("mute-btn")) stage.appendChild(c); });
+    document.body.prepend(bar, progress, stage);
+
+    // ---------- niveaux ----------
+    function renderLevels() {
+      levelsEl.innerHTML = "";
+      L.LEVELS.forEach((lv) => {
+        const b = document.createElement("button");
+        b.className = "k-level" + (lv.n === level ? " on" : "");
+        b.style.setProperty("--col", lv.color);
+        b.style.setProperty("--soft", lv.soft);
+        b.setAttribute("aria-pressed", lv.n === level);
+        b.setAttribute("aria-label", `Niveau ${lv.label}`);
+        b.innerHTML = `<span class="k-lv-stars">${lv.stars}</span><span class="k-lv-name">${lv.label}</span>`;
+        b.onclick = () => {
+          J.sounds.click();
+          if (lv.n === level && !ended) { Voice.say(lv.label); return; }
+          setLevel(lv.n);
+          Voice.say(lv.label);
+          startSession();
+        };
+        levelsEl.appendChild(b);
+      });
+    }
+    function setLevel(n) { level = L.save(localStorage, def.id, n); renderLevels(); }
+
+    // ---------- inactivité : on redit la consigne et on montre ----------
+    let idleTimer = null, hintTarget = null, ended = false;
+    function armIdle() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        if (ended) return;
+        replay.classList.add("k-pulse");
+        Voice.repeat();
+        const t = typeof hintTarget === "function" ? hintTarget() : hintTarget;
+        if (t) showHand(t);
+        armIdle();
+      }, def.idleMs || 12000);
+    }
+    document.addEventListener("pointerdown", () => { replay.classList.remove("k-pulse"); if (!ended) armIdle(); }, true);
+    replay.onclick = () => { replay.classList.remove("k-pulse"); Voice.repeat(); };
+
+    // ---------- manche ----------
+    let cfg, rounds, index, errors, roundErrors, busy;
+    function renderProgress() {
+      progress.innerHTML = "";
+      if (!rounds || rounds <= 1) return;
+      for (let i = 0; i < rounds; i++) {
+        const d = document.createElement("span");
+        d.className = "k-dot" + (i < index ? " ok" : i === index ? " now" : "");
+        progress.appendChild(d);
+      }
+    }
+    function startSession() {
+      document.querySelectorAll(".k-end").forEach((e) => e.remove());
+      cfg = hasLevels ? def.levels[level] : (def.config || {});
+      rounds = cfg.rounds || def.rounds || 0;
+      index = 0; errors = 0; ended = false;
+      renderLevels();
+      const text = typeof def.instruction === "function" ? def.instruction(cfg, level) : def.instruction;
+      Voice.instruct(text);
+      runRound(false);
+    }
+    function runRound(animate = true) {
+      busy = false; roundErrors = 0; hintTarget = null;
+      renderProgress();
+      const build = () => {
+        stage.innerHTML = "";
+        def.start(api());
+        if (animate) { stage.classList.add("k-swap-in"); setTimeout(() => stage.classList.remove("k-swap-in"), 520); }
+      };
+      if (animate) { stage.classList.add("k-swap-out"); setTimeout(() => { stage.classList.remove("k-swap-out"); build(); }, 240); }
+      else build();
+      armIdle();
+    }
+    function api() {
+      return {
+        cfg, level, index, stage, rounds,
+        say: (t, o) => Voice.say(t, o),
+        instruct: (t) => Voice.instruct(t),
+        hint: showHand,
+        setHintTarget: (t) => { hintTarget = t; },
+        burst: (el, o) => Particles.at(el, o),
+        win(el, phrase = "", { delay = 1500, praise = true } = {}) {
+          if (busy || ended) return;
+          busy = true;
+          if (el) { el.classList.remove("k-good"); void el.offsetWidth; el.classList.add("k-good"); Particles.at(el); }
+          J.sounds.success();
+          if (praise) Voice.praise(phrase); else if (phrase) Voice.say(phrase);
+          index++;
+          renderProgress();
+          clearTimeout(idleTimer);
+          setTimeout(() => (index >= rounds ? finish() : runRound()), delay);
+        },
+        miss(el, hint = "") {
+          if (busy || ended) return;
+          errors++; roundErrors++;
+          if (el) { el.classList.remove("k-miss"); void el.offsetWidth; el.classList.add("k-miss"); }
+          J.sounds.wrong();
+          Voice.encourage(hint);
+          // après 2 erreurs sur le même défi, on montre la réponse avec la main
+          if (roundErrors >= 2) { const t = typeof hintTarget === "function" ? hintTarget() : hintTarget; if (t) setTimeout(() => showHand(t), 900); }
+        },
+        // pour les jeux "libres" ou chronométrés : terminer la manche maintenant
+        finish: (extraErrors = 0) => { errors += extraErrors; finish(); },
+      };
+    }
+
+    // ---------- écran de fin ----------
+    function finish() {
+      if (ended) return;
+      ended = true;
+      clearTimeout(idleTimer);
+      const stars = L.starsFor(errors);
+      if (hasLevels) L.recordBest(localStorage, def.id, level, stars);
+      J.addStars(stars);
+      // l'aventure du jour sait que ce jeu a été terminé
+      try { sessionStorage.setItem("jeux.finished", JSON.stringify({ id: def.id, t: Date.now() })); } catch (e) {}
+      const next = L.LEVELS[level]; // niveau suivant (index = level)
+      const end = document.createElement("div");
+      end.className = "k-end";
+      end.innerHTML = `
+        <div class="k-end-card" role="dialog" aria-label="Bravo">
+          <div class="k-end-plume">🦉</div>
+          <div class="k-end-stars">${[1, 2, 3].map(() => '<span class="k-end-star">⭐</span>').join("")}</div>
+          <p class="k-end-title"></p>
+          <p class="k-end-sub"></p>
+          <div class="k-end-actions"></div>
+        </div>`;
+      const phrase = Voice.end(stars);
+      end.querySelector(".k-end-title").textContent = J.NAME ? `Bravo ${J.NAME} !` : "Bravo !";
+      end.querySelector(".k-end-sub").textContent = phrase;
+      const actions = end.querySelector(".k-end-actions");
+      const again = document.createElement("button");
+      again.className = "k-btn";
+      again.innerHTML = "🔁 <span>Rejouer</span>";
+      again.onclick = () => { J.sounds.click(); startSession(); };
+      actions.append(again);
+      if (hasLevels && L.suggestUp(level, stars) && next) {
+        const up = document.createElement("button");
+        up.className = "k-btn up";
+        up.style.setProperty("--lv-next", next.color);
+        up.innerHTML = `${next.stars} <span>${next.label}</span>`;
+        up.onclick = () => { J.sounds.click(); setLevel(next.n); Voice.say(next.label); startSession(); };
+        actions.append(up);
+      }
+      const homeBtn = document.createElement("a");
+      homeBtn.className = "k-btn";
+      homeBtn.href = home.href;
+      homeBtn.textContent = "🏠";
+      homeBtn.setAttribute("aria-label", "Accueil");
+      homeBtn.addEventListener("click", (e) => { e.preventDefault(); location.replace(home.href); });
+      actions.append(homeBtn);
+      document.body.appendChild(end);
+      // les étoiles s'allument une par une, avec une note qui monte
+      const starEls = end.querySelectorAll(".k-end-star");
+      J.sounds.win();
+      for (let i = 0; i < stars; i++) {
+        setTimeout(() => {
+          starEls[i].classList.add("lit");
+          J.sounds.bell([784, 988, 1175][i], 0, 0.2, 0.9);
+          Particles.at(starEls[i], { count: 18, power: 0.8 });
+        }, 500 + i * 420);
+      }
+      setTimeout(() => {
+        J.confetti(stars * 15, ["⭐", "🎉", "✨", def.icon || "🎈"]);
+        const tail = hasLevels && L.suggestUp(level, stars) && next ? ` Tu veux essayer le niveau ${next.label} ?` : "";
+        Voice.say(`${end.querySelector(".k-end-title").textContent} ${phrase}${tail}`);
+      }, 500 + stars * 420);
+    }
+
+    // reprise depuis le cache du navigateur (bouton retour) : on repart proprement
+    addEventListener("pageshow", (e) => { if (e.persisted) startSession(); });
+    startSession();
+    return { restart: startSession, get level() { return level; } };
+  }
+
+  window.Kit = { game, Voice, Particles, showHand, lockViewport, levels: L };
+})();
