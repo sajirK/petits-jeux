@@ -60,5 +60,21 @@
     return { e: p.harvest, count: p.count };
   }
 
-  return { STAGES, PLANTS, MAX_WATER, newPot, water, sun, tryGrow, needs, harvest, stageName };
+  // V2 : 3 niveaux. Une manche = faire pousser et cueillir toutes les plantes des pots.
+  // Facile : 1 pot ; Moyen : 2 pots ; Difficile : 3 pots, et trop d'eau compte comme une erreur.
+  const LEVELS = {
+    1: { rounds: 3, pots: 1, strict: false },
+    2: { rounds: 2, pots: 2, strict: false },
+    3: { rounds: 2, pots: 3, strict: true },
+  };
+  function shuffle(arr, rng) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+  function potsFor(level, rng = Math.random) { return shuffle(Object.keys(PLANTS), rng).slice(0, LEVELS[level].pots).map(newPot); }
+  // L'action à faire maintenant pour ce pot (pour l'aide) : "eau", "soleil" ou "cueillir"
+  function nextAction(pot) {
+    if (pot.stage >= 4) return "cueillir";
+    if (pot.water < 1) return "eau";
+    return "soleil";
+  }
+
+  return { LEVELS, potsFor, nextAction, STAGES, PLANTS, MAX_WATER, newPot, water, sun, tryGrow, needs, harvest, stageName };
 });

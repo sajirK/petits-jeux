@@ -76,5 +76,34 @@
     return { kind: "after", season: s, answer: ans.id, options: shuffle(SEASONS.filter((x) => x.id !== s.id), rng), say: `Qu'est-ce qui vient après ${s.name} ?` };
   }
 
-  return { CLOTHES, WEATHERS, SEASONS, checkOutfit, outfitMessage, nextSeason, seasonQuestion };
+  // V2 : 3 niveaux
+  // Facile : on habille selon la météo, avec une petite armoire (les bons habits + 2 pièges)
+  // Moyen : toute l'armoire (10 habits), puis 2 questions « quelle saison ? »
+  // Difficile : toute l'armoire, et les saisons avec leur ordre (« qu'est-ce qui vient après ? »)
+  const LEVELS = {
+    1: { rounds: 4, weathers: 4, smallWardrobe: true, seasons: 0 },
+    2: { rounds: 5, weathers: 3, smallWardrobe: false, seasons: 2 },
+    3: { rounds: 6, weathers: 3, smallWardrobe: false, seasons: 3, order: true },
+  };
+  function wardrobeFor(weather, small, rng = Math.random) {
+    const all = Object.keys(CLOTHES);
+    if (!small) return all;
+    const traps = shuffle(Object.keys(weather.no), rng).slice(0, 2);
+    const keep = new Set([...weather.need, ...traps]);
+    return all.filter((k) => keep.has(k)); // dans l'ordre de l'armoire
+  }
+  // Le programme d'une partie : d'abord la météo, puis les saisons
+  function plan(level, rng = Math.random) {
+    const cfg = LEVELS[level];
+    const out = shuffle(WEATHERS, rng).slice(0, cfg.weathers).map((w) => ({ kind: "meteo", weather: w, wardrobe: wardrobeFor(w, cfg.smallWardrobe, rng) }));
+    const seasons = shuffle(SEASONS, rng);
+    for (let i = 0; i < cfg.seasons; i++) {
+      const s = seasons[i % 4];
+      if (cfg.order && i % 2 === 1) out.push({ kind: "after", season: s, answer: nextSeason(s.id).id, options: shuffle(SEASONS.filter((x) => x.id !== s.id), rng) });
+      else out.push({ kind: "scene", season: s, answer: s.id, options: shuffle(SEASONS, rng) });
+    }
+    return out;
+  }
+
+  return { LEVELS, plan, wardrobeFor, CLOTHES, WEATHERS, SEASONS, checkOutfit, outfitMessage, nextSeason, seasonQuestion };
 });

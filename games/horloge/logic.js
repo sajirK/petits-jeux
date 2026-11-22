@@ -76,5 +76,25 @@
   // Niveau 4 : l'enfant tourne les aiguilles par crans (1 heure / 15 minutes)
   function isSet(q, h, m) { return h === q.h && m === q.m; }
 
-  return { MAX_LEVEL, MINUTES_BY_LEVEL, minuteAngle, hourAngle, toWords, toDigits, generate, isSet };
+  // V2 : 3 niveaux. On entend l'heure et on touche la bonne horloge.
+  // Facile : heures pile, 3 horloges ; Moyen : + et demie, 4 horloges ;
+  // Difficile : + et quart / moins le quart, et une manche sur deux on règle soi-même les aiguilles.
+  const LEVELS = {
+    1: { rounds: 5, internal: 1 },
+    2: { rounds: 6, internal: 2 },
+    3: { rounds: 6, internal: 3, setEvery: 2 },
+  };
+  function question(level, index, rng = Math.random, avoid = null) {
+    const cfg = LEVELS[level];
+    const set = cfg.setEvery && index % cfg.setEvery === 1;
+    return generate(set ? 4 : cfg.internal, rng, avoid);
+  }
+  // L'aide pour régler l'horloge : quel bouton toucher maintenant ? (d'abord les minutes)
+  function nextSetMove(q, h, m) {
+    if (m !== q.m) return "m+";
+    if (h !== q.h) return "h+";
+    return "ok";
+  }
+
+  return { LEVELS, question, nextSetMove, MAX_LEVEL, MINUTES_BY_LEVEL, minuteAngle, hourAngle, toWords, toDigits, generate, isSet };
 });

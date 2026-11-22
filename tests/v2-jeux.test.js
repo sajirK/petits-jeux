@@ -178,3 +178,66 @@ test("Glacier : commandes du niveau, parfums disponibles, avis juste", () => {
     }
   }
 });
+
+// ---------------------------------------------------------------- Lot 3 : Découvrir
+const MO = require("../games/monde/logic.js");
+const HO = require("../games/horloge/logic.js");
+const SA = require("../games/saisons/logic.js");
+const JA = require("../games/jardin/logic.js");
+
+test("Monde V2 : les animaux d'une partie ont leur continent sur la carte", () => {
+  for (const lv of [1, 2, 3]) for (let k = 0; k < 30; k++) {
+    const d = MO.deck(lv);
+    assert.equal(d.length, MO.LEVELS[lv].rounds, `niveau ${lv}`);
+    assert.equal(new Set(d.map((a) => a.e)).size, d.length);
+    for (const a of d) assert.ok(MO.LEVELS[lv].continents.includes(a.c));
+  }
+  assert.ok(MO.LEVELS[1].continents.length < MO.LEVELS[2].continents.length);
+});
+
+test("Horloge V2 : bonnes heures par niveau, une seule bonne horloge, réglage au niveau 3", () => {
+  for (const lv of [1, 2, 3]) for (let i = 0; i < 6; i++) for (let k = 0; k < 20; k++) {
+    const q = HO.question(lv, i);
+    if (q.mode === "set") { assert.equal(lv, 3); assert.equal(i % 2, 1); continue; }
+    assert.ok(HO.MINUTES_BY_LEVEL[HO.LEVELS[lv].internal].includes(q.m));
+    assert.equal(q.options.filter((o) => o.h === q.h && o.m === q.m).length, 1);
+    assert.equal(q.options.length, lv === 1 ? 3 : 4);
+  }
+  const q = { h: 4, m: 45 };
+  assert.equal(HO.nextSetMove(q, 12, 0), "m+");
+  assert.equal(HO.nextSetMove(q, 12, 45), "h+");
+  assert.equal(HO.nextSetMove(q, 4, 45), "ok");
+  assert.equal(HO.toWords(4, 45), "5 heures moins le quart");
+});
+
+test("Saisons V2 : la petite armoire contient toujours la bonne tenue et des pièges", () => {
+  for (const w of SA.WEATHERS) for (let k = 0; k < 20; k++) {
+    const wd = SA.wardrobeFor(w, true);
+    for (const n of w.need) assert.ok(wd.includes(n));
+    assert.equal(wd.filter((x) => w.no[x]).length, Math.min(2, Object.keys(w.no).length));
+    assert.ok(SA.checkOutfit(w, w.need).ok);
+  }
+  for (const lv of [1, 2, 3]) {
+    const p = SA.plan(lv);
+    assert.equal(p.length, SA.LEVELS[lv].rounds);
+    for (const r of p) if (r.kind !== "meteo") assert.ok(r.options.some((o) => o.id === r.answer));
+    assert.equal(p.some((r) => r.kind === "after"), lv === 3);
+  }
+});
+
+test("Jardin V2 : en suivant l'aide, chaque plante pousse et se cueille", () => {
+  for (const lv of [1, 2, 3]) {
+    const pots = JA.potsFor(lv);
+    assert.equal(pots.length, JA.LEVELS[lv].pots);
+    for (const p of pots) {
+      let steps = 0;
+      while (JA.nextAction(p) !== "cueillir") {
+        const r = JA.nextAction(p) === "eau" ? JA.water(p) : JA.sun(p);
+        assert.ok(r.ok); steps++;
+        assert.ok(steps < 20);
+      }
+      assert.equal(p.stage, 4);
+      assert.ok(JA.harvest(p));
+    }
+  }
+});

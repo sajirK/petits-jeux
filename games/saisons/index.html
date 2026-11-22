@@ -2,199 +2,128 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Les saisons et la météo</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    body { background: linear-gradient(160deg, #e7f5ff, #fff4e6); }
-    #modes { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; justify-content: center; }
-    #modes button { background: rgba(255,255,255,0.7); border-radius: 999px; padding: 8px 16px; font-size: clamp(16px, 3.6vmin, 21px); box-shadow: 0 3px 0 rgba(0,0,0,0.08); }
-    #modes button.sel { background: #fff; outline: 3px solid #4dabf7; }
-    .panel { display: none; flex-direction: column; align-items: center; width: 100%; max-width: 820px; }
-    .panel.show { display: flex; }
-    #sky {
-      width: 100%; border-radius: 28px; padding: 12px; box-shadow: 0 8px 0 rgba(0,0,0,0.08);
-      display: flex; align-items: center; justify-content: space-around; gap: 10px; transition: background 0.6s; cursor: pointer;
-    }
-    #scene { font-size: clamp(44px, 11vmin, 78px); letter-spacing: 6px; }
-    #kid { position: relative; font-size: clamp(90px, 22vmin, 150px); line-height: 1; }
-    #worn { display: flex; flex-wrap: wrap; gap: 4px; max-width: 220px; justify-content: center; min-height: 52px; }
-    #worn span { font-size: clamp(32px, 8vmin, 50px); animation: bounce-in 0.3s; cursor: pointer; }
-    #wText { font-size: clamp(17px, 4vmin, 24px); margin: 10px 0 8px; text-align: center; }
-    #wardrobe { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; max-width: 560px; }
-    .cloth { aspect-ratio: 1; border-radius: 18px; background: #fff; box-shadow: 0 5px 0 rgba(0,0,0,0.1); font-size: clamp(30px, 8vmin, 48px); }
-    .cloth.on { background: #d3f9d8; outline: 4px solid #40c057; }
-    .cloth:active { transform: scale(0.92); }
-    .cloth { touch-action: none; }
-    #sky.drop-ready { outline: 5px dashed #4dabf7; }
-    #ready { margin-top: 12px; background: #40c057; color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,0.2); }
-    #sQuestion { font-size: clamp(18px, 4.3vmin, 26px); text-align: center; margin: 6px 0 10px; }
-    #sScene { font-size: clamp(64px, 17vmin, 120px); letter-spacing: 10px; background: #fff; border-radius: 28px; padding: 6px 22px; box-shadow: var(--shadow); margin-bottom: 14px; animation: bounce-in 0.4s; }
-    #sOptions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: min(94vw, 520px); }
-    .season { background: #fff; border-radius: 22px; padding: 12px; font-size: clamp(18px, 4.3vmin, 26px); font-weight: bold; box-shadow: 0 6px 0 rgba(0,0,0,0.1); }
-    .season span { font-size: 1.6em; display: block; }
-    .season.good { background: #b7efc5; animation: bounce-in 0.4s; }
-    .season.bad { background: #ffe3e3; }
-    #wheel { margin-top: 14px; font-size: clamp(15px, 3.6vmin, 20px); opacity: 0.8; text-align: center; }
+    .wrap { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(8px, 2.5vmin, 18px); }
+    @media (orientation: landscape) { .wrap.meteo { flex-direction: row; } }
+    .sky { border-radius: 28px; padding: 12px 18px; box-shadow: var(--sh-2); display: flex; align-items: center; gap: 14px; transition: background 0.6s, outline 0.2s; }
+    .sky.k-zone-hot { outline: 5px dashed #4dabf7; }
+    .scene { font-size: clamp(40px, 10vmin, 72px); letter-spacing: 4px; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+    .kid { position: relative; font-size: clamp(80px, 20vmin, 140px); line-height: 1; text-align: center; }
+    .worn { display: flex; flex-wrap: wrap; gap: 4px; max-width: 230px; justify-content: center; min-height: 56px; }
+    .worn button { font-size: clamp(34px, 8vmin, 50px); min-width: var(--tap-min); min-height: var(--tap-min); animation: k-in 0.3s var(--ease-bounce); }
+    .side { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+    .wardrobe { display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: 10px; }
+    .cloth { width: clamp(64px, 13vmin, 92px); height: clamp(64px, 13vmin, 92px); border-radius: 20px; background: #fff; box-shadow: var(--sh-2); font-size: clamp(32px, 7.5vmin, 50px); touch-action: none; }
+    .cloth.on { background: var(--c-success-soft); outline: 4px solid var(--c-success); }
+    .k-choice .big { font-size: 1.8em; display: block; }
   </style>
 </head>
 <body>
-  <div class="brain">
-    <h1 class="game-title">Les saisons et la météo</h1>
-    <div id="modes">
-      <button data-m="meteo" class="sel">👕 Habille-le selon la météo</button>
-      <button data-m="saisons">🍂 Les 4 saisons</button>
-    </div>
-
-    <div class="panel show" id="pMeteo">
-      <div id="sky" title="Écouter"><div id="scene"></div><div><div id="kid">🧒</div><div id="worn"></div></div></div>
-      <div id="wText"></div>
-      <div id="wardrobe"></div>
-      <button class="big-btn" id="ready">✅ C'est prêt !</button>
-    </div>
-
-    <div class="panel" id="pSaisons">
-      <div id="sQuestion"></div>
-      <div id="sScene"></div>
-      <div id="sOptions"></div>
-      <div id="wheel">🌸 Printemps ➜ ☀️ Été ➜ 🍂 Automne ➜ ⛄ Hiver ➜ 🌸 …</div>
-    </div>
-  </div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
   <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, bravo, confetti, pick } = Jeux;
     const SL = SaisonsLogic;
-    let mode = "meteo", weather, worn = [], busy = false, wins = 0;
+    let plan = null;
 
-    document.querySelectorAll("#modes button").forEach((b) => {
-      b.onclick = () => {
-        mode = b.dataset.m;
-        document.querySelectorAll("#modes button").forEach((x) => x.classList.toggle("sel", x === b));
-        document.getElementById("pMeteo").classList.toggle("show", mode === "meteo");
-        document.getElementById("pSaisons").classList.toggle("show", mode === "saisons");
-        sounds.click();
-        mode === "meteo" ? nextWeather() : nextSeason();
-      };
-    });
+    function start(round) {
+      if (round.index === 0 || !plan) plan = SL.plan(round.level);
+      const r = plan[round.index];
+      const wrap = Kit.ui.el("div", "wrap" + (r.kind === "meteo" ? " meteo" : ""));
+      round.stage.appendChild(wrap);
+      if (r.kind === "meteo") meteo(round, r, wrap); else season(round, r, wrap);
+    }
 
     // ---------- Habiller selon la météo ----------
-    const wardrobe = document.getElementById("wardrobe");
-    Object.entries(SL.CLOTHES).forEach(([k, c]) => {
-      const b = document.createElement("button");
-      b.className = "cloth";
-      b.textContent = c.e;
-      b.dataset.k = k;
-      b.setAttribute("aria-label", c.name);
-      b.onclick = () => toggle(k);
-      b.addEventListener("pointerdown", (e) => {
-        if (e.button > 0) return;
-        clothDrag = { k, pointerId: e.pointerId };
-        e.currentTarget.classList.add("on");
-      });
-      wardrobe.appendChild(b);
-    });
-    let clothDrag = null;
-    document.addEventListener("pointermove", (e) => {
-      if (!clothDrag || clothDrag.pointerId !== e.pointerId) return;
-      const r = document.getElementById("sky").getBoundingClientRect();
-      document.getElementById("sky").classList.toggle("drop-ready", e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
-    });
-    document.addEventListener("pointerup", (e) => {
-      if (!clothDrag || clothDrag.pointerId !== e.pointerId) return;
-      const d = clothDrag; clothDrag = null;
-      const sky = document.getElementById("sky"), r = sky.getBoundingClientRect(); sky.classList.remove("drop-ready");
-      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) toggle(d.k);
-    });
-    function toggle(k) {
-      if (busy) return;
-      const i = worn.indexOf(k);
-      if (i >= 0) { worn.splice(i, 1); sounds.pop(); }
-      else { worn.push(k); sounds.click(); say(SL.CLOTHES[k].name); }
-      renderWorn();
-    }
-    function renderWorn() {
-      document.getElementById("worn").innerHTML = "";
-      worn.forEach((k) => {
-        const s = document.createElement("span");
-        s.textContent = SL.CLOTHES[k].e;
-        s.onclick = () => toggle(k);
-        document.getElementById("worn").appendChild(s);
-      });
-      wardrobe.querySelectorAll(".cloth").forEach((b) => b.classList.toggle("on", worn.includes(b.dataset.k)));
-    }
-    function nextWeather() {
-      busy = false;
-      worn = [];
-      weather = pick(SL.WEATHERS.filter((w) => w !== weather));
-      document.getElementById("sky").style.background = weather.sky;
-      document.getElementById("scene").textContent = weather.scene;
-      document.getElementById("wText").textContent = `${weather.text} Choisis ses habits 👇`;
-      renderWorn();
-      setTimeout(() => say(`${weather.text} Habille-le pour aller dehors !`), 300);
-    }
-    document.getElementById("sky").onclick = () => say(weather.text);
-    document.getElementById("ready").onclick = () => {
-      if (busy) return;
-      const msg = SL.outfitMessage(weather, worn);
-      say(msg);
-      document.getElementById("wText").textContent = msg;
-      if (SL.checkOutfit(weather, worn).ok) {
-        busy = true;
-        sounds.win();
-        confetti(35, [weather.e, ...weather.need.map((k) => SL.CLOTHES[k].e)]);
-        wins++;
-        if (wins % 2 === 0) Jeux.addStars(1);
-        setTimeout(nextWeather, 3800);
-      } else sounds.wrong();
-    };
-
-    // ---------- Les 4 saisons ----------
-    let sq;
-    function nextSeason() {
-      busy = false;
-      sq = SL.seasonQuestion();
-      const scene = document.getElementById("sScene");
-      scene.style.animation = "none"; void scene.offsetWidth; scene.style.animation = "";
-      if (sq.kind === "scene") {
-        document.getElementById("sQuestion").textContent = "Quelle saison est-ce ?";
-        scene.textContent = sq.season.scene;
-      } else {
-        document.getElementById("sQuestion").textContent = `Qu'est-ce qui vient après ${sq.season.name} ?`;
-        scene.textContent = `${sq.season.e} ➜ ❓`;
+    function meteo(round, r, wrap) {
+      const el = Kit.ui.el, w = r.weather;
+      const worn = [];
+      const sky = el("button", "sky");
+      sky.style.background = w.sky;
+      const scene = el("div", "scene");
+      scene.innerHTML = [...w.scene.matchAll(/\p{Extended_Pictographic}️?/gu)].map((x) => `<span>${x[0]}</span>`).join("");
+      const kidBox = el("div");
+      const kid = el("div", "kid", "🧒");
+      const wornEl = el("div", "worn");
+      kidBox.append(kid, wornEl);
+      sky.append(scene, kidBox);
+      const ask = () => round.say(`${w.text} Habille-le pour aller dehors !`);
+      sky.onclick = ask;
+      const side = el("div", "side");
+      const wardrobe = el("div", "wardrobe");
+      wardrobe.style.setProperty("--cols", r.wardrobe.length <= 5 ? r.wardrobe.length : 5);
+      const ready = el("button", "k-btn primary", "✅");
+      ready.setAttribute("aria-label", "C'est prêt !");
+      side.append(wardrobe, ready);
+      wrap.append(sky, side);
+      const btns = {};
+      function render() {
+        wornEl.innerHTML = "";
+        worn.forEach((k) => { const b = el("button", "", SL.CLOTHES[k].e); b.setAttribute("aria-label", SL.CLOTHES[k].name); b.onclick = (e) => { e.stopPropagation(); toggle(k); }; wornEl.appendChild(b); });
+        for (const [k, b] of Object.entries(btns)) b.classList.toggle("on", worn.includes(k));
       }
-      const opts = document.getElementById("sOptions");
-      opts.innerHTML = "";
-      sq.options.forEach((s) => {
-        const b = document.createElement("button");
-        b.className = "season";
-        b.innerHTML = `<span>${s.e}</span>${s.label}`;
-        b.onclick = () => {
-          if (busy) return;
-          if (s.id === sq.answer) {
-            busy = true;
-            b.classList.add("good");
-            sounds.success();
-            const ans = SL.SEASONS.find((x) => x.id === sq.answer);
-            bravo(sq.kind === "scene" ? `C'est ${ans.name} : ${ans.hint} !` : `Après ${sq.season.name}, vient ${ans.name} !`);
-            wins++;
-            if (wins % 2 === 0) Jeux.addStars(1);
-            setTimeout(nextSeason, 4000);
-          } else {
-            b.classList.add("bad", "shake");
-            sounds.wrong();
-            say(sq.kind === "scene" ? `Regarde bien l'image. ${s.label}, c'est quand ${s.hint}.` : "Regarde l'ordre des saisons, en bas !");
-          }
-        };
-        opts.appendChild(b);
+      function toggle(k, put) {
+        if (round.ended) return;
+        const i = worn.indexOf(k);
+        if (i >= 0 && put !== true) { worn.splice(i, 1); Jeux.sounds.pop(); }
+        else if (i < 0) { worn.push(k); Jeux.sounds.click(); round.say(SL.CLOTHES[k].name); }
+        render();
+      }
+      r.wardrobe.forEach((k) => {
+        const b = el("button", "cloth", SL.CLOTHES[k].e);
+        b.setAttribute("aria-label", SL.CLOTHES[k].name);
+        Kit.drag(b, {
+          onMove: (pt) => sky.classList.toggle("k-zone-hot", Kit.over(sky, pt)),
+          onDrop: (pt) => { sky.classList.remove("k-zone-hot"); if (!Kit.over(sky, pt)) return false; toggle(k, true); return true; },
+          onTap: () => toggle(k),
+        });
+        btns[k] = b; wardrobe.appendChild(b);
       });
-      setTimeout(() => say(sq.say), 300);
+      ready.onclick = () => {
+        const res = SL.checkOutfit(w, worn);
+        if (res.ok) round.win(kid, SL.outfitMessage(w, worn), { praise: false, delay: 3000 });
+        else round.miss(res.wrong.length ? wornEl.children[worn.indexOf(res.wrong[0])] : ready, SL.outfitMessage(w, worn));
+      };
+      round.setHintTarget(() => {
+        const res = SL.checkOutfit(w, worn);
+        if (res.wrong.length) return wornEl.children[worn.indexOf(res.wrong[0])];
+        if (res.missing.length) return { from: btns[res.missing[0]], to: sky };
+        return ready;
+      });
+      round.timeout(ask, round.index === 0 ? 2800 : 400);
     }
 
-    nextWeather();
+    // ---------- Les saisons ----------
+    function season(round, r, wrap) {
+      const ans = SL.SEASONS.find((x) => x.id === r.answer);
+      const ask = () => round.say(r.kind === "scene" ? "Regarde l'image. Quelle saison est-ce ?" : `Qu'est-ce qui vient après ${r.season.name} ?`);
+      Kit.ui.prompt(wrap, { visual: r.kind === "scene" ? r.season.scene : `${r.season.e} ➜ ❓`, onTap: ask });
+      let good = null;
+      const btns = Kit.ui.choices(wrap, r.options, {
+        render: (s, b) => { b.innerHTML = `<span class="big">${s.e}</span><small>${s.label}</small>`; b.setAttribute("aria-label", s.label); if (s.id === r.answer) good = b; },
+        onPick: (s, b) => {
+          if (s.id === r.answer) round.win(b, r.kind === "scene" ? `C'est ${ans.name} : ${ans.hint} !` : `Après ${r.season.name}, vient ${ans.name} !`, { praise: false, delay: 3600 });
+          else round.miss(b, r.kind === "scene" ? `${s.label}, c'est quand ${s.hint}. Regarde bien l'image !` : "Printemps, été, automne, hiver… Réfléchis à l'ordre !");
+        },
+      });
+      round.setHintTarget(good);
+      round.timeout(ask, 400);
+    }
+
+    Kit.game({
+      id: "saisons", title: "Saisons et météo", icon: "🌦️",
+      bg: "linear-gradient(160deg, #e7f5ff, #fff4e6)",
+      instruction: (cfg) => cfg.seasons ? "Habille l'enfant selon la météo, puis trouve les saisons !" : "Regarde le temps qu'il fait, et habille l'enfant pour sortir !",
+      levels: SL.LEVELS,
+      start,
+    });
   </script>
 </body>
 </html>

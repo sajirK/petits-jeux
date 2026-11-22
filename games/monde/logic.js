@@ -51,5 +51,19 @@
   // "Non, ici c'est l'Europe. Le kangourou vient de plus loin…"
   const wrongText = (a, picked) => `Non, ici c'est ${CONTINENTS[picked].name}. Cherche encore où vit ${a.name} !`;
 
-  return { CONTINENTS, ANIMALS, newRound, rightText, wrongText };
+  // V2 : 3 niveaux
+  // Facile : 4 continents seulement (les autres sont grisés), 6 animaux, noms écrits
+  // Moyen : les 7 continents, 9 animaux ; Difficile : 12 animaux, sans les noms des continents
+  const LEVELS = {
+    1: { rounds: 6, continents: ["afrique", "asie", "oceanie", "antarctique"], labels: true },
+    2: { rounds: 9, continents: Object.keys(CONTINENTS), labels: true },
+    3: { rounds: 12, continents: Object.keys(CONTINENTS), labels: false },
+  };
+  // Les animaux d'une partie : seulement ceux dont le continent est sur la carte
+  function deck(level, rng = Math.random) {
+    const cfg = LEVELS[level];
+    return newRound(rng).filter((a) => cfg.continents.includes(a.c)).slice(0, cfg.rounds);
+  }
+
+  return { CONTINENTS, ANIMALS, LEVELS, deck, newRound, rightText, wrongText };
 });

@@ -2,66 +2,50 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Le tour du monde des animaux</title>
   <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    html, body { height: 100%; }
-    body { background: linear-gradient(160deg, #e3fafc, #d3f9d8); }
-    .brain { height: 100%; }
-    #ask { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 24px; padding: 6px 16px; box-shadow: var(--shadow); margin-bottom: 8px; cursor: pointer; }
-    #ask { touch-action: none; }
-    #animal { font-size: clamp(50px, 12vmin, 84px); line-height: 1; animation: bounce-in 0.4s; }
-    #askText { font-size: clamp(17px, 4vmin, 24px); }
-    #askText small { display: block; opacity: 0.7; font-size: 0.75em; }
-    #mapWrap { flex: 1; min-height: 0; width: 100%; display: grid; place-items: center; }
-    svg { width: min(98vw, 1000px); max-height: 100%; height: auto; }
-    .land { stroke: #fff; stroke-width: 6; stroke-linejoin: round; cursor: pointer; transition: filter 0.2s; }
-    .land:active { filter: brightness(0.92); }
-    .land.flash { animation: flash 0.6s; }
+    .wrap { flex: 1; min-height: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    @media (orientation: landscape) { .wrap { flex-direction: row; justify-content: center; } }
+    .k-prompt { touch-action: none; cursor: grab; }
+    .k-prompt-visual { font-size: clamp(56px, 13vmin, 100px); }
+    .wrap { justify-content: center; }
+    .mapWrap { flex: 0 1 auto; min-height: 0; min-width: 0; width: 100%; display: grid; place-items: center; }
+    @media (orientation: landscape) { .mapWrap { flex: 1; height: 100%; } }
+    svg.map { width: 100%; height: auto; max-height: 100%; max-width: 1000px; }
+    .land { stroke: #fff; stroke-width: 6; stroke-linejoin: round; cursor: pointer; transition: filter 0.2s, opacity 0.3s; }
+    .land.off { fill: #dee2e6 !important; opacity: 0.55; pointer-events: none; }
+    .land.k-good { animation: flash 0.7s; }
     @keyframes flash { 50% { filter: brightness(1.25) drop-shadow(0 0 12px #fff); } }
-    .land.nope { animation: nope 0.4s; }
-    .land.drag-ready { filter: brightness(1.15) drop-shadow(0 0 12px #fff); }
-    #animalGhost { position: fixed; z-index: 20; pointer-events: none; transform: translate(-50%, -50%); font-size: 72px; }
+    .land.k-miss { animation: nope 0.45s; }
     @keyframes nope { 25%, 75% { filter: brightness(0.75); } }
+    .land.hot { filter: brightness(1.15) drop-shadow(0 0 12px #fff); }
     .lbl { font-size: 22px; font-weight: bold; fill: #343a40; pointer-events: none; text-anchor: middle; }
-    .placed { font-size: 40px; pointer-events: none; text-anchor: middle; dominant-baseline: middle; }
-    #fact { min-height: 2.6em; font-size: clamp(15px, 3.6vmin, 21px); text-align: center; max-width: 760px; margin: 4px 10px max(10px, env(safe-area-inset-bottom)); }
-    @media (orientation: landscape) and (max-height: 500px) { .game-title { display: none; } #ask { margin-top: 8px; } #animal { font-size: 40px; } }
+    .placed { font-size: 40px; pointer-events: none; text-anchor: middle; dominant-baseline: middle; animation: k-in 0.4s var(--ease-bounce); }
+    .deco { pointer-events: none; }
   </style>
 </head>
 <body>
-  <div class="brain">
-    <h1 class="game-title">Le tour du monde des animaux</h1>
-    <div id="ask" title="Écouter"><div id="animal"></div><div id="askText"></div></div>
-    <div id="mapWrap">
-      <svg id="map" viewBox="0 0 1000 520" aria-label="Carte du monde">
-        <rect x="0" y="0" width="1000" height="520" rx="30" fill="#74c0fc" />
-        <g fill="#a5d8ff" opacity="0.6"><circle cx="400" cy="300" r="4" /><circle cx="680" cy="420" r="4" /><circle cx="120" cy="330" r="4" /></g>
-        <path class="land" data-c="amnord" d="M70,80 Q120,40 230,45 L340,60 Q360,90 330,120 L300,170 Q280,210 250,250 L235,265 Q205,250 190,225 L150,190 Q100,160 85,130 Z" />
-        <path class="land" data-c="amsud" d="M240,275 Q290,265 320,285 L350,320 Q345,360 320,390 L290,440 Q275,470 262,455 L250,400 Q235,350 232,310 Z" />
-        <path class="land" data-c="europe" d="M440,70 Q490,45 560,55 L565,95 Q560,130 530,140 L490,150 Q455,145 445,120 Z" />
-        <path class="land" data-c="afrique" d="M455,170 Q520,155 580,170 L610,220 Q615,270 580,320 L545,385 Q525,410 510,390 L495,330 Q470,290 455,250 Q440,210 455,170 Z" />
-        <path class="land" data-c="asie" d="M575,55 Q700,30 860,45 L915,80 Q930,130 900,170 L850,215 Q800,240 760,235 L700,215 Q650,200 620,175 L580,140 Q570,100 575,55 Z" />
-        <path class="land" data-c="oceanie" d="M775,325 Q820,300 880,315 L905,355 Q895,395 850,405 L800,395 Q770,375 775,325 Z" />
-        <path class="land" data-c="antarctique" d="M140,478 Q500,455 860,478 L870,505 Q500,515 130,505 Z" />
-        <g id="labels"></g>
-        <g id="placed"></g>
-        <text x="478" y="118" font-size="26" text-anchor="middle">⭐</text>
-        <text x="478" y="88" font-size="15" text-anchor="middle" fill="#343a40" font-weight="bold">Chez nous</text>
-      </svg>
-    </div>
-    <div id="fact"></div>
-  </div>
-
   <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
   <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, confetti } = Jeux;
     const ML = MondeLogic;
     const NS = "http://www.w3.org/2000/svg";
+    const SHAPES = {
+      amnord: "M70,80 Q120,40 230,45 L340,60 Q360,90 330,120 L300,170 Q280,210 250,250 L235,265 Q205,250 190,225 L150,190 Q100,160 85,130 Z",
+      amsud: "M240,275 Q290,265 320,285 L350,320 Q345,360 320,390 L290,440 Q275,470 262,455 L250,400 Q235,350 232,310 Z",
+      europe: "M440,70 Q490,45 560,55 L565,95 Q560,130 530,140 L490,150 Q455,145 445,120 Z",
+      afrique: "M455,170 Q520,155 580,170 L610,220 Q615,270 580,320 L545,385 Q525,410 510,390 L495,330 Q470,290 455,250 Q440,210 455,170 Z",
+      asie: "M575,55 Q700,30 860,45 L915,80 Q930,130 900,170 L850,215 Q800,240 760,235 L700,215 Q650,200 620,175 L580,140 Q570,100 575,55 Z",
+      oceanie: "M775,325 Q820,300 880,315 L905,355 Q895,395 850,405 L800,395 Q770,375 775,325 Z",
+      antarctique: "M140,478 Q500,455 860,478 L870,505 Q500,515 130,505 Z",
+    };
     // où écrire le nom et poser les animaux sur chaque continent
     const SPOTS = {
       amnord: { label: [200, 105], places: [[170, 165], [250, 160], [215, 210]] },
@@ -72,109 +56,70 @@
       oceanie: { label: [840, 345], places: [[805, 375], [865, 375]] },
       antarctique: { label: [500, 496], places: [[330, 490], [680, 490]] },
     };
-    const labels = document.getElementById("labels");
-    for (const [id, s] of Object.entries(SPOTS)) {
-      const t = document.createElementNS(NS, "text");
-      t.setAttribute("x", s.label[0]); t.setAttribute("y", s.label[1]);
-      t.setAttribute("class", "lbl");
-      t.textContent = ML.CONTINENTS[id].label;
-      labels.appendChild(t);
-    }
-    document.querySelectorAll(".land").forEach((p) => (p.style.fill = ML.CONTINENTS[p.dataset.c].color));
+    const CALLS = { "🦘": "Hop hop !", "🐨": "Groin groin !", "🦒": "Miam !", "🦓": "Hiiii !", "🦛": "Humpf !", "🦍": "Ouh ouh !", "🐼": "Miam miam !", "🐯": "Grrr !", "🦧": "Ouh ouh !", "🦙": "Bêê !", "🦝": "Grrr !", "🐧": "Coin coin !" };
+    let session = null; // la partie en cours : les animaux, et ceux déjà posés sur la carte
 
-    let round, idx = 0, busy = false, wrongs = 0, used = {};
-    const current = () => round[idx];
-    const question = (a) => `D'où vient ${a.name} ?`;
-    const CALLS = { "🦘": "Hop hop !", "🐨": "Groink groink !", "🦒": "Miam !", "🦓": "Hiiii !", "🦛": "Humpf !", "🦍": "Ouh ouh !", "🐼": "Miam miam !", "🐯": "Grrr !", "🦧": "Ouh ouh !", "🦙": "Bêê !", "🦝": "Grrr !", "🐧": "Coin coin !" };
-    document.getElementById("ask").onclick = () => say(question(current()));
+    function start(round) {
+      const cfg = round.cfg;
+      if (round.index === 0 || !session) session = { deck: ML.deck(round.level), placed: [], used: {} };
+      const a = session.deck[round.index];
+      const el = Kit.ui.el;
+      const wrap = el("div", "wrap");
+      round.stage.appendChild(wrap);
+      const ask = () => round.say(`${CALLS[a.e] || ""} D'où vient ${a.name} ? Glisse-moi sur mon continent !`);
+      const card = Kit.ui.prompt(wrap, { visual: a.e, onTap: null });
+      const mapWrap = el("div", "mapWrap");
+      wrap.appendChild(mapWrap);
+      const svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("viewBox", "0 0 1000 520"); svg.setAttribute("class", "map");
+      svg.innerHTML = `<rect x="0" y="0" width="1000" height="520" rx="30" fill="#74c0fc" />`;
+      const lands = {};
+      for (const [id, d] of Object.entries(SHAPES)) {
+        const p = document.createElementNS(NS, "path");
+        p.setAttribute("d", d); p.setAttribute("class", "land" + (cfg.continents.includes(id) ? "" : " off"));
+        p.style.fill = ML.CONTINENTS[id].color; p.dataset.c = id;
+        p.addEventListener("click", () => choose(id));
+        svg.appendChild(p); lands[id] = p;
+      }
+      const deco = document.createElementNS(NS, "g"); deco.setAttribute("class", "deco");
+      if (cfg.labels) for (const id of cfg.continents) deco.innerHTML += `<text class="lbl" x="${SPOTS[id].label[0]}" y="${SPOTS[id].label[1]}">${ML.CONTINENTS[id].label}</text>`;
+      deco.innerHTML += `<text x="478" y="118" font-size="26" text-anchor="middle">⭐</text><text x="478" y="88" font-size="15" text-anchor="middle" fill="#343a40" font-weight="bold">Chez nous</text>`;
+      for (const p of session.placed) deco.innerHTML += `<text class="placed" style="animation:none" x="${p.x}" y="${p.y}">${p.e}</text>`;
+      svg.appendChild(deco);
+      mapWrap.appendChild(svg);
 
-    let animalDrag = null, animalGhost = null;
-    document.getElementById("ask").addEventListener("pointerdown", (e) => {
-      if (busy || e.button > 0) return;
-      animalDrag = e.pointerId;
-      animalGhost = document.createElement("div"); animalGhost.id = "animalGhost"; animalGhost.textContent = current().e;
-      document.body.appendChild(animalGhost); moveAnimal(e); e.preventDefault();
-    });
-    function moveAnimal(e) {
-      if (animalDrag !== e.pointerId) return;
-      animalGhost.style.left = e.clientX + "px"; animalGhost.style.top = e.clientY + "px";
-      document.querySelectorAll(".land").forEach((p) => {
-        const r = p.getBoundingClientRect();
-        p.classList.toggle("drag-ready", e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
+      const landAt = (pt) => { const t = document.elementFromPoint(pt.x, pt.y); return t && t.closest && t.closest(".land:not(.off)"); };
+      let hot = null;
+      Kit.drag(card, {
+        ghost: a.e,
+        onMove: (pt) => { const l = landAt(pt); if (hot && hot !== l) hot.classList.remove("hot"); hot = l; if (l) l.classList.add("hot"); },
+        onDrop: (pt) => { if (hot) hot.classList.remove("hot"); const l = landAt(pt); if (!l) return false; return choose(l.dataset.c); },
+        onTap: ask,
       });
+      let done = false;
+      function choose(c) {
+        if (done || round.ended) return false;
+        if (c !== a.c) { round.miss(lands[c], ML.wrongText(a, c)); return false; }
+        done = true;
+        const n = session.used[c] || 0; session.used[c] = n + 1;
+        const [x, y] = SPOTS[c].places[n % SPOTS[c].places.length];
+        session.placed.push({ e: a.e, x, y });
+        deco.innerHTML += `<text class="placed" x="${x}" y="${y}">${a.e}</text>`;
+        card.style.visibility = "hidden";
+        round.win(lands[c], ML.rightText(a), { praise: false, delay: 5200 });
+        return true;
+      }
+      round.setHintTarget(() => ({ from: card, to: lands[a.c] }));
+      round.timeout(ask, round.index === 0 ? 2600 : 400);
     }
-    document.addEventListener("pointermove", moveAnimal);
-    document.addEventListener("pointerup", (e) => {
-      if (animalDrag !== e.pointerId) return;
-      animalDrag = null; animalGhost?.remove(); animalGhost = null;
-      document.querySelectorAll(".land").forEach((p) => p.classList.remove("drag-ready"));
-      const land = document.elementFromPoint(e.clientX, e.clientY)?.closest(".land");
-      if (land) land.click();
+
+    Kit.game({
+      id: "monde", title: "Le tour du monde", icon: "🌍",
+      bg: "linear-gradient(160deg, #e3fafc, #d3f9d8)",
+      instruction: () => "Chaque animal vient d'un continent. Glisse-le sur la carte, là où il vit !",
+      levels: ML.LEVELS,
+      start,
     });
-
-    function start() {
-      round = ML.newRound();
-      idx = 0; used = {};
-      document.getElementById("placed").innerHTML = "";
-      show();
-    }
-    function show() {
-      busy = false; wrongs = 0;
-      const a = current();
-      const el = document.getElementById("animal");
-      el.textContent = a.e;
-      el.style.animation = "none"; void el.offsetWidth; el.style.animation = "";
-      document.getElementById("askText").innerHTML = `${question(a)}<small>Touche son continent sur la carte · ${idx + 1} / ${round.length}</small>`;
-      setTimeout(() => say(`${CALLS[a.e] || "Écoute bien !"} ${question(a)} Glisse-moi sur mon continent !`), 300);
-    }
-
-    document.querySelectorAll(".land").forEach((p) => {
-      p.addEventListener("click", () => {
-        if (busy) return;
-        const a = current();
-        const c = p.dataset.c;
-        if (c === a.c) {
-          busy = true;
-          p.classList.remove("flash"); void p.getBBox(); p.classList.add("flash");
-          sounds.success();
-          // l'animal reste posé sur son continent
-          const n = used[c] || 0;
-          used[c] = n + 1;
-          const [x, y] = SPOTS[c].places[n % SPOTS[c].places.length];
-          const t = document.createElementNS(NS, "text");
-          t.setAttribute("x", x); t.setAttribute("y", y);
-          t.setAttribute("class", "placed");
-          t.textContent = a.e;
-          document.getElementById("placed").appendChild(t);
-          const txt = ML.rightText(a);
-          document.getElementById("fact").textContent = txt;
-          say(txt);
-          if (wrongs === 0 && (idx + 1) % 3 === 0) Jeux.addStars(1);
-          setTimeout(() => {
-            idx++;
-            if (idx < round.length) show();
-            else {
-              sounds.win();
-              confetti(60, ["🌍", "⭐", "🦘", "🐼", "🦒"]);
-              Jeux.say(`Bravo ${Jeux.NAME} ! Tu as fait le tour du monde !`);
-              document.getElementById("askText").innerHTML = "🎉 Tour du monde terminé !<small>Touche la carte pour recommencer</small>";
-              document.getElementById("animal").textContent = "🌍";
-              busy = true;
-              setTimeout(() => { busy = false; document.getElementById("map").addEventListener("click", start, { once: true }); }, 1500);
-            }
-          }, 5200);
-        } else {
-          wrongs++;
-          p.classList.remove("nope"); void p.getBBox(); p.classList.add("nope");
-          sounds.wrong();
-          const txt = ML.wrongText(a, c);
-          document.getElementById("fact").textContent = txt;
-          say(txt);
-        }
-      });
-    });
-
-    start();
   </script>
 </body>
 </html>
