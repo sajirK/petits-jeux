@@ -2,305 +2,182 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Le Château Magique</title>
-  <link rel="stylesheet" href="../../css/common.css" />
+  <link rel="stylesheet" href="../../css/common.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0-dev" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0-dev" />
   <style>
-    html, body { height: 100%; overflow: hidden; }
-    body {
-      background: radial-gradient(circle at 50% 20%, #5a3d8a, #1e1035);
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .game-title { color: #ffe066; text-shadow: 0 3px 0 #7b2cbf; margin-bottom: 4px; }
-    #hud { display: flex; gap: 10px; margin-bottom: 8px; }
-    .pill { background: rgba(255,255,255,0.15); border-radius: 999px; padding: 4px 16px; font-size: clamp(20px, 4.5vw, 30px); }
-    #main {
-      flex: 1;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding: 0 10px max(14px, env(safe-area-inset-bottom));
-      min-height: 0;
-    }
-    #wrap { flex: 1; min-height: 0; width: 100%; display: grid; place-items: center; overflow: hidden; }
-    #wrap canvas { position: absolute; inset: 0; margin: auto; }
-    #wrap { position: relative; }
-    canvas { touch-action: none; border-radius: 18px; box-shadow: 0 0 40px rgba(180, 120, 255, 0.5); }
-    #pad {
-      display: grid;
-      grid-template-columns: repeat(3, clamp(62px, 15vmin, 96px));
-      grid-template-rows: repeat(2, clamp(62px, 15vmin, 96px));
-      gap: 8px;
-    }
-    #pad button {
-      border-radius: 22px;
-      background: rgba(255,255,255,0.9);
-      box-shadow: 0 5px 0 rgba(0,0,0,0.3);
-      font-size: clamp(30px, 7vmin, 48px);
-      touch-action: none;
-    }
-    #pad button.on { transform: translateY(4px); background: #ffe066; }
-    #up { grid-column: 2; }
-    #left { grid-column: 1; grid-row: 2; }
-    #down { grid-column: 2; grid-row: 2; }
-    #right { grid-column: 3; grid-row: 2; }
-    @media (orientation: landscape) {
-      #main { flex-direction: row; align-items: stretch; }
-      #wrap { min-width: 0; height: 100%; }
-      #pad { align-self: center; }
-    }
-    @media (orientation: landscape) and (max-height: 700px) {
-      .game-title { display: none; }
-    }
+    .main { flex: 1; width: 100%; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 0 10px max(12px, env(safe-area-inset-bottom)); }
+    .wrap { flex: 1; min-height: 0; width: 100%; position: relative; overflow: hidden; }
+    .wrap canvas { position: absolute; inset: 0; margin: auto; touch-action: none; border-radius: 18px; box-shadow: 0 0 40px rgba(180, 120, 255, 0.5); }
+    .pad { display: grid; grid-template-columns: repeat(3, clamp(64px, 15vmin, 96px)); grid-template-rows: repeat(2, clamp(64px, 15vmin, 96px)); gap: 8px; }
+    .pad button { border-radius: 22px; background: rgba(255,255,255,0.9); box-shadow: 0 5px 0 rgba(0,0,0,0.3); font-size: clamp(30px, 7vmin, 48px); touch-action: none; }
+    .pad button.on { transform: translateY(4px); background: #ffe066; }
+    .pad .up { grid-column: 2; } .pad .left { grid-column: 1; grid-row: 2; } .pad .down { grid-column: 2; grid-row: 2; } .pad .right { grid-column: 3; grid-row: 2; }
+    .gems { color: #fff; font-size: clamp(20px, 4.5vmin, 28px); background: rgba(255,255,255,0.15); border-radius: 999px; padding: 2px 14px; }
+    @media (orientation: landscape) { .main { flex-direction: row; align-items: stretch; } .wrap { height: 100%; } .side { align-self: center; } }
+    .side { display: flex; flex-direction: column; align-items: center; gap: 8px; }
   </style>
 </head>
 <body>
-  <h1 class="game-title">Le Château Magique</h1>
-  <div id="hud"><div class="pill" id="lvl">🏰 1</div><div class="pill" id="gems">💎 0</div></div>
-  <div id="main">
-    <div id="wrap"><canvas id="c"></canvas></div>
-    <div id="pad">
-      <button id="up" aria-label="Haut">⬆️</button>
-      <button id="left" aria-label="Gauche">⬅️</button>
-      <button id="down" aria-label="Bas">⬇️</button>
-      <button id="right" aria-label="Droite">➡️</button>
-    </div>
-  </div>
-
-  <script src="../../js/common.js"></script>
+  <script src="../../js/common.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0-dev"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0-dev"></script>
+  <script src="logic.js?v=2.0.0-dev"></script>
   <script>
-    Jeux.addHomeButton();
-    const { sounds, say, confetti, bravo, pick, shuffle } = Jeux;
-    const canvas = document.getElementById("c");
-    const ctx = canvas.getContext("2d");
-    const wrap = document.getElementById("wrap");
-    let level = 1, cols, rows, grid, gems, bats, torches, door, hero, S, totalGems = 0, doorOpen = false, busy = false, batCooldown = 0;
+    const TL = TresorsLogic;
+    // l'ancien sélecteur de difficulté (facile / moyen / difficile) devient le niveau du kit
+    if (!localStorage.getItem("jeux.tresors.niveau") && TL.OLD_DIFFICULTY[localStorage.getItem("jeux.tresors.difficulty")]) {
+      localStorage.setItem("jeux.tresors.niveau", String(TL.OLD_DIFFICULTY[localStorage.getItem("jeux.tresors.difficulty")]));
+    }
     const GEMS = ["💎", "💍", "👑", "🔮", "⭐", "🪙"];
+    const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
-    // Labyrinthe généré au hasard, avec des passages en plus pour que ce soit facile
-    function makeMaze(cw, ch) {
-      const W = cw * 2 + 1, H = ch * 2 + 1;
-      const g = Array.from({ length: H }, () => Array(W).fill(1));
-      const stack = [[0, 0]];
-      const seen = new Set(["0,0"]);
-      g[1][1] = 0;
-      while (stack.length) {
-        const [x, y] = stack[stack.length - 1];
-        const n = shuffle([[1, 0], [-1, 0], [0, 1], [0, -1]]).find(([dx, dy]) => {
-          const nx = x + dx, ny = y + dy;
-          return nx >= 0 && ny >= 0 && nx < cw && ny < ch && !seen.has(nx + "," + ny);
-        });
-        if (!n) { stack.pop(); continue; }
-        const nx = x + n[0], ny = y + n[1];
-        seen.add(nx + "," + ny);
-        g[y * 2 + 1 + n[1]][x * 2 + 1 + n[0]] = 0;
-        g[ny * 2 + 1][nx * 2 + 1] = 0;
-        stack.push([nx, ny]);
-      }
-      // on casse des murs pour faire des boucles (moins de culs-de-sac)
-      for (let i = 0; i < cw * ch * 0.35; i++) {
-        const x = 1 + Math.floor(Math.random() * (W - 2));
-        const y = 1 + Math.floor(Math.random() * (H - 2));
-        if ((x + y) % 2 === 1) g[y][x] = 0;
-      }
-      return g;
-    }
-
-    function build() {
-      const size = Math.min(2 + level, 6);
-      const cw = size + 1, ch = size;
-      grid = makeMaze(cw, ch);
-      rows = grid.length; cols = grid[0].length;
-      const free = [];
-      for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) if (!grid[y][x]) free.push([x, y]);
-      hero = { x: 1, y: 1, px: 1, py: 1, lastX: 1, lastY: 1 };
-      door = { x: cols - 2, y: rows - 2 };
-      const far = free.filter(([x, y]) => x + y > 4 && !(x === door.x && y === door.y));
-      const picks = shuffle(far);
-      gems = picks.slice(0, 3 + level).map(([x, y]) => ({ x, y, e: pick(GEMS) }));
-      torches = picks.slice(3 + level, 6 + level).map(([x, y]) => ({ x, y, lit: false }));
-      // Une chauve-souris apparaît dès le premier niveau, puis leur nombre
-      // augmente doucement. Elles patrouillent dans des couloirs libres.
-      bats = [];
-      batCooldown = 0;
-      const batCount = Math.min(1 + Math.floor(level / 3), 3);
-      const corridors = picks.slice(10);
-      for (const [x, y] of corridors) {
-        if (bats.length >= batCount) break;
-        const horiz = !grid[y][x - 1] && !grid[y][x + 1];
-        const vert = !grid[y - 1]?.[x] && !grid[y + 1]?.[x];
-        if (horiz || vert) bats.push({ x, y, px: x, py: y, dx: horiz ? 1 : 0, dy: horiz ? 0 : 1, timer: 0 });
-      }
-      doorOpen = false; busy = false;
-      document.getElementById("lvl").textContent = "🏰 " + level;
+    function start(round) {
+      const cfg = round.cfg, el = Kit.ui.el;
+      const c = TL.castle(round.level, round.index + 1);
+      const { grid, rows, cols, door, torches } = c;
+      const gems = c.gems.map((g) => ({ ...g, e: pick(GEMS) }));
+      const total = gems.length;
+      const bats = c.bats.map((b) => ({ ...b, px: b.x, py: b.y, timer: 0 }));
+      const hero = { x: 1, y: 1, px: 1, py: 1, lastX: 1, lastY: 1 };
+      let doorOpen = false, busy = false, batCooldown = 0, t = 0, S = 30, held = null, repeatTimer = 0;
+      const main = el("div", "main"), wrap = el("div", "wrap"), canvas = document.createElement("canvas");
+      wrap.appendChild(canvas);
+      const side = el("div", "side"), counter = el("div", "gems"), pad = el("div", "pad");
+      side.append(counter, pad);
+      main.append(wrap, side);
+      round.stage.appendChild(main);
+      const ctx = canvas.getContext("2d");
+      const showCount = () => { counter.textContent = `💎 ${total - gems.length}/${total}`; };
+      showCount();
+      const resize = () => {
+        const r = wrap.getBoundingClientRect();
+        S = Math.max(8, Math.floor(Math.min(r.width / cols, r.height / rows)));
+        const dpr = devicePixelRatio || 1;
+        canvas.width = cols * S * dpr; canvas.height = rows * S * dpr;
+        canvas.style.width = cols * S + "px"; canvas.style.height = rows * S + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      };
+      const ro = new ResizeObserver(resize); ro.observe(wrap); round.onCleanup(() => ro.disconnect());
       resize();
-    }
 
-    function resize() {
-      const r = wrap.getBoundingClientRect();
-      S = Math.floor(Math.min(r.width / cols, r.height / rows));
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = cols * S * dpr; canvas.height = rows * S * dpr;
-      canvas.style.width = cols * S + "px"; canvas.style.height = rows * S + "px";
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
-    new ResizeObserver(() => cols && resize()).observe(wrap);
-
-    // ---------- Contrôles : boutons, clavier, glisser ----------
-    let held = null, repeatTimer = 0;
-    const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
-    for (const id of Object.keys(DIRS)) {
-      const b = document.getElementById(id);
-      b.addEventListener("pointerdown", (e) => { e.preventDefault(); held = id; b.classList.add("on"); step(id); repeatTimer = 0.28; });
-      const off = () => { if (held === id) held = null; b.classList.remove("on"); };
-      b.addEventListener("pointerup", off); b.addEventListener("pointercancel", off); b.addEventListener("pointerleave", off);
-    }
-    const KEYS = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", z: "up", s: "down", q: "left", d: "right" };
-    addEventListener("keydown", (e) => { const d = KEYS[e.key]; if (d) { e.preventDefault(); if (!e.repeat) { held = d; step(d); repeatTimer = 0.28; } } });
-    addEventListener("keyup", (e) => { if (KEYS[e.key] === held) held = null; });
-    // glisser le doigt sur le château
-    let sw = null;
-    canvas.addEventListener("pointerdown", (e) => { sw = { x: e.clientX, y: e.clientY }; });
-    canvas.addEventListener("pointermove", (e) => {
-      if (!sw) return;
-      const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
-      if (Math.max(Math.abs(dx), Math.abs(dy)) > S * 0.6) {
-        step(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"));
-        sw = { x: e.clientX, y: e.clientY };
+      const btns = {};
+      for (const [id, sym, label] of [["up", "⬆️", "Haut"], ["left", "⬅️", "Gauche"], ["down", "⬇️", "Bas"], ["right", "➡️", "Droite"]]) {
+        const b = el("button", id, sym);
+        b.setAttribute("aria-label", label);
+        b.addEventListener("pointerdown", (e) => { e.preventDefault(); held = id; b.classList.add("on"); step(id); repeatTimer = 0.28; });
+        const off = () => { if (held === id) held = null; b.classList.remove("on"); };
+        b.addEventListener("pointerup", off); b.addEventListener("pointercancel", off); b.addEventListener("pointerleave", off);
+        pad.appendChild(b); btns[id] = b;
       }
+      const KEYS = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
+      const kd = (e) => { const d = KEYS[e.key]; if (d) { e.preventDefault(); if (!e.repeat) { held = d; step(d); repeatTimer = 0.28; } } };
+      const ku = (e) => { if (KEYS[e.key] === held) held = null; };
+      addEventListener("keydown", kd); addEventListener("keyup", ku);
+      let sw = null;
+      canvas.addEventListener("pointerdown", (e) => { sw = { x: e.clientX, y: e.clientY }; });
+      canvas.addEventListener("pointermove", (e) => {
+        if (!sw) return;
+        const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) > S * 0.6) { step(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up"); sw = { x: e.clientX, y: e.clientY }; }
+      });
+      const pu = () => (sw = null);
+      addEventListener("pointerup", pu);
+      round.onCleanup(() => { removeEventListener("keydown", kd); removeEventListener("keyup", ku); removeEventListener("pointerup", pu); });
+
+      const particles = [];
+      const sparkle = (x, y) => { for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, v = 1 + Math.random() * 2; particles.push({ x: x + 0.5, y: y + 0.5, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1 }); } };
+      function step(dir) {
+        if (busy || round.ended) return;
+        const [dx, dy] = TL.DIRS[dir], nx = hero.x + dx, ny = hero.y + dy;
+        if (grid[ny]?.[nx] !== 0) { Jeux.sounds.slide(220, 150, 0.08, 0.12); return; }
+        hero.lastX = hero.x; hero.lastY = hero.y; hero.x = nx; hero.y = ny;
+        Jeux.sounds.slide(500, 420, 0.04, 0.06);
+        const gi = gems.findIndex((g) => g.x === nx && g.y === ny);
+        if (gi >= 0) {
+          gems.splice(gi, 1); showCount(); Jeux.sounds.coin(); sparkle(nx, ny);
+          if (!gems.length) { doorOpen = true; Jeux.sounds.success(); round.say("La porte magique est ouverte ! Va vite dedans !"); }
+        }
+        const torch = torches.find((v) => v.x === nx && v.y === ny && !v.lit);
+        if (torch) { torch.lit = true; Jeux.sounds.bell(880, 0, 0.12, 0.8); sparkle(nx, ny); }
+        if (doorOpen && nx === door.x && ny === door.y) { busy = true; held = null; round.win(canvas, "Tu as trouvé tous les trésors !", { delay: 2400 }); }
+      }
+      function em(ch, x, y, size) { ctx.font = `${size}px serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(ch, x, y); }
+      function draw() {
+        ctx.clearRect(0, 0, cols * S, rows * S);
+        for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+          if (grid[y][x]) {
+            ctx.fillStyle = (x + y) % 2 ? "#9a86cf" : "#a793da"; ctx.fillRect(x * S, y * S, S, S);
+            ctx.fillStyle = "#5e4b94"; ctx.fillRect(x * S, y * S + S * 0.75, S, S * 0.25);
+            ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.strokeRect(x * S + 1, y * S + 1, S - 2, S * 0.48);
+          } else { ctx.fillStyle = (x + y) % 2 ? "#1f1236" : "#24163d"; ctx.fillRect(x * S, y * S, S, S); }
+        }
+        em(doorOpen ? "🌀" : "🚪", (door.x + 0.5) * S, (door.y + 0.5) * S, S * 0.8);
+        if (doorOpen) { ctx.save(); ctx.globalAlpha = 0.4 + Math.sin(t * 6) * 0.3; em("✨", (door.x + 0.5) * S, (door.y + 0.2) * S, S * 0.6); ctx.restore(); }
+        for (const g of gems) em(g.e, (g.x + 0.5) * S, (g.y + 0.5 + Math.sin(t * 4 + g.x) * 0.06) * S, S * 0.65);
+        for (const v of torches) em(v.lit ? "🔥" : "🕯️", (v.x + 0.5) * S, (v.y + 0.5) * S, S * (v.lit ? 0.72 : 0.58));
+        for (const b of bats) em("🦇", (b.px + 0.5) * S, (b.py + 0.5 + Math.sin(t * 10) * 0.08) * S, S * 0.75);
+        em("🧙", (hero.px + 0.5) * S, (hero.py + 0.5) * S, S * 0.8);
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i]; p.x += p.vx * 0.016; p.y += p.vy * 0.016; p.life -= 0.025;
+          if (p.life <= 0) { particles.splice(i, 1); continue; }
+          ctx.globalAlpha = p.life; ctx.fillStyle = "#ffe066"; ctx.beginPath(); ctx.arc(p.x * S, p.y * S, S * 0.08, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+      }
+      round.loop((dt) => {
+        t += dt;
+        batCooldown = Math.max(0, batCooldown - dt);
+        if (held) { repeatTimer -= dt; if (repeatTimer <= 0) { step(held); repeatTimer = 0.17; } }
+        hero.px += (hero.x - hero.px) * Math.min(1, dt * 18); hero.py += (hero.y - hero.py) * Math.min(1, dt * 18);
+        for (const b of bats) {
+          b.timer += dt;
+          if (b.timer > cfg.batSpeed && !busy) {
+            b.timer = 0;
+            if (grid[b.y + b.dy]?.[b.x + b.dx] !== 0) { b.dx *= -1; b.dy *= -1; }
+            if (grid[b.y + b.dy]?.[b.x + b.dx] === 0) { b.x += b.dx; b.y += b.dy; }
+          }
+          b.px += (b.x - b.px) * Math.min(1, dt * 6); b.py += (b.y - b.py) * Math.min(1, dt * 6);
+          if (!busy && batCooldown === 0 && Math.hypot(b.px - hero.px, b.py - hero.py) < 0.55) {
+            batCooldown = 1.2; hero.x = hero.lastX; hero.y = hero.lastY;
+            if (cfg.batCounts) round.oops();
+            Jeux.sounds.wrong();
+            round.say("Oups ! La chauve-souris te repousse, et elle s'envole ! Tu gardes tes trésors.");
+            // elle s'envole dans un couloir loin du héros : elle ne peut jamais bloquer le chemin pour toujours
+            const far = [];
+            for (let y = 1; y < rows - 1; y++) for (let x = 1; x < cols - 1; x++) {
+              if (grid[y][x] || Math.abs(x - hero.x) + Math.abs(y - hero.y) < 6 || (x === door.x && y === door.y)) continue;
+              const horiz = !grid[y][x - 1] && !grid[y][x + 1], vert = !grid[y - 1][x] && !grid[y + 1][x];
+              if (horiz || vert) far.push([x, y, horiz]);
+            }
+            if (far.length) { const [x, y, horiz] = pick(far); Object.assign(b, { x, y, px: x, py: y, dx: horiz ? 1 : 0, dy: horiz ? 0 : 1, timer: 0 }); }
+            break;
+          }
+        }
+        draw();
+      });
+      // aide : la flèche qui mène au trésor le plus proche (ou à la porte), en évitant les chauves-souris
+      round.setHintTarget(() => {
+        const targets = gems.length ? gems : [door];
+        // case dangereuse : à côté d'une chauve-souris, ou là où elle va aller
+        const danger = (x, y) => bats.some((b) => Math.abs(b.x - x) + Math.abs(b.y - y) <= 1 || Math.abs(b.x + b.dx - x) + Math.abs(b.y + b.dy - y) <= 1);
+        // le chemin qui évite les chauves-souris, sinon le chemin le plus court (au pire, elle s'envole)
+        const dir = TL.nextStep(grid, hero, targets, danger) || TL.nextStep(grid, hero, targets);
+        return dir ? btns[dir] : null;
+      });
+      round.timeout(() => round.say(round.index === 0 ? "Ramasse tous les trésors, puis va à la porte magique ! Attention aux chauves-souris." : "Un nouveau château ! Ramasse les trésors !"), round.index === 0 ? 3200 : 400);
+    }
+
+    Kit.game({
+      id: "tresors", title: "Le Château Magique", icon: "🏰",
+      bg: "radial-gradient(circle at 50% 20%, #5a3d8a, #1e1035)",
+      instruction: () => "Glisse ton doigt ou touche les flèches pour avancer dans le château.",
+      levels: TL.LEVELS,
+      start,
     });
-    addEventListener("pointerup", () => (sw = null));
-
-    function step(dir) {
-      if (busy) return;
-      const [dx, dy] = DIRS[dir];
-      const nx = hero.x + dx, ny = hero.y + dy;
-      if (grid[ny]?.[nx] !== 0) { sounds.slide(220, 150, 0.08, 0.12); return; }
-      hero.lastX = hero.x; hero.lastY = hero.y;
-      hero.x = nx; hero.y = ny;
-      sounds.slide(500, 420, 0.04, 0.06);
-      const gi = gems.findIndex((g) => g.x === nx && g.y === ny);
-      if (gi >= 0) {
-        gems.splice(gi, 1);
-        totalGems++;
-        document.getElementById("gems").textContent = "💎 " + totalGems;
-        sounds.coin();
-        sparkle(nx, ny);
-        if (!gems.length) {
-          doorOpen = true;
-          sounds.win();
-          say("La porte magique est ouverte ! Va vite dedans !");
-        }
-      }
-      const torch = torches.find((v) => v.x === nx && v.y === ny && !v.lit);
-      if (torch) { torch.lit = true; sounds.bell(880, 0, .12, .8); sparkle(nx, ny); say("La torche s'allume !"); }
-      if (doorOpen && nx === door.x && ny === door.y) {
-        busy = true;
-        confetti(60, ["💎", "✨", "⭐", "👑"]);
-        Jeux.addStars(1);
-        bravo("Tu as trouvé tous les trésors !");
-        setTimeout(() => { level++; build(); }, 3000);
-      }
-    }
-
-    const particles = [];
-    function sparkle(x, y) {
-      for (let i = 0; i < 14; i++) {
-        const a = Math.random() * Math.PI * 2, v = 1 + Math.random() * 2;
-        particles.push({ x: x + 0.5, y: y + 0.5, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1 });
-      }
-    }
-
-    // ---------- Boucle ----------
-    let t = 0, last = performance.now();
-    function loop(now) {
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now; t += dt;
-      batCooldown = Math.max(0, batCooldown - dt);
-      if (held) { repeatTimer -= dt; if (repeatTimer <= 0) { step(held); repeatTimer = 0.17; } }
-      // animation douce du héros
-      hero.px += (hero.x - hero.px) * Math.min(1, dt * 18);
-      hero.py += (hero.y - hero.py) * Math.min(1, dt * 18);
-      // chauves-souris (lentes)
-      for (const b of bats) {
-        b.timer += dt;
-        if (b.timer > 0.9 && !busy) {
-          b.timer = 0;
-          if (grid[b.y + b.dy]?.[b.x + b.dx] !== 0) { b.dx *= -1; b.dy *= -1; }
-          if (grid[b.y + b.dy]?.[b.x + b.dx] === 0) { b.x += b.dx; b.y += b.dy; }
-        }
-        b.px += (b.x - b.px) * Math.min(1, dt * 6);
-        b.py += (b.y - b.py) * Math.min(1, dt * 6);
-        if (!busy && batCooldown === 0 && Math.hypot(b.px - hero.px, b.py - hero.py) < 0.55) {
-          batCooldown = 1.2;
-          hero.x = hero.lastX; hero.y = hero.lastY;
-          sounds.wrong();
-          say("Oups ! La chauve-souris te repousse d'une case. Tu gardes tes trésors !");
-          break;
-        }
-      }
-      draw();
-      requestAnimationFrame(loop);
-    }
-
-    function em(ch, x, y, size) {
-      ctx.font = `${size}px serif`;
-      ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(ch, x, y);
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, cols * S, rows * S);
-      for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
-        if (grid[y][x]) {
-          ctx.fillStyle = (x + y) % 2 ? "#9a86cf" : "#a793da";
-          ctx.fillRect(x * S, y * S, S, S);
-          ctx.fillStyle = "#5e4b94";
-          ctx.fillRect(x * S, y * S + S * 0.75, S, S * 0.25);
-          ctx.strokeStyle = "rgba(255,255,255,0.25)";
-          ctx.strokeRect(x * S + 1, y * S + 1, S - 2, S * 0.48);
-        } else {
-          ctx.fillStyle = (x + y) % 2 ? "#1f1236" : "#24163d";
-          ctx.fillRect(x * S, y * S, S, S);
-        }
-      }
-      // torches qui scintillent
-      ctx.globalAlpha = 0.6 + Math.sin(t * 8) * 0.2;
-      em("🕯️", S * 0.5, S * 0.5, S * 0.6);
-      em("🕯️", (cols - 0.5) * S, S * 0.5, S * 0.6);
-      ctx.globalAlpha = 1;
-      // porte
-      em(doorOpen ? "🌀" : "🚪", (door.x + 0.5) * S, (door.y + 0.5) * S, S * 0.8);
-      if (doorOpen) { ctx.save(); ctx.globalAlpha = 0.4 + Math.sin(t * 6) * 0.3; em("✨", (door.x + 0.5) * S, (door.y + 0.2) * S, S * 0.6); ctx.restore(); }
-      // gemmes
-      for (const g of gems) em(g.e, (g.x + 0.5) * S, (g.y + 0.5 + Math.sin(t * 4 + g.x) * 0.06) * S, S * 0.65);
-      for (const v of torches) em(v.lit ? "🔥" : "🕯️", (v.x + 0.5) * S, (v.y + 0.5) * S, S * (v.lit ? 0.72 : 0.58));
-      // chauves-souris
-      for (const b of bats) em("🦇", (b.px + 0.5) * S, (b.py + 0.5 + Math.sin(t * 10) * 0.08) * S, S * 0.75);
-      // héros
-      em("🧙", (hero.px + 0.5) * S, (hero.py + 0.5) * S, S * 0.8);
-      // étincelles
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx * 0.016; p.y += p.vy * 0.016; p.life -= 0.025;
-        if (p.life <= 0) { particles.splice(i, 1); continue; }
-        ctx.globalAlpha = p.life;
-        ctx.fillStyle = "#ffe066";
-        ctx.beginPath(); ctx.arc(p.x * S, p.y * S, S * 0.08, 0, Math.PI * 2); ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-    }
-
-    build();
-    requestAnimationFrame(loop);
-    setTimeout(() => say("Glisse ton doigt pour avancer, ramasser les trésors et éviter les chauves-souris !"), 600);
   </script>
 </body>
 </html>

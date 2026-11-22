@@ -282,3 +282,54 @@ test("Fruits V2 : pas de piège en Facile, chaussette et bombe sont des erreurs,
   assert.equal(FR.segDist(5, 3, { x: 0, y: 0 }, { x: 10, y: 0 }), 3);
   assert.equal(FR.segDist(-4, 3, { x: 0, y: 0 }, { x: 10, y: 0 }), 5);
 });
+
+const DI = require("../games/dino/logic.js");
+test("Dino V2 : parcours toujours franchissables, sans trou en Facile, escargots seulement en Difficile", () => {
+  const maxJumpH = DI.PHYS.JUMP ** 2 / (2 * DI.PHYS.GRAV);
+  assert.ok(maxJumpH > 3, "on peut sauter plus haut que les plateformes (3 cases)");
+  for (const lv of [1, 2, 3]) for (let k = 0; k < 200; k++) {
+    const c = DI.buildCourse(lv);
+    assert.ok(DI.isPassable(c, DI.LEVELS[lv].maxGap), `niveau ${lv}`);
+    if (lv === 1) assert.ok(DI.isPassable(c, 0), "pas de trou en Facile");
+    if (lv < 3) assert.equal(c.enemies.length, 0);
+    for (const e of c.enemies) assert.ok(e.max - e.min >= 4);
+    assert.ok(c.flag.x > DI.LEVELS[lv].length);
+  }
+  assert.ok(DI.stomps(5, 7.1, 7.2)); assert.ok(!DI.stomps(-3, 7.1, 7.2)); assert.ok(!DI.stomps(5, 7.9, 7.2));
+});
+
+const CRS = require("../games/course/logic.js");
+test("Course V2 : passages toujours atteignables et assez grands pour le poisson", () => {
+  for (const lv of [1, 2, 3]) {
+    const cfg = CRS.LEVELS[lv];
+    for (let d = 0; d <= cfg.dist; d += 5) for (let k = 0; k < 30; k++) {
+      const o = CRS.obstacle(cfg, d);
+      assert.ok(o.top >= CRS.MIN_Y - 1e-9 && o.bottom <= CRS.MAX_Y + 1e-9, "passage dans la zone de nage");
+      assert.ok(o.bottom - o.top >= 3.2 - 1e-9, "assez grand (le poisson fait 1,1)");
+    }
+    assert.ok(CRS.speedAt(cfg, 0) <= CRS.speedAt(cfg, cfg.dist));
+  }
+  assert.ok(CRS.gapAt(CRS.LEVELS[1], 0) > CRS.gapAt(CRS.LEVELS[3], 0));
+});
+
+const TR = require("../games/tresors/logic.js");
+test("Château V2 : tout le labyrinthe est accessible, et le chemin mène aux trésors puis à la porte", () => {
+  for (const lv of [1, 2, 3]) for (let n = 1; n <= TR.LEVELS[lv].rounds; n++) for (let k = 0; k < 20; k++) {
+    const c = TR.castle(lv, n);
+    assert.equal(c.gems.length, TR.LEVELS[lv].gems(n));
+    assert.ok(c.bats.length <= TR.LEVELS[lv].bats(n));
+    // on suit le chemin : on ramasse tout, puis on arrive à la porte
+    const hero = { x: 1, y: 1 }, gems = c.gems.slice();
+    for (let s = 0; s < 500 && (gems.length || hero.x !== c.door.x || hero.y !== c.door.y); s++) {
+      const dir = TR.nextStep(c.grid, hero, gems.length ? gems : [c.door]);
+      assert.ok(dir, "un chemin existe");
+      hero.x += TR.DIRS[dir][0]; hero.y += TR.DIRS[dir][1];
+      const i = gems.findIndex((g) => g.x === hero.x && g.y === hero.y);
+      if (i >= 0) gems.splice(i, 1);
+    }
+    assert.equal(gems.length, 0);
+    assert.deepEqual([hero.x, hero.y], [c.door.x, c.door.y]);
+  }
+  assert.ok(TR.LEVELS[1].batSpeed > TR.LEVELS[3].batSpeed);
+  assert.equal(TR.LEVELS[1].batCounts, false, "en Facile, la chauve-souris ne compte pas comme une erreur");
+});

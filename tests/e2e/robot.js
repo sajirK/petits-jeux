@@ -43,6 +43,7 @@
       if (w.document.querySelector(".k-end")) { await wait(150); res = `fin ⭐${w.document.querySelectorAll(".k-end-star.lit").length} (${gestures} gestes)`; break; }
       let t = null;
       try { t = w.__kit.target(); } catch (e) { errs.push("target: " + e.message); }
+      if (t && t.auto) { t.auto(); continue; }
       if (t && t.swipe) { const [x1, y1, x2, y2] = t.swipe, ev = (k, x, y) => t.el.dispatchEvent(new w.PointerEvent(k, { clientX: x, clientY: y, bubbles: true, pointerId: 7 })); ev("pointerdown", x1, y1); for (let k = 1; k <= 6; k++) ev("pointermove", x1 + ((x2 - x1) * k) / 6, y1 + ((y2 - y1) * k) / 6); ev("pointerup", x2, y2); gestures++; await wait(50); }
       else if (t && t.from) { dragEl(w, t.from, t.to, t.paint); gestures++; await wait(50); }
       else if (t && t.isConnected && !t.disabled && !t.classList.contains("used")) { tapEl(w, t); gestures++; await wait(50); }
