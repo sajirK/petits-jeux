@@ -2,7 +2,7 @@
 
 👉 **Jouer en ligne : https://sajirk.github.io/petits-jeux/**
 
-Des petits jeux pour les enfants (dès 4-5 ans) : réfléchir, apprendre, rire et créer.
+Des petits jeux pour les enfants de 3 à 8 ans : lire, compter, réfléchir, les émotions, découvrir et créer.
 Jouables sur tablette, téléphone et ordinateur, au doigt ou à la souris, avec une voix en français.
 
 Au premier lancement, l'enfant écrit **son prénom** et choisit un animal : les jeux l'appellent ensuite par son prénom.
@@ -22,37 +22,71 @@ Sur iPad / iPhone : Safari → Partager → **Sur l'écran d'accueil** pour l'av
 
 ## Les jeux
 
-| Jeu | Catégorie | Dossier |
+Les jeux sont rangés par **compétence** et par **âge** (3 à 8 ans). L’enfant choisit son âge dans « ✏️ Moi » ; chaque jour, **Plume la chouette** propose une *aventure du jour* de 3 jeux (une compétence différente pour chacun). Jouer gagne des étoiles, et les étoiles remplissent un **album de 48 autocollants**.
+
+### 📖 Lire
+
+| Jeu | Âge | Dossier |
 |---|---|---|
-| 😊 Devine l'émotion | Mes émotions (reconnaître) | `games/emotion-visage` |
-| 🤔 Les histoires d'émotions | Mes émotions (comprendre) | `games/emotion-situations` |
-| 🤝 Que ferais-tu ? | Mes émotions (empathie) | `games/que-faire` |
-| 🎈 Respire avec moi | Mes émotions (se calmer) | `games/respire` |
-| 🌤️ Ma météo du jour | Mes émotions (dire ce qu'on ressent) | `games/meteo` |
-| 🤖 Le Petit Robot | Je suis malin (programmer) | `games/robot` |
-| 🧩 Les Suites logiques | Je suis malin (logique) | `games/suites` |
-| 🔎 Trouve l'intrus | Je suis malin (catégories) | `games/intrus` |
-| ➕ Les Calculs malins | Je suis malin (calcul) | `games/calcul` |
-| 🅰️ La Première Lettre | Je suis malin (lecture) | `games/premiere-lettre` |
-| 🎵 La Mémoire Musicale | Je suis malin (mémoire) | `games/melodie` |
-| ⚡ Réflexe Éclair | Je suis malin (réflexes) | `games/reflexe` |
-| 🦕 Super Saut Dino | Aventure (plateforme) | `games/dino` |
-| 💎 Le Château Magique | Aventure (labyrinthe) | `games/tresors` |
-| 🚀 Course de Bulles | Aventure (course) | `games/course` |
-| 🍉 Tranche les Fruits | Rigolo | `games/fruits` |
-| 🍕 La Pizzeria | Cuisine | `games/pizzeria` |
-| 🍦 Le Glacier | Cuisine | `games/glacier` |
-| 🩺 Le Docteur des animaux | Aventure | `games/docteur` |
-| 🫧 Les Bulles | Rigolo | `games/bulles` |
-| 🐹 Tape la Taupe | Rigolo | `games/taupe` |
-| 🐶 Memory des animaux | J'apprends | `games/memoire` |
-| 🔢 Je compte | J'apprends | `games/compter` |
-| 🌈 Les Couleurs | J'apprends | `games/couleurs` |
-| 🔤 Les Lettres | J'apprends | `games/lettres` |
-| 🧱 La Tour des Nombres | J'apprends | `games/tours` |
-| 🔺 Les Formes | J'apprends | `games/formes` |
-| 🖍️ Je dessine | Créatif | `games/dessin` |
-| 🎹 Le Piano rigolo | Créatif | `games/piano` |
+| 🅰️ La Première Lettre | 4-7 ans | `games/premiere-lettre` |
+| 🔤 Les Lettres | 4-7 ans | `games/lettres` |
+
+### 🔢 Compter
+
+| Jeu | Âge | Dossier |
+|---|---|---|
+| 🔢 Je compte | 3-5 ans | `games/compter` |
+| 🧱 La Tour des Nombres | 4-7 ans | `games/tours` |
+| ➕ Les Calculs malins | 5 ans et + | `games/calcul` |
+| 🍕 La Pizzeria | 4-7 ans | `games/pizzeria` |
+
+### 🧩 Réfléchir
+
+| Jeu | Âge | Dossier |
+|---|---|---|
+| 🐶 Memory des animaux | 3-7 ans | `games/memoire` |
+| 🧩 Les Suites logiques | 4 ans et + | `games/suites` |
+| 🔎 Trouve l'intrus | 4-7 ans | `games/intrus` |
+| 🎵 La Mémoire Musicale | 4 ans et + | `games/melodie` |
+| 🤖 Le Petit Robot | 5 ans et + | `games/robot` |
+| 🍦 Le Glacier | 4-7 ans | `games/glacier` |
+
+### 💛 Mes émotions
+
+| Jeu | Âge | Dossier |
+|---|---|---|
+| 😊 Devine l'émotion | 3-6 ans | `games/emotion-visage` |
+| 🎈 Respire avec moi | 3 ans et + | `games/respire` |
+| 🌤️ Ma météo du jour | 3 ans et + | `games/meteo` |
+| 🤔 Les histoires d'émotions | 4-7 ans | `games/emotion-situations` |
+| 🤝 Que ferais-tu ? | 4 ans et + | `games/que-faire` |
+
+### 🌍 Découvrir
+
+| Jeu | Âge | Dossier |
+|---|---|---|
+| 🌈 Les Couleurs | 3-5 ans | `games/couleurs` |
+| 🔺 Les Formes | 3-5 ans | `games/formes` |
+| 🩺 Le Docteur des animaux | 3-7 ans | `games/docteur` |
+
+### ⚡ Agilité
+
+| Jeu | Âge | Dossier |
+|---|---|---|
+| 🫧 Les Bulles | 3-5 ans | `games/bulles` |
+| 🐹 Tape la Taupe | 3-6 ans | `games/taupe` |
+| 🍉 Tranche les Fruits | 4 ans et + | `games/fruits` |
+| ⚡ Réflexe Éclair | 4 ans et + | `games/reflexe` |
+| 🦕 Super Saut Dino | 4 ans et + | `games/dino` |
+| 💎 Le Château Magique | 4 ans et + | `games/tresors` |
+| 🚀 Course de Bulles | 4 ans et + | `games/course` |
+
+### 🎨 Créer
+
+| Jeu | Âge | Dossier |
+|---|---|---|
+| 🖍️ Je dessine | 3 ans et + | `games/dessin` |
+| 🎹 Le Piano rigolo | 3 ans et + | `games/piano` |
 
 ## Tests
 
@@ -66,7 +100,7 @@ node --test tests/*.test.js
 
 1. Créer `games/<id>/index.html` (copier un jeu existant comme modèle).
 2. Inclure `../../css/common.css` et `../../js/common.js`, puis appeler `Jeux.addHomeButton()`.
-3. Ajouter une ligne dans `js/games.js`.
+3. Ajouter une ligne dans `js/games.js` avec sa compétence (`skill`) et ses âges (`ages: [min, max]`). Les tests vérifient que la page existe.
 
 Outils dispo dans `window.Jeux` : `sounds` (pop, success, wrong, win, tone), `say(texte)` (voix française),
 `bravo(texte)` (félicite l'enfant par son prénom), `confetti()`, `addStars(n)` / `getStars()` (étoiles gardées sur l'appareil),

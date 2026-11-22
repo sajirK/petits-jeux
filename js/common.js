@@ -356,10 +356,32 @@
   function getStars() {
     return parseInt(localStorage.getItem("jeux.stars") || "0", 10);
   }
+  // Toutes les 3 étoiles, un autocollant à découvrir dans l'album (dévoilé sur l'accueil)
+  const STARS_PER_STICKER = 3;
   function addStars(n = 1) {
-    const v = getStars() + n;
+    const before = getStars();
+    const v = before + n;
     localStorage.setItem("jeux.stars", String(v));
+    const won = Math.floor(v / STARS_PER_STICKER) - Math.floor(before / STARS_PER_STICKER);
+    if (won > 0) {
+      addPendingStickers(won);
+      toast("🎁 Un autocollant t'attend dans ton album !");
+    }
     return v;
+  }
+  function addPendingStickers(n) {
+    const p = parseInt(localStorage.getItem("jeux.stickers.pending") || "0", 10) + n;
+    localStorage.setItem("jeux.stickers.pending", String(p));
+  }
+
+  // Petit message en bas de l'écran
+  function toast(text, ms = 3200) {
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = text;
+    document.body.appendChild(t);
+    setTimeout(() => t.classList.add("bye"), ms - 400);
+    setTimeout(() => t.remove(), ms);
   }
 
   const praises = ["Bravo", "Super", "Génial", "Trop fort", "Champion", "Bien joué", "Magnifique"];
@@ -414,5 +436,5 @@
     return wrap;
   }
 
-  window.Jeux = { frenchVoices, setVoice, currentVoice, progress, levelBadge, NAME, getName, setName, getAvatar, setAvatar, getCoins, cleanName, isMuted, setMuted, audio, output: () => (audio(), master), sounds, say, bravo, confetti, addHomeButton, shuffle, pick, getStars, addStars };
+  window.Jeux = { toast, addPendingStickers, frenchVoices, setVoice, currentVoice, progress, levelBadge, NAME, getName, setName, getAvatar, setAvatar, getCoins, cleanName, isMuted, setMuted, audio, output: () => (audio(), master), sounds, say, bravo, confetti, addHomeButton, shuffle, pick, getStars, addStars };
 })();

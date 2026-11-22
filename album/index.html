@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Mon album</title>
+  <link rel="stylesheet" href="../css/common.css" />
+  <style>
+    body { background: linear-gradient(160deg, #fff0f6, #e5dbff); padding-bottom: 30px; }
+    .brain { max-width: 900px; margin: 0 auto; }
+    #count { font-size: clamp(18px, 4.2vmin, 26px); margin-bottom: 10px; }
+    .book {
+      width: 100%; background: #fff; border-radius: 28px; box-shadow: 0 8px 0 rgba(0,0,0,0.08);
+      padding: 14px; margin-bottom: 16px; border: 4px dashed rgba(0,0,0,0.06);
+    }
+    .book h2 { margin: 0 0 10px; font-size: clamp(20px, 4.6vmin, 28px); display: flex; align-items: center; gap: 10px; }
+    .book h2 small { font-size: 0.65em; opacity: 0.6; }
+    .book.full { border-color: #ffd43b; background: linear-gradient(160deg, #fffbe6, #fff); }
+    .book.full h2::after { content: "🏆"; }
+    .slots { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+    @media (max-width: 620px) { .slots { grid-template-columns: repeat(4, 1fr); } }
+    .slot {
+      aspect-ratio: 1; border-radius: 18px; display: grid; place-items: center;
+      font-size: clamp(30px, 8vmin, 52px); background: #f1f3f5; position: relative;
+    }
+    .slot.has { background: #fff; box-shadow: 0 4px 0 rgba(0,0,0,0.08), inset 0 0 0 3px #ffe066; cursor: pointer; }
+    .slot.has span { filter: drop-shadow(0 3px 0 rgba(0,0,0,0.15)); }
+    .slot.missing span { filter: grayscale(1) brightness(0); opacity: 0.12; }
+    .slot.new { animation: bounce-in 0.6s; box-shadow: 0 0 0 4px #ff6b6b, 0 0 24px #ffa8a8; }
+    .slot.has:active span { display: inline-block; animation: bounce-in 0.4s; }
+    #hint { text-align: center; font-size: clamp(15px, 3.6vmin, 20px); opacity: 0.75; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="brain">
+    <h1 class="game-title">📒 Mon album</h1>
+    <div class="brain-pill" id="count"></div>
+    <div id="books" style="width:100%"></div>
+    <div id="hint">Gagne des étoiles ⭐ dans les jeux et fais ton aventure du jour pour remplir l'album !</div>
+  </div>
+
+  <script src="../js/common.js"></script>
+  <script src="../js/parcours.js"></script>
+  <script>
+    Jeux.addHomeButton("../index.html");
+    const owned = JSON.parse(localStorage.getItem("jeux.stickers") || "[]");
+    const fresh = sessionStorage.getItem("jeux.lastSticker");
+    sessionStorage.removeItem("jeux.lastSticker");
+    const done = Parcours.completedCollections(owned);
+    document.getElementById("count").textContent = `${owned.length} / ${Parcours.ALL_STICKERS.length} autocollants`;
+    const books = document.getElementById("books");
+    for (const c of Parcours.COLLECTIONS) {
+      const n = c.items.filter((s) => owned.includes(s)).length;
+      const book = document.createElement("section");
+      book.className = "book" + (done.includes(c.id) ? " full" : "");
+      book.innerHTML = `<h2>${c.label} <small>${n}/${c.items.length}</small></h2><div class="slots"></div>`;
+      const slots = book.querySelector(".slots");
+      for (const s of c.items) {
+        const has = owned.includes(s);
+        const el = document.createElement("div");
+        el.className = "slot " + (has ? "has" : "missing") + (has && s === fresh ? " new" : "");
+        el.innerHTML = `<span>${s}</span>`;
+        if (has) el.onclick = () => { Jeux.sounds.pop(); el.firstChild.style.animation = "none"; void el.offsetWidth; el.firstChild.style.animation = "bounce-in 0.4s"; };
+        slots.appendChild(el);
+      }
+      books.appendChild(book);
+    }
+    setTimeout(() => Jeux.say(owned.length ? `Tu as ${owned.length} autocollants !${done.length ? ` Et ${done.length} page${done.length > 1 ? "s" : ""} complète${done.length > 1 ? "s" : ""} !` : ""}` : "Ton album est encore vide. Joue pour gagner des autocollants !"), 500);
+  </script>
+</body>
+</html>

@@ -236,3 +236,37 @@ body.has-home .mute-btn {
     padding-top: 12px;
   }
 }
+
+/* Petit message en bas de l'écran */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 3000;
+  background: #3b2a4d;
+  color: #fff;
+  border-radius: 999px;
+  padding: 12px 22px;
+  font-size: clamp(16px, 3.8vmin, 22px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  animation: toast-in 0.4s cubic-bezier(0.3, 1.6, 0.6, 1);
+  pointer-events: none;
+  text-align: center;
+  max-width: 92vw;
+  transition: opacity 0.4s, transform 0.4s;
+}
+.toast.bye {
+  opacity: 0;
+  transform: translate(-50%, 20px);
+}
+@keyframes toast-in {
+  from { transform: translate(-50%, 80px); }
+}
+
+/* Les liens en forme de gros bouton gardent la couleur du texte */
+a.big-btn {
+  color: var(--ink);
+  text-decoration: none;
+  display: inline-block;
+}
