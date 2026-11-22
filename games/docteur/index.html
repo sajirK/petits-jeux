@@ -138,7 +138,17 @@
         ctx.toolEls[t] = b;
       });
 
-      round.setHintTarget(() => ctx.toolEls[currentStep() && currentStep().tool]);
+      // aide : le geste complet (prendre l'outil et le poser / frotter / tirer) — la main 👆 le montre, le robot de test le rejoue
+      round.setHintTarget(() => {
+        const s = currentStep();
+        if (!s || ctx.busy) return null;
+        const tool = ctx.toolEls[s.tool], spot = ctx.target || ctx.patientEl;
+        if (s.type === "place") return { from: tool, to: spot };
+        if (s.type === "rub") return { from: tool, to: spot, paint: true };
+        if (s.type === "mud") { const m = (ctx.sick.mud || []).find((x) => x.dataset.left > 0); return m ? { from: tool, to: m, paint: true } : null; }
+        if (s.type === "pull") return ctx.sick.thorn ? { from: tool, to: ctx.sick.thorn, then: bag } : null;
+        return tool;
+      });
       renderStep();
       // l'animal se présente, puis on dit quoi faire
       setTimeout(() => p.classList.remove("arrive"), 800);

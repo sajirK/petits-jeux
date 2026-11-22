@@ -2,7 +2,13 @@
 
 ## 2.0.0-dev — 2026-11-22
 
-- V2 en préparation : niveaux standard, voix, écrans de victoire
+- V2 en préparation (branche `v2`, pas encore publiée) :
+  - les 36 jeux passent sur le même « kit » : même barre, mêmes boutons, voix, aide 👆, particules, écran de victoire ;
+  - 3 niveaux partout (🟢 Facile, 🟡 Moyen, 🔴 Difficile), mémorisés par jeu, et Plume propose le niveau suivant ;
+  - chaque jeu a une vraie fin : manches, objectif à atteindre (jeux d'action) ou bouton ✅ (jeux libres) ;
+  - zéro lecture nécessaire : consignes dites et montrées, gros boutons (64 px minimum), glisser-déposer ;
+  - le sélecteur de difficulté du Château devient les 3 niveaux du kit (les réglages sont repris) ;
+  - tests : règles vérifiées pour chaque jeu (`npm test`), et un robot qui joue chaque jeu aux 3 niveaux.
 
 ## 1.x — novembre 2026
 

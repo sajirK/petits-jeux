@@ -4,14 +4,37 @@
 // Chaque jeu est joué aux 3 niveaux, temps accéléré ×25, voix coupée, en suivant l'aide du kit
 // (__kit.target()). Attendu : "fin ⭐3" et 0 erreur pour chaque jeu.
 (function () {
-  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  // Minuteries par messages : contrairement à setTimeout, elles ne sont pas ralenties
+  // quand l'onglet est en arrière-plan (le robot va aussi vite que l'onglet soit visible ou non).
+  function scheduler(win, onError) {
+    const ch = new win.MessageChannel(), q = [];
+    let id = 1e6, kicked = false; // ids loin de ceux du navigateur
+    const kick = () => { if (!kicked) { kicked = true; ch.port2.postMessage(0); } };
+    ch.port1.onmessage = () => {
+      kicked = false;
+      const now = win.performance.now();
+      const due = q.filter((it) => it.t <= now).sort((a, b) => a.t - b.t);
+      for (const it of due) {
+        q.splice(q.indexOf(it), 1);
+        if (it.rep) { it.t = now + it.rep; q.push(it); }
+        try { it.fn(...it.a); } catch (e) { onError && onError(e); }
+      }
+      if (q.length) kick();
+    };
+    return {
+      set(fn, ms, rep, a) { const it = { id: ++id, t: win.performance.now() + (ms || 0), fn: typeof fn === "function" ? fn : () => {}, a: a || [], rep }; q.push(it); kick(); return it.id; },
+      clear(i) { const k = q.findIndex((it) => it.id === i); if (k >= 0) q.splice(k, 1); },
+    };
+  }
+  const top = scheduler(window);
+  const wait = (ms) => new Promise((r) => top.set(r, ms));
   function tapEl(w, el) {
     const r = el.getBoundingClientRect(), o = { clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, bubbles: true, pointerId: 5 };
     el.dispatchEvent(new w.PointerEvent("pointerdown", o));
     el.dispatchEvent(new w.PointerEvent("pointerup", o));
     el.click();
   }
-  function dragEl(w, from, to, paint) {
+  function dragEl(w, from, to, paint, then) {
     const a = from.getBoundingClientRect(), b = to.getBoundingClientRect();
     const ev = (t, x, y) => from.dispatchEvent(new w.PointerEvent(t, { clientX: x, clientY: y, bubbles: true, pointerId: 6 }));
     ev("pointerdown", a.left + a.width / 2, a.top + a.height / 2);
@@ -19,6 +42,8 @@
     const cx = b.left + b.width / 2, cy = b.top + b.height / 2;
     if (paint) for (let y = -0.8; y <= 0.8; y += 0.06) for (let x = -0.8; x <= 0.8; x += 0.06) if (x * x + y * y < 0.64) ev("pointermove", cx + (x * b.width) / 2, cy + (y * b.height) / 2);
     ev("pointermove", cx, cy);
+    // "then" : on continue le geste vers un 2e endroit sans lâcher (ex. tirer une épine)
+    if (then) { const c = then.getBoundingClientRect(), tx = c.left + c.width / 2, ty = c.top + c.height / 2; for (let k = 1; k <= 8; k++) ev("pointermove", cx + ((tx - cx) * k) / 8, cy + ((ty - cy) * k) / 8); ev("pointerup", tx, ty); return; }
     ev("pointerup", cx, cy);
   }
   async function playOne(id, lv, opts = {}) {
@@ -29,9 +54,13 @@
     await new Promise((r) => (f.onload = r));
     const w = f.contentWindow, errs = [];
     w.addEventListener("error", (e) => errs.push(e.message));
-    const st = w.setTimeout.bind(w), si = w.setInterval.bind(w);
-    w.setTimeout = (fn, ms, ...a) => st(fn, (ms || 0) / 25, ...a);
-    w.setInterval = (fn, ms, ...a) => si(fn, Math.max(4, (ms || 0) / 25), ...a);
+    // temps accéléré ×25 et minuteries non ralenties en arrière-plan
+    const sch = scheduler(w, (e) => errs.push(e.message));
+    w.setTimeout = (fn, ms, ...a) => sch.set(fn, (ms || 0) / 25, 0, a);
+    w.setInterval = (fn, ms, ...a) => sch.set(fn, Math.max(4, (ms || 0) / 25), Math.max(4, (ms || 0) / 25), a);
+    const realClear = w.clearTimeout.bind(w);
+    w.clearTimeout = w.clearInterval = (i) => { if (i >= 1e6) sch.clear(i); else realClear(i); };
+    const st = (fn, ms) => sch.set(fn, ms, 0, []);
     w.speechSynthesis.speak = () => {};
     // si la page est en arrière-plan, requestAnimationFrame ne tourne plus : on le remplace par une minuterie
     w.requestAnimationFrame = (fn) => st(() => fn(w.performance.now()), 16);
@@ -46,7 +75,7 @@
       if (t && t.auto) { t.auto(); continue; }
       if (t && t.__robotPath) { const pts = t.__robotPath(), cv = w.document.querySelector("canvas"), ev = (k, [x, y]) => cv.dispatchEvent(new w.PointerEvent(k, { clientX: x, clientY: y, bubbles: true, pointerId: 8 })); ev("pointerdown", pts[0]); pts.forEach((p) => ev("pointermove", p)); ev("pointerup", pts[pts.length - 1]); gestures++; await wait(80); continue; }
       if (t && t.swipe) { const [x1, y1, x2, y2] = t.swipe, ev = (k, x, y) => t.el.dispatchEvent(new w.PointerEvent(k, { clientX: x, clientY: y, bubbles: true, pointerId: 7 })); ev("pointerdown", x1, y1); for (let k = 1; k <= 6; k++) ev("pointermove", x1 + ((x2 - x1) * k) / 6, y1 + ((y2 - y1) * k) / 6); ev("pointerup", x2, y2); gestures++; await wait(50); }
-      else if (t && t.from) { dragEl(w, t.from, t.to, t.paint); gestures++; await wait(50); }
+      else if (t && t.from) { dragEl(w, t.from, t.to, t.paint, t.then); gestures++; await wait(50); }
       else if (t && t.isConnected && !t.disabled && !t.classList.contains("used")) { tapEl(w, t); gestures++; await wait(50); }
     }
     const s = w.__kit.state();
