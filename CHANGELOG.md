@@ -1,5 +1,9 @@
 # Journal des versions
 
+## 2.1.0 — 2026-11-23
+
+- Niveau Expert 👑 dans tous les jeux, nouveau jeu « Les langues » (anglais, allemand, espagnol), voix plus calme
+
 ## 2.0.0 — 2026-11-22
 
 - V2 : la refonte de tous les jeux :

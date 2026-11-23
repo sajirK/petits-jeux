@@ -4,8 +4,8 @@
   else root.APP_VERSION = factory();
 })(typeof self !== "undefined" ? self : this, function () {
   return {
-    version: "2.0.0",
-    date: "2026-11-22",
-    notes: ["V2 : 3 niveaux et une vraie fin dans les 36 jeux, zéro lecture, gros boutons"],
+    version: "2.1.0",
+    date: "2026-11-23",
+    notes: ["Niveau Expert 👑 dans tous les jeux, nouveau jeu « Les langues » (anglais, allemand, espagnol), voix plus calme"],
   };
 });
