@@ -47,7 +47,7 @@ test("Docteur : quantités adaptées au niveau", () => {
 });
 
 test("Docteur : une partie a le bon nombre de patients, et la trousse contient toujours les bons outils", () => {
-  for (const level of [1, 2, 3]) {
+  for (const level of [1, 2, 3, 4]) {
     const rng = rngFrom(level * 11);
     for (let i = 0; i < 400; i++) {
       const s = D.session(level, rng);

@@ -58,6 +58,7 @@
     1: { rounds: 6, continents: ["afrique", "asie", "oceanie", "antarctique"], labels: true },
     2: { rounds: 9, continents: Object.keys(CONTINENTS), labels: true },
     3: { rounds: 12, continents: Object.keys(CONTINENTS), labels: false },
+    4: { rounds: 12, continents: Object.keys(CONTINENTS), labels: false, plain: true }, // Expert : carte sans noms ni couleurs
   };
   // Les animaux d'une partie : seulement ceux dont le continent est sur la carte
   function deck(level, rng = Math.random) {

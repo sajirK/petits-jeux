@@ -20,6 +20,7 @@
     1: { rounds: 3, pieces: 3, pool: EASY },                        // 3 formes très différentes
     2: { rounds: 4, pieces: 4, pool: Object.keys(SHAPES).slice(0, 8) },
     3: { rounds: 4, pieces: 5, pool: Object.keys(SHAPES) },          // + formes qui se ressemblent (ovale/rond, carré/rectangle…)
+    4: { rounds: 5, pieces: 6, pool: Object.keys(SHAPES) },          // Expert : 6 formes, toujours des sosies
   };
   const ARTICLE = { rond: "le rond", carré: "le carré", triangle: "le triangle", étoile: "l'étoile", cœur: "le cœur", losange: "le losange", lune: "la lune", rectangle: "le rectangle", ovale: "l'ovale", hexagone: "l'hexagone" };
   // "l'ombre du rond", "l'ombre de l'étoile", "l'ombre de la lune"
@@ -29,7 +30,7 @@
     const cfg = LEVELS[level];
     let names = shuffle(cfg.pool, rng).slice(0, cfg.pieces);
     // au niveau 3, on s'assure qu'il y a au moins une paire de formes qui se ressemblent
-    if (level === 3 && !(names.includes("rond") && names.includes("ovale")) && !(names.includes("carré") && names.includes("rectangle"))) {
+    if (level >= 3 && !(names.includes("rond") && names.includes("ovale")) && !(names.includes("carré") && names.includes("rectangle"))) {
       names = ["rond", "ovale", ...shuffle(cfg.pool.filter((n) => n !== "rond" && n !== "ovale"), rng).slice(0, cfg.pieces - 2)];
     }
     return { pieces: shuffle(names, rng), shadows: shuffle(names, rng) };

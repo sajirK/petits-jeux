@@ -88,6 +88,8 @@
     2: { rounds: 4, ailments: Object.keys(AILMENTS), tray: 8, glow: false, amountScale: 0.85, maxCount: 2 },
     // Difficile : trousse complète, quantités normales, pas d'aide automatique
     3: { rounds: 5, ailments: Object.keys(AILMENTS), tray: Object.keys(TOOLS).length, glow: false, amountScale: 1, maxCount: 3 },
+    // Expert : 6 patients, on frotte plus longtemps
+    4: { rounds: 6, ailments: Object.keys(AILMENTS), tray: Object.keys(TOOLS).length, glow: false, amountScale: 1.2, maxCount: 3 },
   };
 
   function shuffle(arr, rng) {

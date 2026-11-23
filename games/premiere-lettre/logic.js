@@ -54,7 +54,7 @@
     if (avoid) pool = WORDS.filter((w) => w[1] !== avoid);
     const [emoji, word] = pool[Math.floor(rng() * pool.length)];
     const answer = firstLetter(word);
-    const n = level <= 1 ? 2 : level === 2 ? 3 : 4;
+    const n = level <= 1 ? 2 : level === 2 ? 3 : level === 3 ? 4 : 5;
     const others = new Set();
     if (level >= 3) for (const l of shuffle(LOOK_ALIKE[answer] || [], rng)) if (others.size < 2 && l !== answer) others.add(l);
     const far = shuffle(ALPHABET.filter((l) => l !== answer && !(LOOK_ALIKE[answer] || []).includes(l)), rng);
@@ -68,6 +68,7 @@
     1: { rounds: 6, internal: [1] },
     2: { rounds: 7, internal: [2] },
     3: { rounds: 8, internal: [3] },
+    4: { rounds: 10, internal: [4] }, // Expert : 5 lettres dont des sosies
   };
 
   return { LEVELS, WORDS, BAD_STARTS, ALLOWED_VOWEL_WORDS, ALPHABET, LOOK_ALIKE, firstLetter, generate };

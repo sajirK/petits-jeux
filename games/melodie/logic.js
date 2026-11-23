@@ -15,6 +15,7 @@
     1: { rounds: 4, lengths: [2, 2, 3, 3], pads: 3 },
     2: { rounds: 4, lengths: [3, 4, 4, 5], pads: 4 },
     3: { rounds: 4, lengths: [4, 5, 6, 7], pads: 4 },
+    4: { rounds: 4, lengths: [6, 7, 8, 9], pads: 4, fast: true }, // Expert : mélodies longues, jouées plus vite
   };
   // une mélodie : jamais 3 fois la même note de suite (trop difficile à compter)
   function melody(len, pads, rng = Math.random) {

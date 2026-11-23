@@ -32,6 +32,16 @@
     { start: [20, 20], step: -2, label: "-2" },
   ];
 
+  // Expert : des règles moins évidentes
+  const HARD_RULES = [
+    { start: [1, 4], step: 3, label: "+3" },
+    { start: [2, 5], step: 4, label: "+4" },
+    { start: [30, 40], step: -3, label: "-3" },
+    { start: [3, 9], step: 11, label: "+11" },
+    { start: [50, 60], step: -5, label: "-5" },
+    { start: [1, 3], mult: 2, label: "×2" },
+  ];
+
   const randInt = (rng, a, b) => a + Math.floor(rng() * (b - a + 1));
   function shuffle(arr, rng) {
     const a = arr.slice();
@@ -53,6 +63,7 @@
   }
 
   function generate(level, rng = Math.random) {
+    if (level >= 7 && rng() < 0.75) return generateNumbers(rng, HARD_RULES);
     if (level >= 5 && rng() < 0.6) return generateNumbers(rng);
     const lv = Math.min(4, Math.max(1, level));
     const unit = UNITS[lv][Math.floor(rng() * UNITS[lv].length)];
@@ -77,13 +88,15 @@
     return { kind: "symbols", unit, shown, answer, options };
   }
 
-  function generateNumbers(rng) {
-    const rule = NUMBER_RULES[Math.floor(rng() * NUMBER_RULES.length)];
+  function generateNumbers(rng, rules = NUMBER_RULES) {
+    const rule = rules[Math.floor(rng() * rules.length)];
     const start = randInt(rng, rule.start[0], rule.start[1]);
-    const shown = [0, 1, 2, 3].map((i) => start + i * rule.step);
-    const answer = start + 4 * rule.step;
+    const at = (i) => (rule.mult ? start * rule.mult ** i : start + i * rule.step);
+    const shown = [0, 1, 2, 3].map(at);
+    const answer = at(4);
+    const step = rule.mult ? answer - shown[3] : rule.step;
     const cands = new Set([answer]);
-    for (const d of shuffle([1, -1, 2, -2, rule.step * 2, rule.step + 1], rng)) {
+    for (const d of shuffle([1, -1, 2, -2, step * 2, step + 1, -step], rng)) {
       const v = answer + d;
       if (v >= 0 && v !== answer && !shown.includes(v)) cands.add(v);
       if (cands.size >= 4) break;
@@ -96,6 +109,7 @@
     1: { rounds: 6, internal: [1, 2] },        // motifs AB, puis ABC / AAB
     2: { rounds: 7, internal: [3, 4] },        // AABB, ABAC, ABCD…
     3: { rounds: 8, internal: [4, 5, 6] },     // motifs longs + suites de nombres
+    4: { rounds: 10, internal: [6, 7] },      // Expert : suites de nombres rusées (+3, +4, ×2…)
   };
 
   return { LEVELS, generate, minimalPeriod, UNITS, THEMES };

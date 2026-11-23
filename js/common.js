@@ -218,7 +218,12 @@
   // On choisit une voix française de France, de bonne qualité. Jamais une voix anglaise :
   // sur Mac (surtout Chrome) la liste des voix arrive en retard, donc on l'attend avant de parler.
   const PREFERRED = ["audrey", "thomas", "marie", "aurélie", "google français", "denise", "henri", "julie", "hortense", "paul", "jacques", "amélie"];
-  const NOVELTY = ["eddy", "flo", "grandma", "grandpa", "reed", "rocko", "sandy", "shelley"];
+  const NOVELTY = ["eddy", "flo", "grandma", "grandpa", "reed", "rocko", "sandy", "shelley", "mamie", "papi"];
+  // on quitte l'onglet ou l'appli : la voix se tait tout de suite
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => { if (document.hidden && window.speechSynthesis) speechSynthesis.cancel(); });
+    window.addEventListener("pagehide", () => { if (window.speechSynthesis) speechSynthesis.cancel(); });
+  }
   const vLang = (v) => (v.lang || "").toLowerCase().replace("_", "-");
   const vName = (v) => v.name.toLowerCase();
   function voiceScore(v) {
@@ -269,7 +274,7 @@
       .replace(/\s+([,!?.:])/g, "$1")
       .replace(/,([!?.])/g, "$1")
       .trim();
-    if (!window.speechSynthesis || muted) return;
+    if (!window.speechSynthesis || muted || document.hidden) return;
     if (voicesLoaded()) return speakNow(text, rate, pitch);
     // la liste des voix n'est pas encore prête : on attend (2 s maximum)
     const first = !pendingSay;

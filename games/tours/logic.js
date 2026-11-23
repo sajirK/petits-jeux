@@ -8,6 +8,7 @@
     1: { rounds: 5, min: 1, max: 5 },              // construire une tour de 1 à 5
     2: { rounds: 6, min: 3, max: 10 },             // jusqu'à 10
     3: { rounds: 6, min: 3, max: 10, add: true },  // additions : une partie est déjà construite
+    4: { rounds: 8, min: 6, max: 10, add: true },  // Expert : additions jusqu'à 10, toujours
   };
   function question(level, rng = Math.random, avoid = null) {
     const cfg = LEVELS[level];

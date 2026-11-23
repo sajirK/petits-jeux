@@ -14,6 +14,7 @@
     1: { rounds: 1, goal: 15, gravity: 0.7, wave: 2, sock: 0, bomb: 0, spawn: [1.6, 1.0] },
     2: { rounds: 1, goal: 25, gravity: 0.85, wave: 3, sock: 0.08, bomb: 0, spawn: [1.3, 0.8] },
     3: { rounds: 1, goal: 35, gravity: 1.2, wave: 4, sock: 0.12, bomb: 0.04, spawn: [0.9, 0.7] },
+    4: { rounds: 1, goal: 45, gravity: 1.4, wave: 5, sock: 0.14, bomb: 0.08, spawn: [0.75, 0.6] },
   };
   // un objet lancé : fruit, chaussette, bombe, étoile dorée ou arc-en-ciel
   function nextKind(cfg, rng = Math.random) {

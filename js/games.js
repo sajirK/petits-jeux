@@ -7,6 +7,7 @@
   else { root.SKILLS = data.SKILLS; root.GAMES = data.GAMES; root.AGES = data.AGES; }
 })(typeof self !== "undefined" ? self : this, function () {
   const SKILLS = {
+    langues: { label: "Langues", emoji: "🗣️", desc: "L'anglais, l'allemand et l'espagnol, en jouant" },
     lire: { label: "Lire", emoji: "📖", desc: "Les lettres, les sons et les mots" },
     compter: { label: "Compter", emoji: "🔢", desc: "Les nombres, compter et calculer" },
     logique: { label: "Réfléchir", emoji: "🧩", desc: "Logique, mémoire et programmation" },
@@ -20,6 +21,8 @@
   const AGES = [3, 4, 5, 6, 7, 8];
 
   const GAMES = [
+    // Langues
+    { id: "langues", title: "Les langues", emoji: "🗣️", skill: "langues", ages: [3, 8], color: "#c5f6fa", isNew: true },
     // Lire
     { id: "tracer", title: "J'écris", emoji: "✍️", skill: "lire", ages: [3, 7], color: "#d0ebff" },
     { id: "syllabes", title: "Les syllabes magiques", emoji: "🪄", skill: "lire", ages: [5, 8], color: "#eebefa" },

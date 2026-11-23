@@ -77,7 +77,7 @@
       for (const [id, d] of Object.entries(SHAPES)) {
         const p = document.createElementNS(NS, "path");
         p.setAttribute("d", d); p.setAttribute("class", "land" + (cfg.continents.includes(id) ? "" : " off"));
-        p.style.fill = ML.CONTINENTS[id].color; p.dataset.c = id;
+        p.style.fill = cfg.plain ? "#c3e6cb" : ML.CONTINENTS[id].color; p.dataset.c = id;
         p.addEventListener("click", () => choose(id));
         svg.appendChild(p); lands[id] = p;
       }

@@ -18,8 +18,8 @@ for (const g of GAMES) {
     const isFree = logic.FREE === true;
     if (!isFree) {
       assert.ok(logic.LEVELS, `${g.id} : logic.js doit exporter LEVELS (ou FREE = true)`);
-      assert.ok(KL.validateConfig(logic.LEVELS), `${g.id} : les 3 niveaux doivent exister avec "rounds" ≥ 1`);
-      assert.deepEqual(Object.keys(logic.LEVELS).sort(), ["1", "2", "3"], `${g.id} : exactement 3 niveaux`);
+      assert.ok(KL.validateConfig(logic.LEVELS), `${g.id} : les 4 niveaux doivent exister avec "rounds" ≥ 1`);
+      assert.deepEqual(Object.keys(logic.LEVELS).sort(), ["1", "2", "3", "4"], `${g.id} : exactement 4 niveaux`);
     }
 
     const html = read(`${dir}/index.html`);

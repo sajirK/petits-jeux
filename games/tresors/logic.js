@@ -11,6 +11,7 @@
     1: { rounds: 3, size: (n) => Math.min(3 + Math.floor((n - 1) / 3), 4), gems: (n) => Math.min(6, 2 + Math.ceil(n / 2)), bats: () => 1, batSpeed: 1.5, batCounts: false },
     2: { rounds: 3, size: (n) => Math.min(2 + n, 6), gems: (n) => 3 + n, bats: (n) => Math.min(1 + Math.floor(n / 3), 3), batSpeed: 1.0, batCounts: true },
     3: { rounds: 3, size: (n) => Math.min(3 + n, 7), gems: (n) => 4 + n, bats: (n) => Math.min(2 + Math.floor(n / 3), 4), batSpeed: 0.7, batCounts: true },
+    4: { rounds: 3, size: (n) => Math.min(4 + n, 8), gems: (n) => 5 + n, bats: (n) => Math.min(3 + Math.floor(n / 3), 5), batSpeed: 0.55, batCounts: true },
   };
   const OLD_DIFFICULTY = { easy: 1, medium: 2, hard: 3 }; // ancien réglage (sélecteur de difficulté)
   function shuffle(a, rng) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }

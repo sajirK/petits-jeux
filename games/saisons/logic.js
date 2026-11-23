@@ -84,6 +84,7 @@
     1: { rounds: 4, weathers: 4, smallWardrobe: true, seasons: 0 },
     2: { rounds: 5, weathers: 3, smallWardrobe: false, seasons: 2 },
     3: { rounds: 6, weathers: 3, smallWardrobe: false, seasons: 3, order: true },
+    4: { rounds: 8, weathers: 4, smallWardrobe: false, seasons: 4, order: true },
   };
   function wardrobeFor(weather, small, rng = Math.random) {
     const all = Object.keys(CLOTHES);

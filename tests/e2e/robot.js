@@ -1,7 +1,7 @@
 // Robot de test de bout en bout (dans le navigateur, page d'accueil ouverte) :
 //   const s = document.createElement("script"); s.src = "/tests/e2e/robot.js"; document.head.appendChild(s);
 //   robot(["couleurs", "docteur"]).then(console.log)
-// Chaque jeu est joué aux 3 niveaux, temps accéléré ×25, voix coupée, en suivant l'aide du kit
+// Chaque jeu est joué aux 4 niveaux, temps accéléré ×25, voix coupée, en suivant l'aide du kit
 // (__kit.target()). Attendu : "fin ⭐3" et 0 erreur pour chaque jeu.
 (function () {
   // Minuteries par messages : contrairement à setTimeout, elles ne sont pas ralenties
@@ -83,7 +83,7 @@
     return `${id} L${lv}: ${res || "PAS FINI (manche " + s.index + "/" + s.rounds + ")"} erreurs=${s.errors}${errs.length ? " ERR " + errs[0] : ""}`;
   }
   window.robotLog = [];
-  window.robot = async function (ids, levels = [1, 2, 3], opts) {
+  window.robot = async function (ids, levels = [1, 2, 3, 4], opts) {
     const out = [];
     for (const id of ids) for (const lv of levels) { const r = await playOne(id, lv, opts); out.push(r); window.robotLog.push(r); }
     return out;

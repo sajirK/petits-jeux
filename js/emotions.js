@@ -54,6 +54,7 @@
     1: ["joie", "tristesse", "colere", "peur"],
     2: ["joie", "tristesse", "colere", "peur", "surprise", "degout"],
     3: ["joie", "tristesse", "colere", "peur", "surprise", "degout", "calme", "fatigue"],
+    4: ["joie", "tristesse", "colere", "peur", "surprise", "degout", "calme", "fatigue"],
   };
 
   // Situations : une seule réponse attendue ; "alsoOk" = émotions aussi possibles,
@@ -192,10 +193,10 @@
 
   // ---------- Devine l'émotion (visages) ----------
   function faceQuestion(level, rng = Math.random, avoid = null) {
-    const pool = LEVEL_EMOTIONS[Math.min(3, Math.max(1, level))];
+    const pool = LEVEL_EMOTIONS[Math.min(4, Math.max(1, level))];
     const choices = pool.filter((e) => e !== avoid);
     const answer = choices[Math.floor(rng() * choices.length)];
-    const n = level <= 1 ? 3 : 4;
+    const n = level <= 1 ? 3 : level >= 4 ? 6 : 4; // Expert : 6 visages
     const others = shuffle(pool.filter((e) => e !== answer), rng).slice(0, n - 1);
     return { answer, options: shuffle([answer, ...others], rng) };
   }

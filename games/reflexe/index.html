@@ -87,7 +87,7 @@
         round.timeout(() => remove(o), 300);
         hits++; meter.set(hits);
         if (hits >= cfg.goal) { running = false; round.timeout(() => round.end({ text: "Quels réflexes ! Bravo !" }), 400); return; }
-        if (cfg.switchAt && hits === cfg.switchAt) {
+        if (cfg.switchAt && hits % cfg.switchAt === 0) {
           running = false;
           items.slice().forEach(remove);
           rule = RL.ruleFor(round.level, Math.random, rule.id);

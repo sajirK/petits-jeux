@@ -10,7 +10,7 @@ const CL = require("../games/couleurs/logic.js");
 function rngFrom(seed) { let a = seed >>> 0; return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
 test("Je compte : la bonne réponse est là, une fois ; les pièges ne sont pas de la même sorte", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const rng = rngFrom(lv);
     for (let i = 0; i < 2000; i++) {
       const q = CO.question(lv, rng);
@@ -20,7 +20,7 @@ test("Je compte : la bonne réponse est là, une fois ; les pièges ne sont pas 
       assert.equal(new Set(q.options).size, q.options.length);
       assert.equal(q.items.filter((e) => e === q.thing.e).length, q.n, "le bon nombre d'objets à compter");
       if (q.other) assert.notEqual(q.other.e, q.thing.e);
-      assert.ok(q.options.every((o) => o >= 1 && o <= 10));
+      assert.ok(q.options.every((o) => o >= 1 && o <= Math.max(10, cfg.max)));
     }
   }
   assert.equal(CO.countWord(1, CO.THINGS[0]), "une");
@@ -29,7 +29,7 @@ test("Je compte : la bonne réponse est là, une fois ; les pièges ne sont pas 
 
 test("Les Lettres : mots de la bonne longueur, lettres en trop jamais dans le mot", () => {
   for (const [w] of LT.WORDS) assert.match(w, /^[A-Z]+$/);
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const rng = rngFrom(lv * 3);
     for (let i = 0; i < 300; i++) {
       const ws = LT.words(lv, rng);
@@ -50,7 +50,7 @@ test("Les Lettres : mots de la bonne longueur, lettres en trop jamais dans le mo
 });
 
 test("Que ferais-tu ? : une seule bonne réaction, bon nombre de choix, histoires toutes différentes", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const s = QF.stories(lv, rngFrom(lv));
     assert.equal(s.length, QF.LEVELS[lv].rounds);
     assert.equal(new Set(s.map((c) => c.text)).size, s.length);
@@ -62,7 +62,7 @@ test("Que ferais-tu ? : une seule bonne réaction, bon nombre de choix, histoire
 });
 
 test("Les Couleurs : la couleur demandée est toujours parmi les ballons", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const rng = rngFrom(lv * 7);
     for (let i = 0; i < 2000; i++) {
       const q = CL.question(lv, rng);
@@ -81,13 +81,13 @@ test("Toutes les configurations de niveaux V2 sont valides", () => {
 
 const TO = require("../games/tours/logic.js");
 test("La Tour des Nombres : nombres du niveau, additions justes", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const rng = rngFrom(lv * 5);
     for (let i = 0; i < 2000; i++) {
       const q = TO.question(lv, rng);
       assert.ok(q.target >= TO.LEVELS[lv].min && q.target <= TO.LEVELS[lv].max);
       assert.equal(q.fixed + q.toAdd, q.target);
-      if (lv === 3) assert.ok(q.fixed >= 1 && q.toAdd >= 1); else assert.equal(q.fixed, 0);
+      if (lv >= 3) assert.ok(q.fixed >= 1 && q.toAdd >= 1); else assert.equal(q.fixed, 0);
     }
   }
   assert.equal(TO.say({ fixed: 2, toAdd: 3, target: 5 }), "deux plus trois, ça fait combien ? Construis la tour !");
@@ -103,7 +103,7 @@ test("Boulangerie V2 : niveaux, et l'aide propose la bonne pièce", () => {
   assert.equal(BO.bestCoin(3, [2, 5]), 2);
 });
 test("Les Formes : chaque forme a son ombre, et le niveau 3 a des formes qui se ressemblent", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const rng = rngFrom(lv * 9);
     for (let i = 0; i < 1000; i++) {
       const b = FO.board(lv, rng);
@@ -116,7 +116,7 @@ test("Les Formes : chaque forme a son ombre, et le niveau 3 a des formes qui se 
   }
 });
 test("Memory : paires complètes, et une erreur ne compte que si on avait déjà vu la bonne carte", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const d = ME.deck(lv, rngFrom(lv));
     assert.equal(d.length, ME.LEVELS[lv].pairs * 2);
     for (const c of d) assert.equal(d.filter((x) => x.e === c.e).length, 2);
@@ -135,7 +135,7 @@ test("Les Formes : « l'ombre du / de la / de l' » pour chaque forme", () => {
 const PZ = require("../games/pizzeria/logic.js");
 const GL = require("../games/glacier/logic.js");
 test("Pizzeria : commandes du niveau, avis juste, aide cohérente", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const rng = rngFrom(lv * 13);
     for (let i = 0; i < 1000; i++) {
       const o = PZ.order(lv, rng);
@@ -162,7 +162,7 @@ test("Pizzeria : commandes du niveau, avis juste, aide cohérente", () => {
   assert.equal(PZ.named("🍄", 3), "trois champignons");
 });
 test("Glacier : commandes du niveau, parfums disponibles, avis juste", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const rng = rngFrom(lv * 17);
     for (let i = 0; i < 1000; i++) {
       const o = GL.order(lv, rng);
@@ -186,7 +186,7 @@ const SA = require("../games/saisons/logic.js");
 const JA = require("../games/jardin/logic.js");
 
 test("Monde V2 : les animaux d'une partie ont leur continent sur la carte", () => {
-  for (const lv of [1, 2, 3]) for (let k = 0; k < 30; k++) {
+  for (const lv of [1, 2, 3, 4]) for (let k = 0; k < 30; k++) {
     const d = MO.deck(lv);
     assert.equal(d.length, MO.LEVELS[lv].rounds, `niveau ${lv}`);
     assert.equal(new Set(d.map((a) => a.e)).size, d.length);
@@ -196,9 +196,10 @@ test("Monde V2 : les animaux d'une partie ont leur continent sur la carte", () =
 });
 
 test("Horloge V2 : bonnes heures par niveau, une seule bonne horloge, réglage au niveau 3", () => {
-  for (const lv of [1, 2, 3]) for (let i = 0; i < 6; i++) for (let k = 0; k < 20; k++) {
+  for (const lv of [1, 2, 3, 4]) for (let i = 0; i < 6; i++) for (let k = 0; k < 20; k++) {
     const q = HO.question(lv, i);
-    if (q.mode === "set") { assert.equal(lv, 3); assert.equal(i % 2, 1); continue; }
+    if (q.mode === "set") { assert.ok(lv === 4 || (lv === 3 && i % 2 === 1)); continue; }
+    assert.notEqual(lv, 4, "Expert : on règle toujours soi-même");
     assert.ok(HO.MINUTES_BY_LEVEL[HO.LEVELS[lv].internal].includes(q.m));
     assert.equal(q.options.filter((o) => o.h === q.h && o.m === q.m).length, 1);
     assert.equal(q.options.length, lv === 1 ? 3 : 4);
@@ -217,16 +218,16 @@ test("Saisons V2 : la petite armoire contient toujours la bonne tenue et des pi�
     assert.equal(wd.filter((x) => w.no[x]).length, Math.min(2, Object.keys(w.no).length));
     assert.ok(SA.checkOutfit(w, w.need).ok);
   }
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const p = SA.plan(lv);
     assert.equal(p.length, SA.LEVELS[lv].rounds);
     for (const r of p) if (r.kind !== "meteo") assert.ok(r.options.some((o) => o.id === r.answer));
-    assert.equal(p.some((r) => r.kind === "after"), lv === 3);
+    assert.equal(p.some((r) => r.kind === "after"), lv >= 3);
   }
 });
 
 test("Jardin V2 : en suivant l'aide, chaque plante pousse et se cueille", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const pots = JA.potsFor(lv);
     assert.equal(pots.length, JA.LEVELS[lv].pots);
     for (const p of pots) {
@@ -265,7 +266,7 @@ test("Bulles V2 : en Facile toutes les bulles sont bonnes ; ensuite, seulement l
 });
 
 test("Réflexe V2 : les règles de chaque niveau existent, et les objets sont du bon côté", () => {
-  for (const lv of [1, 2, 3]) for (let k = 0; k < 20; k++) {
+  for (const lv of [1, 2, 3, 4]) for (let k = 0; k < 20; k++) {
     const r = RE.ruleFor(lv);
     assert.ok(RE.LEVELS[lv].rules.includes(r.id));
     for (let j = 0; j < 20; j++) { const it = RE.nextItem(r, Math.random, RE.LEVELS[lv].goRatio); assert.ok((it.go ? r.go : r.nogo).includes(it.value)); }
@@ -287,7 +288,7 @@ const DI = require("../games/dino/logic.js");
 test("Dino V2 : parcours toujours franchissables, sans trou en Facile, escargots seulement en Difficile", () => {
   const maxJumpH = DI.PHYS.JUMP ** 2 / (2 * DI.PHYS.GRAV);
   assert.ok(maxJumpH > 3, "on peut sauter plus haut que les plateformes (3 cases)");
-  for (const lv of [1, 2, 3]) for (let k = 0; k < 200; k++) {
+  for (const lv of [1, 2, 3, 4]) for (let k = 0; k < 200; k++) {
     const c = DI.buildCourse(lv);
     assert.ok(DI.isPassable(c, DI.LEVELS[lv].maxGap), `niveau ${lv}`);
     if (lv === 1) assert.ok(DI.isPassable(c, 0), "pas de trou en Facile");
@@ -300,7 +301,7 @@ test("Dino V2 : parcours toujours franchissables, sans trou en Facile, escargots
 
 const CRS = require("../games/course/logic.js");
 test("Course V2 : passages toujours atteignables et assez grands pour le poisson", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const cfg = CRS.LEVELS[lv];
     for (let d = 0; d <= cfg.dist; d += 5) for (let k = 0; k < 30; k++) {
       const o = CRS.obstacle(cfg, d);
@@ -314,7 +315,7 @@ test("Course V2 : passages toujours atteignables et assez grands pour le poisson
 
 const TR = require("../games/tresors/logic.js");
 test("Château V2 : tout le labyrinthe est accessible, et le chemin mène aux trésors puis à la porte", () => {
-  for (const lv of [1, 2, 3]) for (let n = 1; n <= TR.LEVELS[lv].rounds; n++) for (let k = 0; k < 20; k++) {
+  for (const lv of [1, 2, 3, 4]) for (let n = 1; n <= TR.LEVELS[lv].rounds; n++) for (let k = 0; k < 20; k++) {
     const c = TR.castle(lv, n);
     assert.equal(c.gems.length, TR.LEVELS[lv].gems(n));
     assert.ok(c.bats.length <= TR.LEVELS[lv].bats(n));
@@ -340,7 +341,7 @@ const MEL = require("../games/melodie/logic.js");
 const TC = require("../games/tracer/logic.js");
 
 test("Robot V2 : grilles par niveau, et l'aide mène toujours à la victoire", () => {
-  for (const lv of [1, 2, 3]) for (let i = 0; i < RO.LEVELS[lv].rounds; i++) for (let k = 0; k < 30; k++) {
+  for (const lv of [1, 2, 3, 4]) for (let i = 0; i < RO.LEVELS[lv].rounds; i++) for (let k = 0; k < 30; k++) {
     const g = RO.generate(RO.gridFor(lv, i));
     const prog = ["up"].filter(() => g.solution[0] !== "up"); // une flèche fausse au début
     for (let s = 0; s < 40; s++) {
@@ -354,7 +355,7 @@ test("Robot V2 : grilles par niveau, et l'aide mène toujours à la victoire", (
 });
 
 test("Mélodie V2 : bonnes longueurs, jamais 3 notes pareilles de suite", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const cfg = MEL.LEVELS[lv];
     assert.equal(cfg.lengths.length, cfg.rounds);
     for (const len of cfg.lengths) for (let k = 0; k < 100; k++) {
@@ -368,7 +369,7 @@ test("Mélodie V2 : bonnes longueurs, jamais 3 notes pareilles de suite", () => 
 });
 
 test("J'écris V2 : lettres du niveau, initiale du prénom en premier, tolérance qui se resserre", () => {
-  for (const lv of [1, 2, 3]) for (let k = 0; k < 30; k++) {
+  for (const lv of [1, 2, 3, 4]) for (let k = 0; k < 30; k++) {
     const gl = TC.pickGlyphs(lv, "Éloïse");
     assert.equal(gl.length, TC.LEVELS[lv].rounds);
     assert.equal(new Set(gl).size, gl.length);

@@ -160,6 +160,7 @@
     1: { rounds: 4, set: EASY, tol: 18, width: 20 },
     2: { rounds: 5, set: Object.keys(LETTERS), tol: 13, width: 15 },
     3: { rounds: 5, set: [...Object.keys(LETTERS), ..."0123456789"], tol: 10, width: 12 },
+    4: { rounds: 6, set: [...Object.keys(LETTERS), ..."0123456789"], tol: 8, width: 10 }, // Expert : trait plus fin, plus précis
   };
   // Les lettres d'une partie : d'abord l'initiale du prénom de l'enfant (si elle est dans la liste), puis au hasard, sans doublon
   function pickGlyphs(level, name = "", rng = Math.random) {

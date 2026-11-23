@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Les langues</title>
+  <link rel="stylesheet" href="../../css/common.css?v=2.0.0" />
+  <link rel="stylesheet" href="../../css/tokens.css?v=2.0.0" />
+  <link rel="stylesheet" href="../../css/kit.css?v=2.0.0" />
+  <style>
+    .top { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; margin-bottom: 6px; }
+    .langs, .units { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; padding: 4px; scrollbar-width: none; }
+    .langs button, .units button { flex: none; min-width: var(--tap-min); height: var(--tap-min); border-radius: 18px; background: rgba(255,255,255,0.75); box-shadow: var(--sh-1); font-size: 28px; position: relative; }
+    .langs button { font-size: 34px; padding: 0 10px; }
+    .langs button.on, .units button.on { background: #fff; outline: 4px solid var(--c-primary); transform: scale(1.06); }
+    .units button.lock { opacity: 0.35; }
+    .units button .done { position: absolute; right: -4px; top: -6px; font-size: 16px; }
+    .mascot { font-size: clamp(54px, 13vmin, 90px); line-height: 1; transition: transform .3s; }
+    .mascot.talk { animation: talk .35s ease-in-out 3; }
+    @keyframes talk { 50% { transform: scale(1.12) rotate(-4deg); } }
+    .listen { display: flex; align-items: center; gap: 14px; background: #fff; border-radius: var(--r-lg); padding: 8px 20px; box-shadow: var(--sh-2); }
+    .listen .ear { font-size: clamp(40px, 9vmin, 60px); }
+    .listen .said { font-size: var(--fs-md); font-weight: bold; color: var(--c-ink-soft); max-width: 60vw; }
+    .pics { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(10px, 3vmin, 22px); max-width: min(96vw, 820px); margin-top: 10px; }
+    .pic { width: var(--pw); height: var(--pw); border-radius: 26px; background: #fff; box-shadow: var(--sh-2); display: grid; place-items: center; font-size: calc(var(--pw) * 0.55); line-height: 1; }
+    .pic .swatch { width: 70%; height: 70%; border-radius: 50%; box-shadow: inset -6px -8px 0 rgba(0,0,0,.15); }
+    .pic.big { font-size: calc(var(--pw) * 0.4); letter-spacing: 2px; }
+    .pic.k-good { background: var(--c-success-soft); }
+    .sentence { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 64px; background: rgba(255,255,255,.7); border-radius: var(--r-lg); padding: 10px; max-width: min(96vw, 760px); margin: 8px 0; }
+    .slot { min-width: 70px; height: 56px; border-radius: 14px; border: 3px dashed #ced4da; display: grid; place-items: center; font-size: var(--fs-md); font-weight: bold; padding: 0 10px; }
+    .slot.next { border-color: var(--c-primary); }
+    .slot.full { border-style: solid; border-color: var(--c-success); background: var(--c-success-soft); animation: k-in .3s var(--ease-bounce); }
+    .tiles { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; max-width: min(96vw, 760px); }
+    .tile { min-height: var(--tap-min); padding: 0 18px; border-radius: 18px; color: #fff; font-size: var(--fs-md); font-weight: bold; box-shadow: var(--sh-2); }
+    .tile.used { visibility: hidden; }
+    .meaning { font-size: var(--fs-md); color: var(--c-ink-soft); min-height: 1.4em; text-align: center; }
+  </style>
+</head>
+<body>
+  <script src="../../js/common.js?v=2.0.0"></script>
+  <script src="../../js/kit/levels.js?v=2.0.0"></script>
+  <script src="../../js/kit/kit.js?v=2.0.0"></script>
+  <script src="data.js?v=2.0.0"></script>
+  <script src="logic.js?v=2.0.0"></script>
+  <script>
+    const LG = LanguesLogic;
+    const MASCOTS = { en: "🦊", de: "🐻", es: "🐱" };
+    const TILE_COLORS = ["#ef476f", "#ff9f1c", "#06d6a0", "#118ab2", "#7b2cbf", "#f15bb5", "#00bbf9"];
+    let lang = localStorage.getItem("jeux.langues.langue") || "en";
+    if (!LG.LANGS[lang]) lang = "en";
+    const progressKey = () => `jeux.langues.${lang}.themes`;
+    const progress = () => { try { return JSON.parse(localStorage.getItem(progressKey()) || "{}"); } catch (e) { return {}; } };
+    let unit = localStorage.getItem(`jeux.langues.${lang}.theme`) || LG.UNITS[0].id;
+    let last = null, game = null;
+
+    // ---------- voix : français + la langue apprise, à la suite ----------
+    const PREFERRED = {
+      en: ["serena", "sonia", "libby", "kate", "daniel", "google uk english female", "martha", "arthur", "samantha", "google us english"],
+      de: ["anna", "petra", "helena", "katja", "markus", "yannick", "google deutsch"],
+      es: ["mónica", "monica", "elvira", "jorge", "marisol", "google español", "paulina"],
+    };
+    const NOVELTY = /^(eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley)\b|compact|eloquence|espeak|novelty|bad news|bells|boing|bubbles|cellos|whisper|zarvox|trinoids|organ|albert|jester|superstar|wobble|good news|fred|ralph|junior/i;
+    function bestVoice(l) {
+      const voices = speechSynthesis.getVoices().filter((v) => v.lang.replace("_", "-").toLowerCase().startsWith(l) && !NOVELTY.test(v.name));
+      const score = (v) => { const n = v.name.toLowerCase(); let s = 0; if (v.lang.replace("_", "-").toLowerCase() === LG.LANGS[l].locale.toLowerCase()) s += 20; const i = PREFERRED[l].findIndex((p) => n.includes(p)); if (i >= 0) s += 40 - i; if (/premium|enhanced|natural|neural/.test(n)) s += 25; return s; };
+      return voices.sort((a, b) => score(b) - score(a))[0] || null;
+    }
+    // parts : [["fr", "Écoute :"], ["en", "the dog"]] — tout est dit à la suite, la phrase d'avant est coupée
+    function talk(parts) {
+      if (!window.speechSynthesis || Jeux.isMuted() || document.hidden) return;
+      speechSynthesis.cancel();
+      for (const [l, text] of parts) {
+        if (!text) continue;
+        const u = new SpeechSynthesisUtterance(text);
+        if (l === "fr") { const v = Jeux.currentVoice(); u.lang = v ? v.lang : "fr-FR"; if (v) u.voice = v; u.rate = 0.95; u.pitch = 1.05; }
+        else { const v = bestVoice(l); u.lang = LG.LANGS[l].locale; if (v) u.voice = v; u.rate = 0.82; }
+        speechSynthesis.speak(u);
+      }
+    }
+    document.addEventListener("visibilitychange", () => { if (document.hidden && window.speechSynthesis) speechSynthesis.cancel(); });
+
+    // ---------- choix de la langue et du thème (en haut) ----------
+    function topBar(round) {
+      const el = Kit.ui.el, top = el("div", "top"), langs = el("div", "langs"), units = el("div", "units");
+      for (const [id, l] of Object.entries(LG.LANGS)) {
+        const b = el("button", id === lang ? "on" : "", l.flag);
+        b.setAttribute("aria-label", l.label);
+        b.onclick = () => { if (id === lang) return talk([["fr", l.label]]); lang = id; localStorage.setItem("jeux.langues.langue", id); unit = localStorage.getItem(`jeux.langues.${lang}.theme`) || LG.UNITS[0].id; Jeux.sounds.click(); talk([["fr", l.label]]); game.restart(); };
+        langs.appendChild(b);
+      }
+      const done = progress(), open = LG.unlocked(done);
+      if (!open.includes(unit)) unit = open[open.length - 1];
+      for (const u of LG.UNITS) {
+        const ok = open.includes(u.id);
+        const b = el("button", (u.id === unit ? "on" : "") + (ok ? "" : " lock"), ok ? u.icon : "🔒");
+        b.setAttribute("aria-label", u.title);
+        if (done[u.id]) b.appendChild(el("span", "done", "⭐"));
+        b.onclick = () => {
+          if (!ok) { Jeux.sounds.wrong(); return talk([["fr", "Finis d'abord le thème d'avant !"]]); }
+          if (u.id === unit) return talk([["fr", u.title]]);
+          unit = u.id; localStorage.setItem(`jeux.langues.${lang}.theme`, u.id); Jeux.sounds.click(); talk([["fr", u.title]]); game.restart();
+        };
+        units.appendChild(b);
+        if (u.id === unit) requestAnimationFrame(() => b.scrollIntoView({ inline: "center", block: "nearest" }));
+      }
+      top.append(langs, units);
+      round.stage.appendChild(top);
+    }
+    function markDone(round) {
+      if (round.index !== round.rounds - 1) return;
+      const p = progress(); p[unit] = Math.max(p[unit] || 0, round.level); localStorage.setItem(progressKey(), JSON.stringify(p));
+    }
+
+    function picture(w, b) {
+      if (w.color) { const s = Kit.ui.el("span", "swatch"); s.style.background = w.color; b.appendChild(s); if (w.color === "#ffffff") s.style.outline = "3px solid #dee2e6"; }
+      else b.textContent = w.e;
+    }
+
+    function start(round) {
+      const el = Kit.ui.el, cfg = round.cfg;
+      topBar(round);
+      const q = LG.question(round.level, unit, lang, Math.random, last);
+      last = q.target.id;
+      const mascot = el("div", "mascot", MASCOTS[lang]);
+      const word = q.target[lang];
+      const listen = el("button", "listen");
+      listen.innerHTML = `<span class="ear">🔊</span><span class="said"></span>`;
+      const said = listen.querySelector(".said");
+      const meaning = el("div", "meaning");
+      round.stage.append(mascot, listen);
+      const speak = () => { mascot.classList.remove("talk"); void mascot.offsetWidth; mascot.classList.add("talk"); };
+
+      if (q.kind === "build") {
+        // Expert : reconstruire la phrase entendue
+        const ask = () => { speak(); talk([["fr", "Écoute la phrase, et remets les mots dans l'ordre :"], [lang, word]]); };
+        listen.onclick = () => { speak(); talk([[lang, word]]); };
+        said.textContent = q.target.e;
+        const sentence = el("div", "sentence"), tiles = el("div", "tiles");
+        q.parts.forEach((_, i) => sentence.appendChild(el("div", "slot" + (i === 0 ? " next" : ""), "")));
+        round.stage.append(sentence, tiles, meaning);
+        let placed = 0;
+        const btns = q.tiles.map((tile, i) => {
+          const b = el("button", "tile", tile.t);
+          b.style.background = TILE_COLORS[i % TILE_COLORS.length];
+          b.onclick = () => {
+            if (round.ended || b.classList.contains("used")) return;
+            talk([[lang, tile.t]]);
+            if (!LG.isNext(q, placed, tile)) { round.miss(b, ""); talk([["fr", "Pas encore celui-là. Écoute bien :"], [lang, word]]); return; }
+            const s = sentence.children[placed]; s.textContent = tile.t; s.classList.remove("next"); s.classList.add("full");
+            b.classList.add("used"); Jeux.sounds.step(placed); placed++;
+            if (placed < q.parts.length) sentence.children[placed].classList.add("next");
+            else { meaning.textContent = q.target.fr; markDone(round); talk([[lang, word], ["fr", `Ça veut dire : ${q.target.fr}`]]); round.win(sentence, "", { praise: false, delay: 4200 }); Jeux.sounds.success(); }
+          };
+          tiles.appendChild(b);
+          return b;
+        });
+        round.setHintTarget(() => (placed >= q.parts.length ? null : btns.find((b, i) => !b.classList.contains("used") && LG.isNext(q, placed, q.tiles[i]))));
+        round.timeout(ask, round.index === 0 ? 3000 : 500);
+        return;
+      }
+
+      // Facile / Moyen / Difficile : écouter et toucher la bonne image
+      const isSentence = q.kind === "sentence";
+      const fr = q.target.fr;
+      const ask = () => {
+        speak();
+        if (cfg.french && !isSentence) talk([["fr", `${fr.charAt(0).toUpperCase() + fr.slice(1)}, ${LG.LANGS[lang].inLang}, c'est :`], [lang, word], ["fr", "Touche"], [lang, word]]);
+        else if (isSentence) talk([["fr", "Écoute la phrase :"], [lang, word], ["fr", "Quelle image va avec ?"]]);
+        else talk([["fr", "Touche"], [lang, word]]);
+      };
+      listen.onclick = () => { speak(); talk([[lang, word]]); };
+      said.textContent = round.level <= 2 ? "" : "";
+      const n = q.options.length;
+      const pics = el("div", "pics");
+      pics.style.setProperty("--pw", n <= 2 ? "clamp(120px, 30vmin, 200px)" : n <= 4 ? "clamp(100px, 24vmin, 160px)" : "clamp(84px, 19vmin, 130px)");
+      const btns = q.options.map((o) => {
+        const b = el("button", "pic" + (isSentence ? " big" : ""));
+        picture(o, b);
+        b.setAttribute("aria-label", o[lang]);
+        b.onclick = () => {
+          if (round.ended) return;
+          if (o.id === q.target.id) {
+            meaning.textContent = `${o[lang]} = ${o.fr}`;
+            markDone(round);
+            talk([[lang, word], ["fr", isSentence ? `Ça veut dire : ${o.fr}` : `C'est ${o.fr} ! À toi, répète :`], ...(isSentence ? [] : [[lang, word]])]);
+            round.win(b, "", { praise: false, delay: isSentence ? 4200 : 3800 });
+            Jeux.sounds.success();
+          } else {
+            round.miss(b, "");
+            talk([["fr", "Ça, c'est"], [lang, o[lang]], ["fr", "Écoute encore :"], [lang, word]]);
+          }
+        };
+        pics.appendChild(b);
+        return b;
+      });
+      round.stage.append(pics, meaning);
+      round.setHintTarget(() => btns[q.options.findIndex((o) => o.id === q.target.id)]);
+      round.timeout(ask, round.index === 0 ? 3000 : 500);
+    }
+
+    game = Kit.game({
+      id: "langues", title: "Les langues", icon: "🗣️",
+      bg: "linear-gradient(160deg, #e7f5ff, #fff0f6)",
+      instruction: (cfg) => cfg.mode === "build" ? "Écoute la phrase, et remets les mots dans l'ordre !" : cfg.mode === "sentence" ? "Écoute la phrase, et trouve la bonne image !" : "Écoute bien le mot, et touche la bonne image ! Choisis ta langue et ton thème en haut.",
+      levels: LG.LEVELS,
+      start,
+    });
+  </script>
+</body>
+</html>

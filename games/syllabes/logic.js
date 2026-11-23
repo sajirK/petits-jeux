@@ -110,6 +110,7 @@
     1: { rounds: 5, internal: [1] },
     2: { rounds: 6, internal: [2] },
     3: { rounds: 7, internal: [3, 4] },
+    4: { rounds: 8, internal: [4, 3, 4] }, // Expert : surtout lire seul les mots longs
   };
 
   return { LEVELS, WORDS, EXTRA, wordsFor, generate, isNext, blendSpeech };

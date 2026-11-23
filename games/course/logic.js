@@ -10,6 +10,7 @@
     1: { rounds: 1, dist: 45, speed: [2.6, 3.4], gap: [5.4, 4.8], spacing: 8, boss: 3 },
     2: { rounds: 1, dist: 65, speed: [3.2, 5], gap: [4.6, 3.8], spacing: 6.5, boss: 5 },
     3: { rounds: 1, dist: 85, speed: [3.8, 6.2], gap: [3.9, 3.2], spacing: 5.5, boss: 5 },
+    4: { rounds: 1, dist: 110, speed: [4.2, 7], gap: [3.6, 3.25], spacing: 5, boss: 6 },
   };
   const MIN_Y = 0.8, MAX_Y = 9.2;
   const lerp = (a, b, k) => a + (b - a) * Math.max(0, Math.min(1, k));

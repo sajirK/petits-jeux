@@ -57,6 +57,7 @@
     1: { rounds: 1, goal: 10, rules: ["grenouille", "fruits"], life: 3200, gap: 1100, goRatio: 0.75 },
     2: { rounds: 1, goal: 15, rules: ["grenouille", "rouge", "fruits", "animaux-mer"], life: 2500, gap: 900, goRatio: 0.65 },
     3: { rounds: 1, goal: 20, rules: RULES.map((r) => r.id), life: 2000, gap: 720, goRatio: 0.6, switchAt: 10 },
+    4: { rounds: 1, goal: 30, rules: RULES.map((r) => r.id), life: 1600, gap: 600, goRatio: 0.55, switchAt: 8 }, // Expert : la règle change 3 fois
   };
   function ruleFor(level, rng = Math.random, avoid = null) {
     const ids = LEVELS[level].rules.filter((id) => id !== avoid);

@@ -125,7 +125,7 @@ test("Syllabes : chaque mot = ses syllabes collées, prononciation fournie, pas 
 });
 
 test("Syllabes : les pièges ne font jamais partie du mot, et on peut toujours finir", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3]) { // crans « construire » du générateur (le cran 4 = lire seul)
     const rng = rngFrom(lv * 13);
     for (let i = 0; i < 2000; i++) {
       const q = S.generate(lv, rng);
@@ -156,7 +156,7 @@ test("Syllabes : les pièges ne font jamais partie du mot, et on peut toujours f
 
 // ---------------------------------------------------------------- Boulangerie
 test("Boulangerie : les nombres demandés respectent le niveau, phrases bien accordées", () => {
-  const ranges = { 1: [1, 5], 2: [1, 10], 3: [11, 20], 4: [2, 10], 5: [5, 20] };
+  const ranges = { 1: [1, 5], 2: [1, 10], 3: [11, 20], 4: [2, 10], 5: [5, 20], 6: [15, 50] };
   for (let lv = 1; lv <= B.MAX_LEVEL; lv++) {
     const rng = rngFrom(lv * 3);
     for (let i = 0; i < 2000; i++) {

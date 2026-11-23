@@ -120,9 +120,10 @@ test("Calcul : les résultats sont justes, dans les bornes, et les choix cohére
       if (q.op === "+") assert.equal(q.answer, q.a + q.b);
       else if (q.op === "-") assert.equal(q.answer, q.a - q.b);
       else if (q.op === "c10") { assert.equal(q.a + q.answer, 10); assert.ok(q.answer >= 1); }
+      else if (q.op === "×") { assert.equal(q.answer, q.a * q.b); assert.ok([2, 3, 4, 5, 10].includes(q.a)); }
       assert.ok(q.a >= 1 && q.b >= 1, `opérandes ≥ 1 (${q.text})`);
       assert.ok(q.answer >= 0, "jamais négatif");
-      const max = { 1: 5, 2: 10, 3: 10, 4: 10, 5: 20, 6: 20 }[level];
+      const max = { 1: 5, 2: 10, 3: 10, 4: 10, 5: 20, 6: 20, 7: 50, 8: 100 }[level];
       assert.ok(q.answer <= max && q.a <= max, `${q.text} dépasse ${max} au niveau ${level}`);
       if (level === 1 || level === 2) assert.equal(q.op, "+");
       if (level === 3) assert.equal(q.op, "-");
@@ -219,14 +220,14 @@ test("Première lettre : liste de mots sûre (pas de son trompeur au début)", (
 });
 
 test("Première lettre : la bonne réponse est toujours là, une seule fois", () => {
-  for (let level = 1; level <= 3; level++) {
+  for (let level = 1; level <= 4; level++) {
     const rng = rngFrom(level * 555);
     for (let i = 0; i < N; i++) {
       const q = Lettre.generate(level, rng);
       assert.equal(q.answer, q.word.charAt(0).toUpperCase().normalize("NFD").charAt(0));
       assert.equal(q.options.filter((o) => o === q.answer).length, 1);
       assert.equal(new Set(q.options).size, q.options.length);
-      assert.equal(q.options.length, level <= 1 ? 2 : level === 2 ? 3 : 4);
+      assert.equal(q.options.length, level <= 1 ? 2 : level === 2 ? 3 : level === 3 ? 4 : 5);
     }
   }
   assert.equal(Lettre.firstLetter("dé"), "D");

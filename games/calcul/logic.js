@@ -25,7 +25,7 @@
   // 4 : addition ou soustraction ≤ 10, sans objets
   // 5 : compléments à 10 (7 + ? = 10) et doubles
   // 6 : addition ≤ 20 et soustraction ≤ 20
-  const MAX_LEVEL = 6;
+  const MAX_LEVEL = 8;
 
   const randInt = (rng, a, b) => a + Math.floor(rng() * (b - a + 1));
   function shuffle(arr, rng) {
@@ -47,11 +47,13 @@
     else if (lv === 3) q = sub(rng, 10);
     else if (lv === 4) q = rng() < 0.5 ? add(rng, 3, 10) : sub(rng, 10);
     else if (lv === 5) q = rng() < 0.5 ? complement(rng) : double(rng);
-    else q = rng() < 0.5 ? add(rng, 8, 20) : sub(rng, 20);
+    else if (lv === 6) q = rng() < 0.5 ? add(rng, 8, 20) : sub(rng, 20);
+    else if (lv === 7) q = rng() < 0.5 ? add(rng, 20, 50) : sub(rng, 50);
+    else q = mult(rng);
     q.level = lv;
     q.withObjects = lv <= 3;
     q.object = o;
-    q.options = options(q.answer, rng, lv >= 4 ? 4 : 3, lv >= 6 ? 20 : 10);
+    q.options = options(q.answer, rng, lv >= 4 ? 4 : 3, lv >= 8 ? 100 : lv >= 7 ? 50 : lv >= 6 ? 20 : 10, q.op === "×" ? q.a : 0);
     q.speech = speech(q, o);
     return q;
   }
@@ -68,6 +70,11 @@
     const b = randInt(rng, 1, a - 1);
     return { op: "-", a, b, answer: a - b, text: `${a} - ${b} = ?` };
   }
+  // Expert : les tables de 2, 3, 4, 5 et 10
+  function mult(rng) {
+    const a = [2, 3, 4, 5, 10][Math.floor(rng() * 5)], b = randInt(rng, 1, 10);
+    return { op: "×", a, b, answer: a * b, text: `${a} × ${b} = ?` };
+  }
   function complement(rng) {
     const a = randInt(rng, 1, 9);
     return { op: "c10", a, b: 10 - a, answer: 10 - a, text: `${a} + ? = 10` };
@@ -78,9 +85,10 @@
   }
 
   // Réponse + réponses proches (jamais négatives, toutes différentes)
-  function options(answer, rng, n, max) {
+  function options(answer, rng, n, max, table = 0) {
     const set = new Set([answer]);
-    const deltas = shuffle([1, -1, 2, -2, 3, -3], rng);
+    // pour les tables : les pièges sont les voisins dans la table (6 × 4 → 20, 28) et ±1
+    const deltas = table ? shuffle([table, -table, 1, -1, 2 * table], rng) : shuffle([1, -1, 2, -2, 3, -3], rng);
     for (const d of deltas) {
       const v = answer + d;
       if (v >= 0 && v <= max + 3) set.add(v);
@@ -97,6 +105,7 @@
       return `Il y a ${count(q.a, o)}. ${q.b === 1 ? (o.f ? "Une" : "Un") : q.b} ${leave}. Combien en reste-t-il ?`;
     }
     if (q.op === "c10") return `${q.a} plus combien égale 10 ?`;
+    if (q.op === "×") return `Combien font ${q.a} fois ${q.b} ?`;
     if (q.op === "+") return `Combien font ${q.a} plus ${q.b} ?`;
     return `Combien font ${q.a} moins ${q.b} ?`;
   }
@@ -104,6 +113,7 @@
   // Indice après une erreur : la stratégie la plus simple selon les nombres
   function hint(q) {
     if (q.withObjects) return "Pas tout à fait. Compte les objets avec ton doigt !";
+    if (q.op === "×") return `Pas tout à fait. ${q.a} fois ${q.b}, c'est ${q.b} paquets de ${q.a}. Compte de ${q.a} en ${q.a} !`;
     if (q.op === "c10") return `Pas tout à fait. Combien il manque à ${q.a} pour aller jusqu'à 10 ?`;
     if (q.op === "-") {
       // si on enlève beaucoup, c'est plus facile de compter de ${b} jusqu'à ${a}
@@ -124,6 +134,7 @@
     1: { rounds: 6, internal: [1, 2] },   // additions jusqu'à 10, avec des objets
     2: { rounds: 7, internal: [3, 4] },   // soustractions, puis sans objets
     3: { rounds: 8, internal: [5, 6] },   // compléments à 10, doubles, jusqu'à 20
+    4: { rounds: 10, internal: [6, 7, 8] }, // Expert : jusqu'à 50, puis les tables de multiplication
   };
 
   return { LEVELS, generate, check, hint, options, MAX_LEVEL, OBJECTS, LEAVE, LEAVE_ONE };

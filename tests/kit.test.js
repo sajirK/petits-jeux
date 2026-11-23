@@ -9,10 +9,10 @@ function memoryStorage() {
   return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) };
 }
 
-test("Niveaux : exactement 3, Facile / Moyen / Difficile, avec 1 à 3 étoiles", () => {
-  assert.deepEqual(L.LEVELS.map((l) => l.label), ["Facile", "Moyen", "Difficile"]);
-  assert.deepEqual(L.LEVELS.map((l) => l.stars), ["⭐", "⭐⭐", "⭐⭐⭐"]);
-  assert.deepEqual(L.LEVELS.map((l) => l.dot), ["🟢", "🟡", "🔴"]);
+test("Niveaux : exactement 4, Facile / Moyen / Difficile / Expert", () => {
+  assert.deepEqual(L.LEVELS.map((l) => l.label), ["Facile", "Moyen", "Difficile", "Expert"]);
+  assert.deepEqual(L.LEVELS.map((l) => l.stars), ["⭐", "⭐⭐", "⭐⭐⭐", "👑"]);
+  assert.deepEqual(L.LEVELS.map((l) => l.dot), ["🟢", "🟡", "🔴", "🟣"]);
 });
 
 test("Niveaux : Facile par défaut, mémorisé par jeu, valeurs invalides corrigées", () => {
@@ -26,7 +26,7 @@ test("Niveaux : Facile par défaut, mémorisé par jeu, valeurs invalides corrig
   s.setItem("jeux.couleurs.niveau", "abc");
   assert.equal(L.load(s, "couleurs"), 1);
   assert.equal(L.save(s, "x", 0), 1);
-  assert.equal(L.save(s, "x", 7), 3);
+  assert.equal(L.save(s, "x", 7), 4);
 });
 
 test("Étoiles : 3 sans erreur, 2 avec 1-2 erreurs, toujours au moins 1", () => {
@@ -36,7 +36,8 @@ test("Étoiles : 3 sans erreur, 2 avec 1-2 erreurs, toujours au moins 1", () => 
   assert.equal(L.starsFor(3), 1);
   assert.equal(L.starsFor(50), 1);
   assert.equal(L.suggestUp(1, 3), true);
-  assert.equal(L.suggestUp(3, 3), false, "pas de niveau au-dessus de Difficile");
+  assert.equal(L.suggestUp(3, 3), true, "Difficile parfait : on propose Expert");
+  assert.equal(L.suggestUp(4, 3), false, "pas de niveau au-dessus d'Expert");
   assert.equal(L.suggestUp(1, 2), false, "on ne propose que si c'était parfait");
 });
 
@@ -46,9 +47,10 @@ test("Meilleur score par niveau, et configuration des niveaux complète", () => 
   L.recordBest(s, "couleurs", 1, 1);
   L.recordBest(s, "couleurs", 2, 3);
   assert.deepEqual(L.best(s, "couleurs"), { 1: 2, 2: 3 });
-  assert.ok(L.validateConfig({ 1: { rounds: 5 }, 2: { rounds: 6 }, 3: { rounds: 8 } }));
-  assert.ok(!L.validateConfig({ 1: { rounds: 5 }, 2: { rounds: 6 } }), "il faut les 3 niveaux");
-  assert.ok(!L.validateConfig({ 1: { rounds: 0 }, 2: { rounds: 6 }, 3: { rounds: 8 } }));
+  assert.ok(L.validateConfig({ 1: { rounds: 5 }, 2: { rounds: 6 }, 3: { rounds: 8 }, 4: { rounds: 8 } }));
+  assert.ok(!L.validateConfig({ 1: { rounds: 5 }, 2: { rounds: 6 }, 3: { rounds: 8 } }), "il faut aussi Expert");
+  assert.ok(!L.validateConfig({ 1: { rounds: 5 }, 2: { rounds: 6 } }), "il faut les 4 niveaux");
+  assert.ok(!L.validateConfig({ 1: { rounds: 0 }, 2: { rounds: 6 }, 3: { rounds: 8 }, 4: { rounds: 8 } }));
   assert.ok(L.validateConfig(null), "jeu libre sans niveau");
 });
 

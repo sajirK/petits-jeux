@@ -9,6 +9,7 @@
     1: { rounds: 1, goal: 10, holes: 6, stay: 2400, gap: 1200, bats: 0, bonus: 0.1 },
     2: { rounds: 1, goal: 15, holes: 9, stay: 1700, gap: 900, bats: 0.15, bonus: 0.1 },
     3: { rounds: 1, goal: 20, holes: 9, stay: 1200, gap: 700, bats: 0.25, bonus: 0.1 },
+    4: { rounds: 1, goal: 28, holes: 12, stay: 950, gap: 560, bats: 0.3, bonus: 0.08 },
   };
   const CRITTERS = ["🐹", "🐹", "🐹", "🐰", "🐭", "🦔", "🐻"];
   function nextType(cfg, rng = Math.random) {

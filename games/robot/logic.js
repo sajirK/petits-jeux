@@ -15,13 +15,15 @@
     4: { w: 5, h: 5, walls: 6, path: [5, 7] },
     5: { w: 6, h: 6, walls: 8, path: [6, 9] },
     6: { w: 6, h: 6, walls: 11, path: [8, 11] },
+    7: { w: 7, h: 7, walls: 15, path: [10, 13] },
   };
-  const MAX_LEVEL = 6;
+  const MAX_LEVEL = 7;
   // V2 : 3 niveaux, 4 manches chacun. Chaque niveau couvre 2 tailles de grille (la 2e à partir de la 3e manche).
   const LEVELS = {
     1: { rounds: 4, grids: [1, 2] },
     2: { rounds: 4, grids: [3, 4] },
     3: { rounds: 4, grids: [5, 6] },
+    4: { rounds: 4, grids: [6, 7] }, // Expert : grands jardins pleins d'arbres
   };
   const gridFor = (level, index) => LEVELS[level].grids[index < LEVELS[level].rounds / 2 ? 0 : 1];
   // L'aide : ce qu'il faut toucher maintenant ("undo" si une flèche est fausse, "go" si tout est prêt, sinon la flèche suivante)

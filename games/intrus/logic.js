@@ -92,7 +92,7 @@
     const pairs = pairsFor(level);
     const [groupKey, oddKey] = pairs[Math.floor(rng() * pairs.length)];
     const group = CATEGORIES[groupKey], odd = CATEGORIES[oddKey];
-    const n = level >= 3 ? 4 : 3; // nombre d'objets "normaux"
+    const n = level >= 4 ? 5 : level >= 3 ? 4 : 3; // nombre d'objets "normaux"
     const members = shuffle(group.items, rng).slice(0, n);
     const memberEmojis = new Set(members.map((m) => m[0]));
     const oddCandidates = odd.items.filter((i) => !memberEmojis.has(i[0]));
@@ -128,6 +128,7 @@
     1: { rounds: 6, internal: [1] },
     2: { rounds: 7, internal: [2] },
     3: { rounds: 8, internal: [3] },
+    4: { rounds: 10, internal: [4] }, // Expert : 5 objets à comparer, catégories proches
   };
 
   return { LEVELS, CATEGORIES, generate, pairsFor, explain, whyNot, BASE };

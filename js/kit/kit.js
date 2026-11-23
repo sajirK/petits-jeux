@@ -152,7 +152,7 @@
     if (def.bg) document.documentElement.style.setProperty("--game-bg", def.bg);
     const mode = def.mode || (def.levels ? "rounds" : "free"); // "rounds" | "arcade" | "free"
     const hasLevels = !!def.levels;
-    if (!L.validateConfig(def.levels)) console.warn(`[Kit] ${def.id} : les 3 niveaux doivent avoir "rounds"`);
+    if (!L.validateConfig(def.levels)) console.warn(`[Kit] ${def.id} : les 4 niveaux doivent avoir "rounds"`);
     let level = hasLevels ? L.load(localStorage, def.id) : 1;
     document.body.dataset.kitMode = mode;
 
@@ -233,16 +233,22 @@
     function armIdle() {
       clearTimeout(idleTimer);
       if (!idleMs) return;
+      // rappel si l'enfant ne touche plus rien : la consigne 2 fois au plus, ensuite la main seule ;
+      // rien si le jeu n'attend rien (animation en cours) ou si l'onglet est caché
       idleTimer = setTimeout(() => {
         if (ended) return;
-        replay.classList.add("k-pulse");
-        Voice.repeat();
         const t = typeof hintTarget === "function" ? hintTarget() : hintTarget;
-        if (t) showHand(t);
+        if (t && !document.hidden) {
+          replay.classList.add("k-pulse");
+          if (reminders < 2) Voice.repeat();
+          reminders++;
+          showHand(t);
+        }
         armIdle();
       }, idleMs);
     }
-    document.addEventListener("pointerdown", () => { replay.classList.remove("k-pulse"); if (!ended) armIdle(); }, true);
+    let reminders = 0;
+    document.addEventListener("pointerdown", () => { replay.classList.remove("k-pulse"); reminders = 0; if (!ended) armIdle(); }, true);
     replay.onclick = () => { replay.classList.remove("k-pulse"); Voice.repeat(); };
     if (doneBtn) doneBtn.onclick = () => { J.sounds.click(); finish({ errors: 0, text: def.doneText }); };
 

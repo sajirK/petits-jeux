@@ -9,12 +9,13 @@
     ["PAPA", "👨", "papa"], ["AUTO", "🚗", "auto"], ["BEBE", "👶", "bébé"], ["VELO", "🚲", "vélo"], ["MOTO", "🏍️", "moto"],
     ["MAMAN", "👩", "maman"], ["VACHE", "🐮", "vache"], ["ROBOT", "🤖", "robot"], ["POMME", "🍎", "pomme"], ["ARBRE", "🌳", "arbre"],
     ["LAPIN", "🐰", "lapin"], ["PANDA", "🐼", "panda"], ["TIGRE", "🐯", "tigre"], ["SAPIN", "🌲", "sapin"],
-    ["SOLEIL", "☀️", "soleil"], ["BATEAU", "⛵", "bateau"], ["CANARD", "🦆", "canard"], ["FUSEE", "🚀", "fusée"], ["TORTUE", "🐢", "tortue"],
+    ["SOLEIL", "☀️", "soleil"], ["GIRAFE", "🦒", "girafe"], ["CAMION", "🚚", "camion"], ["BANANE", "🍌", "banane"], ["CERISE", "🍒", "cerise"], ["ORANGE", "🍊", "orange"], ["CITRON", "🍋", "citron"], ["CHEVAL", "🐴", "cheval"], ["MOUTON", "🐑", "mouton"], ["FRAISE", "🍓", "fraise"], ["POISSON", "🐟", "poisson"], ["LAPINOU", "🐇", "lapinou"], ["CHATEAU", "🏰", "château"], ["TRACTEUR", "🚜", "tracteur"], ["BATEAU", "⛵", "bateau"], ["CANARD", "🦆", "canard"], ["FUSEE", "🚀", "fusée"], ["TORTUE", "🐢", "tortue"],
   ];
   const LEVELS = {
     1: { rounds: 4, minLen: 4, maxLen: 4, extras: 0 },  // mots de 4 lettres, sans lettre en trop
     2: { rounds: 5, minLen: 4, maxLen: 5, extras: 1 },  // une lettre en trop
     3: { rounds: 6, minLen: 5, maxLen: 6, extras: 2 },  // mots plus longs, deux lettres en trop
+    4: { rounds: 6, minLen: 6, maxLen: 7, extras: 3 },  // Expert : mots de 6-7 lettres, trois lettres en trop
   };
   const LETTER_NAMES = { A: "a", B: "bé", C: "cé", D: "dé", E: "e", F: "effe", G: "gé", H: "hache", I: "i", J: "ji", K: "ka", L: "elle", M: "emme", N: "enne", O: "o", P: "pé", Q: "ku", R: "erre", S: "esse", T: "té", U: "u", V: "vé", W: "double vé", X: "ixe", Y: "i grec", Z: "zède" };
   function shuffle(a, rng) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }

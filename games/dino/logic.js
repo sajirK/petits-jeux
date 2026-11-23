@@ -13,6 +13,7 @@
     1: { rounds: 1, length: 45, gapChance: 0, maxGap: 0, steps: 0.25, floats: 0.5, enemies: 0 },
     2: { rounds: 1, length: 75, gapChance: 0.45, maxGap: 2, steps: 0.3, floats: 0.7, enemies: 0 },
     3: { rounds: 1, length: 105, gapChance: 0.5, maxGap: 3, steps: 0.35, floats: 0.7, enemies: 0.4 },
+    4: { rounds: 1, length: 140, gapChance: 0.55, maxGap: 3, steps: 0.4, floats: 0.7, enemies: 0.6 },
   };
   function buildCourse(level, rng = Math.random) {
     const cfg = LEVELS[level];

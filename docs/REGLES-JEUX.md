@@ -6,7 +6,7 @@ Ces règles sont **vérifiées automatiquement** par `tests/conformite.test.js` 
 
 ```
 games/<id>/
-  logic.js     ← OBLIGATOIRE : exporte LEVELS (3 niveaux) ou FREE = true, + la logique pure du jeu
+  logic.js     ← OBLIGATOIRE : exporte LEVELS (4 niveaux) ou FREE = true, + la logique pure du jeu
   index.html   ← la page : utilise Kit.game({ id: "<id>", levels: XLogic.LEVELS, … })
 tests/<id>.test.js ou un fichier de tests commun ← la logique qui décide "juste / faux" est testée
 ```
@@ -14,14 +14,14 @@ tests/<id>.test.js ou un fichier de tests commun ← la logique qui décide "jus
 La page charge, dans cet ordre : `css/common.css`, `css/tokens.css`, `css/kit.css`, puis `js/common.js`, `js/kit/levels.js`, `js/kit/kit.js`, `logic.js`.
 Elle n'utilise plus les anciens outils V1 (`Jeux.addHomeButton`, `Jeux.progress`, `Jeux.levelBadge`).
 
-## 2. Trois niveaux, toujours
+## 2. Quatre niveaux, toujours
 
-| | 🟢 Facile ⭐ | 🟡 Moyen ⭐⭐ | 🔴 Difficile ⭐⭐⭐ |
-|---|---|---|---|
-| Pour qui | 3-4 ans | 5 ans | 6-7 ans |
-| Principe | peu de choix, grosses cibles, aides visibles, pas de temps | choix normaux, aide si on hésite | plus de choix, pièges, parfois du temps |
+| | 🟢 Facile ⭐ | 🟡 Moyen ⭐⭐ | 🔴 Difficile ⭐⭐⭐ | 🟣 Expert 👑 |
+|---|---|---|---|---|
+| Pour qui | 3-4 ans | 5 ans | 6-7 ans | 7-8 ans et les champions |
+| Principe | peu de choix, grosses cibles, aides visibles, pas de temps | choix normaux, aide si on hésite | plus de choix, pièges, parfois du temps | le plus de choix, de vitesse et de longueur ; plus d'aide visible |
 
-- `LEVELS = { 1: {rounds, …}, 2: {…}, 3: {…} }` : chaque niveau a au moins `rounds` (≥ 1).
+- `LEVELS = { 1: {rounds, …}, 2: {…}, 3: {…}, 4: {…} }` : chaque niveau a au moins `rounds` (≥ 1).
 - La difficulté monte vraiment d'un niveau à l'autre (plus de choix, plus de défis, moins d'aide).
 - Le niveau est choisi par l'enfant (Facile par défaut, mémorisé). Il ne change jamais tout seul :
   après une partie parfaite, Plume **propose** le niveau suivant.
@@ -52,7 +52,7 @@ Elle n'utilise plus les anciens outils V1 (`Jeux.addHomeButton`, `Jeux.progress`
 
 - Le jeu déclare son aide avec `round.setHintTarget(...)` : l'élément à toucher, `{ from, to }` pour un glisser,
   `{ swipe }` / `{ auto() }` pour les jeux d'action. C'est la main 👆 pour l'enfant, et le chemin du robot de test.
-- `tests/e2e/robot.js` (dans le navigateur, depuis l'accueil) joue chaque jeu aux 3 niveaux en suivant cette aide :
+- `tests/e2e/robot.js` (dans le navigateur, depuis l'accueil) joue chaque jeu aux 4 niveaux en suivant cette aide :
   ```js
   const s = document.createElement("script"); s.src = "/tests/e2e/robot.js"; document.head.appendChild(s);
   robot(["mon-jeu"]).then(console.log)   // attendu : "fin ⭐3 … erreurs=0" pour chaque niveau

@@ -12,6 +12,7 @@
     1: { rounds: 1, goal: 12, color: false, speed: 0.55, size: [110, 160], max: 8 },
     2: { rounds: 1, goal: 18, color: true, every: 6, speed: 0.85, size: [90, 140], max: 10 },
     3: { rounds: 1, goal: 24, color: true, every: 4, speed: 1.25, size: [72, 120], max: 12 },
+    4: { rounds: 1, goal: 32, color: true, every: 3, speed: 1.65, size: [64, 104], max: 14 },  // Expert : très vite, la couleur change souvent
   };
   const SURPRISES = ["🐟", "🐙", "🦆", "🐸", "🦄", "🐱", "🐶", "🐥", "🦋", "🐢", "🐳", "🍓", "🍭", "⭐"];
   const isGood = (cfg, color, target) => !cfg.color || color === target;

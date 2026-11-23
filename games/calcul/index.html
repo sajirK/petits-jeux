@@ -32,7 +32,7 @@ const stepOf = (round) => { const a = round.cfg.internal; return a[Math.min(a.le
     let lastText = "";
     function eqHTML(q, done) {
       const a = done ? `<span class="ok">${q.answer}</span>` : `<span class="q">?</span>`;
-      return q.op === "c10" ? `${q.a} + ${a} = 10` : `${q.a} ${q.op === "-" ? "−" : "+"} ${q.b} = ${a}`;
+      return q.op === "c10" ? `${q.a} + ${a} = 10` : `${q.a} ${q.op === "-" ? "−" : q.op === "×" ? "×" : "+"} ${q.b} = ${a}`;
     }
     Kit.game({
       id: "calcul", title: "Les Calculs malins", icon: "➕",
@@ -72,7 +72,7 @@ const stepOf = (round) => { const a = round.cfg.internal; return a[Math.min(a.le
           onPick(v, b) {
             if (CL.check(q, v)) {
               eq.innerHTML = eqHTML(q, true);
-              const s = q.op === "c10" ? `${q.a} plus ${q.answer} égale 10 !` : `${q.a} ${q.op === "-" ? "moins" : "plus"} ${q.b} égale ${q.answer} !`;
+              const s = q.op === "c10" ? `${q.a} plus ${q.answer} égale 10 !` : `${q.a} ${q.op === "-" ? "moins" : q.op === "×" ? "fois" : "plus"} ${q.b} égale ${q.answer} !`;
               round.win(b, s, { delay: 2400 });
             } else round.miss(b, CL.hint(q));
           },

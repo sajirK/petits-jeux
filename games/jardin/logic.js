@@ -66,6 +66,7 @@
     1: { rounds: 3, pots: 1, strict: false },
     2: { rounds: 2, pots: 2, strict: false },
     3: { rounds: 2, pots: 3, strict: true },
+    4: { rounds: 2, pots: 4, strict: true },  // Expert : 4 pots à la fois
   };
   function shuffle(arr, rng) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   function potsFor(level, rng = Math.random) { return shuffle(Object.keys(PLANTS), rng).slice(0, LEVELS[level].pots).map(newPot); }

@@ -5,7 +5,7 @@ sans dépendance (HTML/CSS/JS), publié sur GitHub Pages.
 
 ## Règles obligatoires pour tout jeu (nouveau ou modifié)
 
-Lire et appliquer **docs/REGLES-JEUX.md** : kit V2 (`Kit.game`), 3 niveaux dans `games/<id>/logic.js`,
+Lire et appliquer **docs/REGLES-JEUX.md** : kit V2 (`Kit.game`), 4 niveaux (Facile, Moyen, Difficile, Expert) dans `games/<id>/logic.js`,
 une vraie fin, zéro lecture nécessaire, cibles ≥ 64 px, logique testée. `npm test` vérifie ces règles.
 
 ## Commandes

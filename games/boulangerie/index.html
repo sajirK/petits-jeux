@@ -29,7 +29,9 @@
     .coin { width: clamp(64px, 14vmin, 86px); aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; font-weight: bold; font-size: clamp(18px, 4.4vmin, 26px); color: #5c3c00; box-shadow: 0 5px 0 rgba(0,0,0,0.2); cursor: grab; }
     .coin.c1 { background: radial-gradient(circle, #dee2e6 0 52%, #e0b84c 54%); }
     .coin.c2 { background: radial-gradient(circle, #e0b84c 0 52%, #dee2e6 54%); }
-    .coin.c5 { border-radius: 10px; width: clamp(96px, 22vmin, 130px); aspect-ratio: 1.8; background: linear-gradient(135deg, #b2c9b0, #8fb08c); color: #2b4a2a; }
+    .coin.c5, .coin.c10, .coin.c20 { border-radius: 10px; width: clamp(96px, 22vmin, 130px); aspect-ratio: 1.8; background: linear-gradient(135deg, #b2c9b0, #8fb08c); color: #2b4a2a; }
+    .coin.c10 { background: linear-gradient(135deg, #f4b6b6, #e08a8a); color: #5a1d1d; }
+    .coin.c20 { background: linear-gradient(135deg, #a5c8f0, #6f9fd8); color: #13325a; }
     .tray .coin { animation: k-in 0.25s var(--ease-bounce); cursor: pointer; }
   </style>
 </head>
@@ -125,7 +127,7 @@ const stepOf = (round) => { const a = round.cfg.internal; return a[Math.min(a.le
         const s = BL.sum(given);
         count.innerHTML = s ? `<b>${s} €</b>` : "";
       }
-      function give(v) { if (BL.sum(given) + v > 30) return; given.push(v); Jeux.sounds.tone(1200, 0.06, "sine", 0.15); round.say(`${v} euro${v > 1 ? "s" : ""}`); render(); }
+      function give(v) { if (BL.sum(given) + v > 70) return; given.push(v); Jeux.sounds.tone(1200, 0.06, "sine", 0.15); round.say(`${v} euro${v > 1 ? "s" : ""}`); render(); }
       const wallet = {};
       q.coins.forEach((v) => {
         const c = coin(v);

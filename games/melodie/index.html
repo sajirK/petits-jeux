@@ -52,7 +52,7 @@
       async function play() {
         listening = false; ear.textContent = "👂";
         await wait(700);
-        const sp = ML.speed(len);
+        const sp = ML.speed(len) * (cfg.fast ? 0.8 : 1);
         for (const i of seq) { light(i, sp * 0.75); await wait(sp); }
         pos = 0; showDots(); listening = true; ear.textContent = "🎹";
       }

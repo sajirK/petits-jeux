@@ -41,7 +41,7 @@
         const targets = Kit.ui.el("div", "row targets"), pieces = Kit.ui.el("div", "row");
         zone.append(targets, pieces);
         round.stage.appendChild(zone);
-        round.stage.style.setProperty("--sz", ["", "clamp(90px, 22vmin, 150px)", "clamp(80px, 19vmin, 130px)", "clamp(70px, 16vmin, 112px)"][round.level]);
+        round.stage.style.setProperty("--sz", ["", "clamp(90px, 22vmin, 150px)", "clamp(80px, 19vmin, 130px)", "clamp(70px, 16vmin, 112px)", "clamp(62px, 14vmin, 100px)"][round.level]);
         const shadowEls = {};
         b.shadows.forEach((n) => { const s = Kit.ui.el("div", "shadow"); s.innerHTML = svg(n, "#3b2a4d"); shadowEls[n] = s; targets.appendChild(s); });
         let left = b.pieces.length;

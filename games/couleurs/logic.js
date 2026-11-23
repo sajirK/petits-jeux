@@ -14,6 +14,8 @@
     2: { rounds: 6, balloons: 4, palette: ["rouge", "bleu", "jaune", "vert", "orange", "violet", "rose", "marron"] },
     // Difficile : 6 ballons qui se promènent, les 10 couleurs
     3: { rounds: 8, balloons: 6, palette: Object.keys(COLORS), drift: true },
+    // Expert : 8 ballons qui se promènent, toutes les couleurs
+    4: { rounds: 10, balloons: 8, palette: Object.keys(COLORS), drift: true },
   };
   // "le rouge", mais "l'orange"
   const le = (n) => (/^[aeiou]/.test(n) ? "l'" : "le ") + n;

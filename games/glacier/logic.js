@@ -16,6 +16,7 @@
     1: { rounds: 3, scoops: [1, 1], sauce: 0, decos: [1, 1], tubs: 3 },   // 1 boule + 1 décoration
     2: { rounds: 3, scoops: [1, 2], sauce: 0.5, decos: [0, 1], tubs: 4 }, // 1-2 boules, parfois du nappage
     3: { rounds: 4, scoops: [2, 3], sauce: 0.7, decos: [1, 2], tubs: 6 }, // 2-3 boules, nappage, 2 décorations
+    4: { rounds: 5, scoops: [3, 4], sauce: 0.85, decos: [2, 3], tubs: 8 }, // Expert : 3-4 boules, 3 décorations, tous les parfums
   };
   function shuffle(a, rng) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   const between = (rng, [a, b]) => a + Math.floor(rng() * (b - a + 1));

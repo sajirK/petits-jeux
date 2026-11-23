@@ -22,7 +22,7 @@
   // 1 : de 1 à 5        2 : de 1 à 10        3 : de 11 à 20 (boîte de 10 + unités)
   // 4 : payer un prix de 2 à 10 € avec des pièces de 1 € et 2 €
   // 5 : payer un prix de 5 à 20 € avec 1 €, 2 € et des billets de 5 €
-  const MAX_LEVEL = 5;
+  const MAX_LEVEL = 6;
   const randInt = (rng, a, b) => a + Math.floor(rng() * (b - a + 1));
 
   function count(n, p) {
@@ -40,10 +40,11 @@
       else if (lv === 2) n = randInt(rng, 1, 10);
       else if (lv === 3) n = randInt(rng, 11, 20);
       else if (lv === 4) n = randInt(rng, 2, 10);
-      else n = randInt(rng, 5, 20);
+      else if (lv === 5) n = randInt(rng, 5, 20);
+      else n = randInt(rng, 15, 50);
     } while (n === avoid);
     if (lv >= 4) {
-      return { mode: "pay", level: lv, price: n, pastry, client, coins: lv === 4 ? [1, 2] : COINS, speech: `Bonjour ! Ça fait ${n} euros, s'il te plaît.` };
+      return { mode: "pay", level: lv, price: n, pastry, client, coins: lv === 4 ? [1, 2] : lv >= 6 ? [1, 2, 5, 10, 20] : COINS, speech: `Bonjour ! Ça fait ${n} euros, s'il te plaît.` };
     }
     return { mode: "count", level: lv, n, pastry, client, tens: lv >= 3, speech: `Bonjour ! Je voudrais ${count(n, pastry)}, s'il te plaît.` };
   }
@@ -88,6 +89,7 @@
     1: { rounds: 5, internal: [1, 2] },
     2: { rounds: 5, internal: [3] },
     3: { rounds: 5, internal: [4, 5] },
+    4: { rounds: 6, internal: [6] },  // Expert : payer jusqu'à 50 € avec des billets de 10 et 20
   };
   // la pièce la plus utile à donner (pour l'aide) : la plus grosse qui ne dépasse pas
   function bestCoin(remaining, coins) { return coins.filter((c) => c <= remaining).sort((a, b) => b - a)[0] || null; }

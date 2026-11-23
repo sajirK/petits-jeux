@@ -7,6 +7,7 @@
     1: { rounds: 4, options: 2 },  // la bonne réaction + une seule autre
     2: { rounds: 5, options: 3 },
     3: { rounds: 6, options: 3 },
+    4: { rounds: 10, options: 3 }, // Expert : 10 histoires à la suite
   };
   function shuffle(a, rng) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   // Une partie : des histoires toutes différentes, avec le bon nombre de choix

@@ -18,6 +18,7 @@
     1: { rounds: 2, types: [1, 1], maxCount: 3, noCheese: 0, tray: 4 },    // 1 garniture, jusqu'à 3
     2: { rounds: 3, types: [2, 2], maxCount: 4, noCheese: 0, tray: 6 },    // 2 garnitures
     3: { rounds: 3, types: [2, 3], maxCount: 5, noCheese: 0.3, tray: 8 },  // 2-3 garnitures, parfois sans fromage
+    4: { rounds: 4, types: [3, 4], maxCount: 6, noCheese: 0.4, tray: 10 }, // Expert : 3-4 garnitures, jusqu'à 6
   };
   function shuffle(a, rng) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   const nb = (e, n) => (FEMININE.has(e) ? NUM_F[n] : NUM[n]) || String(n);

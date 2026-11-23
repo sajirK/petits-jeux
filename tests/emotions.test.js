@@ -32,14 +32,14 @@ test("Émotions : chaque émotion est complète", () => {
 });
 
 test("Devine l'émotion : bonne réponse présente une seule fois, choix du bon niveau", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const rng = rngFrom(lv * 9);
     for (let i = 0; i < 3000; i++) {
       const q = E.faceQuestion(lv, rng);
       assert.ok(E.LEVEL_EMOTIONS[lv].includes(q.answer));
       assert.equal(q.options.filter((o) => o === q.answer).length, 1);
       assert.equal(new Set(q.options).size, q.options.length);
-      assert.equal(q.options.length, lv <= 1 ? 3 : 4);
+      assert.equal(q.options.length, lv <= 1 ? 3 : lv >= 4 ? 6 : 4);
       assert.ok(q.options.every((o) => E.LEVEL_EMOTIONS[lv].includes(o)));
     }
   }
@@ -61,7 +61,7 @@ test("Situations : données valides et le prénom apparaît dans l'histoire", ()
 });
 
 test("Situations : jamais une émotion plausible proposée comme mauvaise réponse", () => {
-  for (const lv of [1, 2, 3]) {
+  for (const lv of [1, 2, 3, 4]) {
     const rng = rngFrom(lv * 101);
     for (let i = 0; i < 4000; i++) {
       const q = E.situationQuestion(lv, rng);

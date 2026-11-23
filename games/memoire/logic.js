@@ -11,6 +11,7 @@
     1: { rounds: 2, pairs: 3, cols: 3 },
     2: { rounds: 2, pairs: 6, cols: 4 },
     3: { rounds: 2, pairs: 8, cols: 4 },
+    4: { rounds: 2, pairs: 10, cols: 5 },  // Expert : 10 paires
   };
   function shuffle(a, rng) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   function deck(level, rng = Math.random) {

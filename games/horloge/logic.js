@@ -83,10 +83,11 @@
     1: { rounds: 5, internal: 1 },
     2: { rounds: 6, internal: 2 },
     3: { rounds: 6, internal: 3, setEvery: 2 },
+    4: { rounds: 8, internal: 3, setAll: true }, // Expert : on règle toujours soi-même les aiguilles, quarts compris
   };
   function question(level, index, rng = Math.random, avoid = null) {
     const cfg = LEVELS[level];
-    const set = cfg.setEvery && index % cfg.setEvery === 1;
+    const set = cfg.setAll || (cfg.setEvery && index % cfg.setEvery === 1);
     return generate(set ? 4 : cfg.internal, rng, avoid);
   }
   // L'aide pour régler l'horloge : quel bouton toucher maintenant ? (d'abord les minutes)
